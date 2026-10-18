@@ -509,18 +509,21 @@ def assessment_answer(body:AssessmentMove,authorization:str|None=Header(default=
  if not t or t['phase']!='questions':raise HTTPException(409,'활성 진단 문제가 없습니다.')
  idx=t['index']
  if idx!=body.question_id:raise HTTPException(409,'현재 문제가 아닙니다.')
- questions=exam_bank(t['seed']);q=questions[idx]
- try:valid=chess.Move.from_uci(body.move) in chess.Board(q['fen']).legal_moves
+ if t.get('pending_feedback'):
+  return {'phase':'feedback','feedback':t['pending_feedback'],'index':idx,'total':25}
+ questions=exam_bank(t['seed']);q=questions[idx];b=chess.Board(q['fen'])
+ try:valid=chess.Move.from_uci(body.move) in b.legal_moves
  except ValueError:valid=False
  correct=valid and body.move in q['answers']
  t['correct'][q['domain']]+=int(correct)
  t['move_log'].append({'domain':q['domain'],'correct':correct})
- t['index']+=1
- if t['index']<25:
-  save_state(code,state);return {'done':False,**assessment_question(questions,t['index'])}
- t['phase']='game';t['game_moves']=[];t['game_scores']=[]
+ solution=(body.move if correct else next((u for u in q['answers'] if chess.Move.from_uci(u) in b.legal_moves),None))
+ after=b.copy();
+ if solution:after.push(chess.Move.from_uci(solution))
+ feedback={'correct':correct,'submitted':body.move,'solution':solution,'answer_fen':after.fen(),'original_fen':q['fen'],'domain':q['domain'],'explanation':('선택한 수는 이 문항의 학습 목표에 부합합니다.' if correct else '녹색으로 표시된 정답 수순을 확인한 뒤 다음 문제로 이동하세요.'),'has_alternatives':len(q['answers'])>1}
+ t['pending_feedback']=feedback
  save_state(code,state)
- return {'done':False,'phase':'game','board':serialize_board(chess.Board()),'target_white_moves':12,'message':'문항 평가가 완료됐습니다. 이어서 중급 AI 평가 대국을 진행합니다.'}
+ return {'done':False,'phase':'feedback','feedback':feedback,'index':idx,'total':25}
 
 def eval_for_white(board):
  if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists():
@@ -544,6 +547,7 @@ def medium_move(board):
 def assessment_status(authorization:str|None=Header(default=None)):
  code=auth(authorization);t=get_state(code).get('assessment_v3')
  if not t:return {'active':False}
+ if t.get('pending_feedback'):return {'active':True,'phase':'feedback','feedback':t['pending_feedback'],'index':t['index'],'total':25}
  if t['phase']=='game':return {'active':True,'phase':'game','board':serialize_board(reconstruct({'moves':t['game_moves']})),'white_moves':len(t['game_scores'])}
  return {'active':True,**assessment_question(exam_bank(t['seed']),t['index'])}
 
@@ -585,7 +589,7 @@ def assessment_game_move(body:MoveBody,authorization:str|None=Header(default=Non
  overall=sum(accuracy.values())/5
  stage='입문자' if overall<35 else '초급자' if overall<60 else '중급 진입' if overall<80 else '전술 숙련'
  recommendations={'체크메이트':'메이트 패턴 연습','전술·포획':'포크·핀·기물 교환 훈련','오프닝 전개':'오프닝 원칙 실전 학습','킹·폰 엔드게임':'킹·폰 엔드게임','수읽기·강제수':'체크·잡기·위협 계산 연습'}
- result={'stage':stage,'skills':accuracy,'correct':sum(counts.values()),'total':25,'strengths':strengths,'game_strengths':game_strengths,'weaknesses':weaknesses,'game_weaknesses':game_weaknesses,'recommendations':[recommendations[d] for d in weaknesses], 'game':{'white_moves':len(t['game_scores']),'avg_evaluation_loss_cp':avg_loss,'blunders':blunders,'inaccuracies':inaccuracies,'evaluation_method':'Stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else '기본 휴리스틱','outcome':b.result(claim_draw=True) if b.is_game_over(claim_draw=True) else '12수 평가 구간 종료'},'confidence':'비공식 예비 진단 · 공식 Elo 아님','at':datetime.now(timezone.utc).isoformat()}
+ result={'stage':stage,'skills':accuracy,'correct':sum(counts.values()),'total':25,'strengths':strengths,'game_strengths':game_strengths,'weaknesses':weaknesses,'game_weaknesses':game_weaknesses,'recommendations':[recommendations[d] for d in weaknesses], 'game':{'white_moves':len(t['game_scores']),'avg_evaluation_loss_cp':avg_loss,'blunders':blunders,'inaccuracies':inaccuracies,'evaluation_method':'Stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else '기본 휴리스틱','outcome':b.result(claim_draw=True) if b.is_game_over(claim_draw=True) else '12수 평가 구간 종료'},'item_log':t.get('move_log',[]),'confidence':'영역별 5문항 + 제한된 AI 대국에 기반한 비공식 예비 진단 · 공식 Elo 아님','at':datetime.now(timezone.utc).isoformat()}
  state['assessment']=result;state['assessment_v3']=None;save_state(code,state)
  return {'done':True,'phase':'results','board':serialize_board(b),'result':result}
 
@@ -921,3 +925,76 @@ def _v5_expand_scenes():
    except Exception:pass
   SCENARIOS[subject]=expanded
 _v5_expand_scenes()
+
+# V6 curriculum and assessment correctness layer — JSON progress schema unchanged.
+from curriculum_v6 import COURSES as V6_COURSES, CATALOG as V6_CATALOG, classify as v6_classify
+
+class V6Move(BaseModel):
+ move:str
+
+@app.get('/api/v6/courses')
+def v6_courses(authorization:str|None=Header(default=None)):
+ code=auth(authorization);state=get_state(code)
+ done=set(state.get('completed_lessons',[]))
+ return [{'id':k,'name':v[0],'level':v[1],'description':v[2], 'count':len(V6_CATALOG[k]),'completed':('v6:'+k in done)} for k,v in V6_COURSES.items() if V6_CATALOG[k]]
+
+@app.post('/api/v6/course/{course_id}/start')
+def v6_course_start(course_id:str,authorization:str|None=Header(default=None)):
+ code=auth(authorization);state=get_state(code)
+ if course_id not in V6_CATALOG or not V6_CATALOG[course_id]:raise HTTPException(404,'아직 검증된 실습 문제가 없습니다.')
+ order=list(range(len(V6_CATALOG[course_id])));random.shuffle(order)
+ state['v6_course']={'course':course_id,'order':order,'index':0,'correct_first':0,'attempted':False,'done':False}
+ save_state(code,state)
+ return v6_course_payload(state['v6_course'])
+
+def v6_course_payload(s):
+ scenes=V6_CATALOG[s['course']]
+ if s['done'] or s['index']>=len(s['order']):return {'done':True,'course':s['course'],'total':len(s['order']),'first_try':s['correct_first']}
+ p=scenes[s['order'][s['index']]];b=chess.Board(p['fen'])
+ return {'done':False,'course':s['course'],'index':s['index'],'total':len(s['order']),'fen':p['fen'],'prompt':V6_COURSES[s['course']][2], 'objective':p['objective'],'legal':[m.uci() for m in b.legal_moves], 'topic':V6_COURSES[s['course']][0]}
+
+@app.post('/api/v6/course/move')
+def v6_course_move(body:V6Move,authorization:str|None=Header(default=None)):
+ code=auth(authorization);state=get_state(code);s=state.get('v6_course')
+ if not s or s.get('done'):raise HTTPException(409,'진행 중인 과정이 없습니다.')
+ p=V6_CATALOG[s['course']][s['order'][s['index']]];b=chess.Board(p['fen'])
+ try:m=chess.Move.from_uci(body.move)
+ except ValueError:raise HTTPException(400,'착수 좌표가 올바르지 않습니다.')
+ accepted,hint=v6_classify(b,m,p['objective'])
+ if not accepted:
+  s['attempted']=True;save_state(code,state)
+  return {'correct':False,'message':hint,'fen':p['fen'],'index':s['index'],'total':len(s['order'])}
+ b.push(m)
+ if not s['attempted']:s['correct_first']+=1
+ s['attempted']=False;s['index']+=1
+ s['done']=s['index']==len(s['order'])
+ if s['done']:
+  # Mastery progress belongs to the new granulated course, not a v5 broad category.
+  if s['correct_first']>=max(3,int(len(s['order'])*.75)):
+   key='v6:'+s['course']
+   if key not in state.setdefault('completed_lessons',[]):state['completed_lessons'].append(key)
+ save_state(code,state)
+ return {'correct':True,'played_fen':b.fen(),'message':p['note'],'done':s['done'], 'passed':s['done'] and s['correct_first']>=max(3,int(len(s['order'])*.75)), 'next':None if s['done'] else v6_course_payload(s), 'first_try':s['correct_first'],'total':len(s['order'])}
+
+@app.get('/api/v6/diagnostic/recommend')
+def v6_recommendations(authorization:str|None=Header(default=None)):
+ code=auth(authorization);state=get_state(code);r=state.get('assessment') or {}
+ mapping={'체크메이트':['mate','safecheck'],'전술·포획':['fork','pin','skewer','discovered','double','capture'],'오프닝 전개':['opening'],'킹·폰 엔드게임':['endgame'],'수읽기·강제수':['safecheck','fork','double']}
+ weaknesses=r.get('weaknesses',[]) if isinstance(r,dict) else []
+ suggestions=[]
+ for domain in weaknesses:
+  for key in mapping.get(domain,[]):
+   suggestions.append({'domain':domain,'id':key,'name':V6_COURSES[key][0],'reason':f'{domain} 진단에서 보완이 필요한 분야입니다.'})
+ if not suggestions:suggestions=[{'domain':'기초 확인','id':'safecheck','name':'합법적인 체크','reason':'진단을 완료하면 약점에 맞는 훈련이 추천됩니다.'}]
+ return {'suggestions':suggestions,'skills':r.get('skills',{}),'stage':r.get('stage','진단 전'),'is_official_elo':False}
+
+@app.post('/api/v6/assessment/advance')
+def v6_assessment_advance(authorization:str|None=Header(default=None)):
+ code=auth(authorization);state=get_state(code);t=state.get('assessment_v3')
+ if not t or t['phase']!='questions' or not t.get('pending_feedback'):raise HTTPException(409,'채점 결과를 확인한 뒤 다음 문제로 넘어갈 수 있습니다.')
+ t.pop('pending_feedback');t['index']+=1
+ if t['index']<25:
+  save_state(code,state);return {'done':False,**assessment_question(exam_bank(t['seed']),t['index'])}
+ t['phase']='game';t['game_moves']=[];t['game_scores']=[]
+ save_state(code,state)
+ return {'done':False,'phase':'game','board':serialize_board(chess.Board()),'target_white_moves':12,'message':'25문항을 완료했습니다. 이제 중급 AI 대국을 시작합니다.'}
