@@ -177,13 +177,17 @@ def fallback_ai(board,depth=2):
  if not scored:return None
  return (max(scored,key=lambda x:x[0]) if board.turn==chess.WHITE else min(scored,key=lambda x:x[0]))[1]
 
-def ai_move(board):
+def ai_move(board,level=5):
  if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists():
   try:
    with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH,timeout=8) as engine:
-    return engine.play(board,chess.engine.Limit(time=.25)).move
+    
+    try:
+     engine.configure({'UCI_LimitStrength':True,'UCI_Elo':max(1320,min(3000,800+int(level)*220))})
+    except Exception: pass
+    return engine.play(board,chess.engine.Limit(time=.07+int(level)*.065)).move
   except Exception: pass
- return fallback_ai(board)
+ return fallback_ai(board,depth=1 if int(level)<=2 else 2 if int(level)<=6 else 3)
 
 def serialize_board(board,player_color='white'):
  positions={chess.square_name(s):p.symbol() for s,p in board.piece_map().items()}
@@ -198,20 +202,21 @@ def store_finished(state,board):
  result=board.result(claim_draw=True)
  outcome='win' if result==('1-0' if state['active_game'].get('color','white')=='white' else '0-1') else 'loss' if result in ('1-0','0-1') else 'draw'
  active=state['active_game']
- state['games'].append({'result':outcome,'moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),'engine':active['engine']})
+ state['games'].append({'result':outcome,'moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),'engine':active['engine'],'color':active.get('color','white'),'difficulty':active.get('difficulty',5),'started':active.get('started')})
  state['active_game']=None
 
 class NewGameBody(BaseModel):
  color:str='white'
+ difficulty:int=Field(default=5,ge=1,le=10)
 
 @app.post('/api/game/new')
 def new_game(body:NewGameBody,authorization:str|None=Header(default=None)):
  code=auth(authorization);state=get_state(code)
  if body.color not in ('white','black'):raise HTTPException(400,'백 또는 흑을 선택해 주세요.')
- state['active_game']={'moves':[],'color':body.color,'engine':'stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else 'fallback'}
+ state['active_game']={'moves':[],'color':body.color,'engine':'stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else 'fallback','difficulty':body.difficulty,'started':datetime.now(timezone.utc).isoformat()}
  board=chess.Board()
  if body.color=='black':
-  first=ai_move(board)
+  first=ai_move(board,body.difficulty)
   if first:
    board.push(first);state['active_game']['moves'].append(first.uci())
  save_state(code,state)
@@ -239,7 +244,7 @@ def move(body:MoveBody,authorization:str|None=Header(default=None)):
  active['moves'].append(candidate.uci());board.push(candidate)
  ai_uci=None
  if not board.is_game_over(claim_draw=True):
-  ai=ai_move(board)
+  ai=ai_move(board,active.get('difficulty',5))
   if ai:
    ai_uci=ai.uci();active['moves'].append(ai_uci);board.push(ai)
  finished=board.is_game_over(claim_draw=True)
@@ -252,7 +257,7 @@ def resign(authorization:str|None=Header(default=None)):
  code=auth(authorization);state=get_state(code)
  if not state['active_game']:raise HTTPException(400,'대국이 없습니다.')
  active=state['active_game']
- state['games'].append({'result':'loss','moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),'engine':active['engine'],'resigned':True})
+ state['games'].append({'result':'loss','moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),'engine':active['engine'],'resigned':True,'color':active.get('color','white'),'difficulty':active.get('difficulty',5),'started':active.get('started')})
  state['active_game']=None;save_state(code,state)
  return {'ok':True}
 
@@ -717,3 +722,202 @@ def academy_play_move(body:AcademyPlayBody,authorization:str|None=Header(default
   if body.lesson_id not in state['completed_lessons']:state['completed_lessons'].append(body.lesson_id)
  save_state(code,state)
  return {'correct':True,'player_note':player_note,'opponent_note':opponent_note,'opponent_move':opponent_move,**academy_payload(line,idx)}
+
+# ==== V5: curated practice sessions, analysis, profile reset and expanded openings ====
+class ResetProfile(BaseModel):
+ pin:str
+ confirmation:str
+
+@app.post('/api/profile/reset')
+def profile_reset(body:ResetProfile,authorization:str|None=Header(default=None)):
+ code=auth(authorization)
+ if body.confirmation!='초기화':raise HTTPException(400,'확인 문구가 정확하지 않습니다.')
+ with db() as c:r=execute(c,'SELECT pin_hash,salt FROM accounts WHERE code=?',(code,)).fetchone()
+ if not r or not hmac.compare_digest(r['pin_hash'],hash_pin(body.pin,r['salt'])):raise HTTPException(403,'PIN이 일치하지 않습니다.')
+ save_state(code,blank_state())
+ return {'ok':True,'message':'개인 코드와 로그인은 유지하고 학습·대국·진단 기록을 초기화했습니다.'}
+
+@app.post('/api/practice/retry')
+def practice_retry(authorization:str|None=Header(default=None)):
+ code=auth(authorization);state=get_state(code);current=state.get('practice')
+ if not current:raise HTTPException(409,'재도전할 퍼즐이 없습니다.')
+ # A retry is a fresh attempt of the current puzzle, not a replay of its old graded session.
+ current['attempted']=False;current['issued']=int(time.time())
+ save_state(code,state)
+ return public_exercise(exercise_bank()[current['id']],current['id'])
+
+@app.get('/api/games/history')
+def games_history(authorization:str|None=Header(default=None)):
+ code=auth(authorization);items=get_state(code).get('games',[])
+ return [{'index':i,'result':g.get('result'),'ended':g.get('ended'),'color':g.get('color','white'),'difficulty':g.get('difficulty',5),'plies':len(g.get('moves',[])),'engine':g.get('engine')} for i,g in reversed(list(enumerate(items)))]
+
+def review_annotation(board,move,engine=None):
+ side=board.turn
+ bestmove=None
+ before_cp=None
+ played_cp=None
+ source='heuristic'
+ if engine:
+  try:
+   start=engine.analyse(board,chess.engine.Limit(time=.025))
+   bestmove=start.get('pv',[None])[0]
+   before_cp=start['score'].pov(side).score(mate_score=10000)
+   board.push(move)
+   try:
+    end=engine.analyse(board,chess.engine.Limit(time=.025))
+    played_cp=end['score'].pov(side).score(mate_score=10000)
+   finally:board.pop()
+   source='Stockfish quick analysis'
+  except Exception:pass
+ if before_cp is None:
+  before_cp=positional_score(board)*(1 if side else -1)
+  if board.is_capture(move):quality='상황에 맞는 포획'
+  else:quality='착수 기록'
+  board.push(move);played_cp=positional_score(board)*(1 if side else -1);board.pop()
+  loss=max(0,round(before_cp-played_cp))
+  # Fallback is a shallow heuristic: don't assign strong move-quality labels.
+  return {'centipawn_loss':loss,'category':'미평가','comment':'Stockfish 미연결: 휴리스틱 차이만 참고하세요. 수의 품질 판정은 제공하지 않습니다.','best_move':None,'source':'heuristic (not a move grade)'}
+ loss=max(0,round(before_cp-played_cp))
+ if bestmove==move:grade='최선';comment='엔진이 가장 높게 평가한 수입니다.'
+ elif loss<=15:grade='훌륭';comment='최선에 매우 가까운 안정적인 수입니다.'
+ elif loss<=45:grade='좋음';comment='유력한 수이지만 약간 더 나은 선택이 있습니다.'
+ elif loss<=95:grade='부정확';comment='상대에게 다소 유리한 기회를 줄 수 있습니다.'
+ elif loss<=220:grade='실수';comment='중요한 기회 또는 방어 수단을 놓쳤습니다.'
+ else:grade='블런더';comment='상당한 평가 손실이 발생했습니다. 후보수와 상대의 강제수를 다시 살펴보세요.'
+ return {'centipawn_loss':loss,'category':grade,'comment':comment,'best_move':bestmove.uci() if bestmove else None,'source':source}
+
+@app.get('/api/games/review/{index}')
+def game_review(index:int,authorization:str|None=Header(default=None)):
+ code=auth(authorization);games=get_state(code).get('games',[])
+ if index<0 or index>=len(games):raise HTTPException(404,'대국을 찾을 수 없습니다.')
+ game=games[index];board=chess.Board();rows=[]
+ # Cap synchronous analysis per request for free-instance performance.
+ moves=game.get('moves',[])
+ if len(moves)>200:raise HTTPException(400,'긴 대국은 분석 구간을 나누어야 합니다. 현재는 200수 이하만 지원합니다.')
+ eng=None
+ if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists():
+  try:eng=chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH,timeout=15)
+  except Exception:pass
+ try:
+  return build_review_rows(eng,game,index,moves)
+ finally:
+  if eng:
+   try:eng.quit()
+   except Exception:pass
+
+def build_review_rows(eng,game,index,moves):
+ board=chess.Board();rows=[]
+ for n,uci in enumerate(moves):
+  try:m=chess.Move.from_uci(uci)
+  except ValueError:break
+  if m not in board.legal_moves:break
+  fen_before=board.fen();san=board.san(m);side='백' if board.turn else '흑'
+  assessment=review_annotation(board,m,eng)
+  board.push(m)
+  rows.append({'ply':n+1,'side':side,'uci':uci,'san':san,'before_fen':fen_before,'after_fen':board.fen(),**assessment})
+ return {'index':index,'result':game.get('result'),'color':game.get('color','white'),'difficulty':game.get('difficulty',5),'moves':rows,'final_fen':board.fen(),'method':'신속 분석: 깊은 탐색보다 속도를 우선하며, 수 평가 라벨은 근사치입니다.'}
+
+# Larger opening catalogue. Each line is verified for legality at startup.
+ADDITIONAL_OPENINGS={
+ 'london_white':('런던 시스템 · 백','white',['d2d4','d7d5','c1f4','g8f6','e2e3','e7e6','g1f3','f8d6']),
+ 'london_black':('런던 시스템 · 흑','black',['d2d4','d7d5','c1f4','g8f6','e2e3','e7e6','g1f3','f8d6']),
+ 'carokann_white':('카로칸 디펜스 · 백','white',['e2e4','c7c6','d2d4','d7d5','b1c3','d5e4','c3e4']),
+ 'carokann_black':('카로칸 디펜스 · 흑','black',['e2e4','c7c6','d2d4','d7d5','b1c3','d5e4','c3e4']),
+ 'french_white':('프렌치 디펜스 · 백','white',['e2e4','e7e6','d2d4','d7d5','b1c3','g8f6']),
+ 'french_black':('프렌치 디펜스 · 흑','black',['e2e4','e7e6','d2d4','d7d5','b1c3','g8f6']),
+ 'scotch_white':('스카치 게임 · 백','white',['e2e4','e7e5','g1f3','b8c6','d2d4','e5d4','f3d4']),
+ 'scotch_black':('스카치 게임 · 흑','black',['e2e4','e7e5','g1f3','b8c6','d2d4','e5d4','f3d4']),
+ 'kingsindian_white':('킹즈 인디언 디펜스 · 백','white',['d2d4','g8f6','c2c4','g7g6','b1c3','f8g7']),
+ 'kingsindian_black':('킹즈 인디언 디펜스 · 흑','black',['d2d4','g8f6','c2c4','g7g6','b1c3','f8g7']),
+ 'ruylopez_white':('루이 로페즈 · 백','white',['e2e4','e7e5','g1f3','b8c6','f1b5','a7a6','b5a4']),
+ 'ruylopez_black':('루이 로페즈 · 흑','black',['e2e4','e7e5','g1f3','b8c6','f1b5','a7a6','b5a4']),
+ 'english_white':('잉글리시 오프닝 · 백','white',['c2c4','e7e5','b1c3','g8f6','g2g3','d7d5']),
+ 'english_black':('잉글리시 오프닝 · 흑','black',['c2c4','e7e5','b1c3','g8f6','g2g3','d7d5']),
+}
+OPENING_EDUCATION={
+ 'london':'d4와 Bf4로 안정적인 구조를 만들고 e3·Nf3로 전개합니다. 흑은 ...d5, ...Nf6, ...e6로 중앙 균형과 비숍 압박을 준비합니다.',
+ 'carokann':'흑은 ...c6으로 ...d5를 지지하며 중앙을 공격합니다. 백은 d4로 공간을 확보하고 Nc3로 e4를 지킵니다.',
+ 'french':'흑은 ...e6와 ...d5로 중앙에 압박을 가하지만 밝은칸 비숍이 제약됩니다. 백은 d4와 Nc3로 공간을 활용합니다.',
+ 'scotch':'백은 빠른 d4로 중앙을 열어 전개 우위를 시도합니다. 흑은 ...exd4로 중앙 긴장을 즉시 해소합니다.',
+ 'kingsindian':'흑은 ...Nf6·...g6·...Bg7로 피앙케토 후 중앙 반격을 노립니다. 백은 d4·c4·Nc3로 공간을 확보합니다.',
+ 'ruylopez':'백 B b5는 c6의 나이트와 e5 폰의 관계를 압박합니다. 흑의 ...a6 이후 비숍을 후퇴시키며 중앙 싸움을 지속합니다.',
+ 'english':'백은 c4로 d5를 통제하며 유연하게 전개합니다. 흑은 ...e5로 중앙과 공간에 맞섭니다.'}
+for key,(name,color,moves) in ADDITIONAL_OPENINGS.items():
+ b=chess.Board()
+ for uci in moves:
+  m=chess.Move.from_uci(uci)
+  assert m in b.legal_moves,(key,uci)
+  b.push(m)
+ description=OPENING_EDUCATION[key.split('_')[0]]
+ notes=[f'{"백" if i%2==0 else "흑"}의 {i//2+1}번째 착수: {description}' for i,_ in enumerate(moves)]
+ OPENING_LINES[key]={'name':name,'color':color,'intro':description,'moves':moves,'notes':notes}
+
+@app.get('/api/openings/hint')
+def opening_hint(authorization:str|None=Header(default=None)):
+ code=auth(authorization);state=get_state(code);s=state.get('opening_practice')
+ if not s:raise HTTPException(409,'먼저 오프닝을 시작해 주세요.')
+ line=OPENING_LINES[s['line_id']];idx=s['index']
+ if idx>=len(line['moves']):return {'done':True}
+ return {'done':False,'move':line['moves'][idx],'explanation':line['notes'][idx],'opponent_next':line['moves'][idx+1] if idx+1<len(line['moves']) else None}
+
+# scenario-based coaching, with distinct positions and actual legal-move checks
+from lesson_scenarios import SCENARIOS
+class ScenarioMove(BaseModel):
+ lesson_id:str
+ move:str
+
+@app.post('/api/academy/scenario/start/{lesson_id}')
+def scenario_start(lesson_id:str,authorization:str|None=Header(default=None)):
+ code=auth(authorization)
+ if lesson_id not in SCENARIOS:raise HTTPException(404,'교육 주제가 없습니다.')
+ state=get_state(code)
+ # Every lesson consists of distinct short board states, never one unrelated full game.
+ order=list(range(len(SCENARIOS[lesson_id])));random.shuffle(order)
+ state['scenario_v5']={'lesson_id':lesson_id,'order':order,'index':0,'attempts':0}
+ save_state(code,state)
+ return scenario_payload(state['scenario_v5'])
+
+def scenario_payload(cur):
+ if cur['index']>=len(cur['order']):return {'done':True,'lesson_id':cur['lesson_id']}
+ p=SCENARIOS[cur['lesson_id']][cur['order'][cur['index']]];b=chess.Board(p['fen'])
+ return {'done':False,'lesson_id':cur['lesson_id'],'index':cur['index'],'total':len(cur['order']),'fen':p['fen'],'prompt':p['prompt'],'legal':[m.uci() for m in b.legal_moves]}
+
+@app.post('/api/academy/scenario/move')
+def scenario_move(body:ScenarioMove,authorization:str|None=Header(default=None)):
+ code=auth(authorization);state=get_state(code);cur=state.get('scenario_v5')
+ if not cur or cur['lesson_id']!=body.lesson_id:raise HTTPException(409,'실습을 먼저 시작하세요.')
+ if cur['index']>=len(cur['order']):raise HTTPException(409,'이미 완료된 실습입니다.')
+ p=SCENARIOS[body.lesson_id][cur['order'][cur['index']]]
+ b=chess.Board(p['fen'])
+ try:m=chess.Move.from_uci(body.move)
+ except ValueError:m=None
+ if m not in b.legal_moves:return {'correct':False,'message':'합법적이지 않은 착수입니다.'}
+ if body.move!=p['answer']:
+  cur['attempts']+=1;save_state(code,state)
+  return {'correct':False,'message':'이번 실습의 목표와 다른 수입니다. 포지션과 설명을 다시 살펴보세요.'}
+ b.push(m);after=b.fen();cur['index']+=1
+ done=cur['index']==len(cur['order'])
+ if done:
+  state.setdefault('completed_lessons',[])
+  if body.lesson_id not in state['completed_lessons']:state['completed_lessons'].append(body.lesson_id)
+ save_state(code,state)
+ return {'correct':True,'played_fen':after,'explanation':p['prompt'],'done':done,'next':None if done else scenario_payload(cur),'completed':cur['index'],'total':len(cur['order'])}
+
+# Create mirrored board situations where safe: separate visual contexts for transfer practice.
+# These are deliberately not passed off as independently authored lessons.
+def _v5_expand_scenes():
+ for subject,scenes in SCENARIOS.items():
+  expanded=[]
+  for p in scenes:
+   expanded.append(p)
+   b=chess.Board(p['fen'])
+   if b.castling_rights:continue
+   mirrored=b.transform(chess.flip_horizontal)
+   old=p['answer'];translated=old.translate(str.maketrans('abcdefgh','hgfedcba'))
+   try:
+    candidate=chess.Move.from_uci(translated)
+    if mirrored.is_valid() and candidate in mirrored.legal_moves:
+     expanded.append({'fen':mirrored.fen(),'answer':translated,'prompt':p['prompt']+' (반대쪽 배치)'})
+   except Exception:pass
+  SCENARIOS[subject]=expanded
+_v5_expand_scenes()

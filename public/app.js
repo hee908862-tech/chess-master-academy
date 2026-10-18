@@ -97,7 +97,7 @@ async function onGameSquare(s){
  selectedGame=game.legal.some(m=>m.from===s)?s:null;drawGame();
 }
 async function refreshSummaryOnly(){if(!token)return;try{user=await api('/me');$('homeGames').textContent=user.stats.games+'판';$('profileGames').textContent=user.stats.games;}catch(e){}}
-$('newGame').onclick=async()=>{if(!ready())return;ensureAudio();try{playerColor=$('playerColor').value;const r=await api('/game/new','POST',{color:playerColor});showGame(r.board,r.message)}catch(e){notice('gameStatus',e.message,'err')}};
+$('newGame').onclick=async()=>{if(!ready())return;ensureAudio();try{playerColor=$('playerColor').value;const r=await api('/game/new','POST',{color:playerColor,difficulty:Number($('aiLevel')?.value||5)});showGame(r.board,r.message)}catch(e){notice('gameStatus',e.message,'err')}};
 $('resign').onclick=async()=>{if(!ready()||!game||game.is_over)return;if(!confirm('현재 대국을 기권하시겠습니까?'))return;try{await api('/game/resign','POST');game=null;drawGame();notice('gameStatus','기권으로 대국이 종료됐습니다.');await refresh()}catch(e){notice('gameStatus',e.message,'err')}};
 function currentPuzzle(){return puzzleItems[puzzleIdx]}
 async function loadPuzzles(){try{puzzleItems=await api('/puzzles');$('puzzleSelect').innerHTML='';puzzleItems.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${i+1}. ${p.theme} · ${p.difficulty}`;$('puzzleSelect').appendChild(o)});showPuzzle()}catch(e){notice('puzzleStatus',e.message,'err')}}
