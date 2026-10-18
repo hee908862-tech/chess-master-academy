@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: chess-master-academy
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
