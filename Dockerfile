@@ -3,7 +3,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends stockfish && rm
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY server.py exercises.py .
+COPY server.py exercises.py assessment_v3.py lesson_scenarios.py .
 COPY public ./public
 ENV STOCKFISH_PATH=/usr/games/stockfish
 ENV PYTHONUNBUFFERED=1

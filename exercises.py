@@ -84,4 +84,4 @@ def bank():
     return mate+capture
 
 def public(exercise, identifier):
-    return {'id':identifier,'fen':exercise['fen'],'theme':exercise['theme'],'difficulty':exercise['difficulty'],'kind':exercise['kind'],'description':exercise['description']}
+    return {'id':identifier,'fen':exercise['fen'],'theme':exercise['theme'],'difficulty':exercise['difficulty'],'kind':exercise['kind'],'description':exercise['description'],'legal':[m.uci() for m in chess.Board(exercise['fen']).legal_moves]}

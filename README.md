@@ -1,25 +1,46 @@
-# Chess Master Academy — Integrated Learning Edition
+# Chess Master Academy v4 — 온라인 배포 업데이트
 
-## Installation / deployment
-- Python 3.11+; `pip install -r requirements.txt`; `python server.py` or `uvicorn server:app --host 0.0.0.0 --port 8000`.
-- Render: Docker Web Service; set persistent `DATABASE_URL` pointing to PostgreSQL; otherwise SQLite is local/ephemeral.
-- Stockfish installed using included Dockerfile. Check `/api/health` for active engine.
-- Open `http://localhost:8000` (or deployed URL). Register code + PIN. Do not open `index.html` via file://.
+기존 v3 베타를 확장한 버전입니다. **현재 실행 중인 기존 PostgreSQL 데이터베이스를 그대로 연결하도록 설계**했습니다. 기존 데이터베이스를 삭제하거나 새 DB로 바꾸지 마세요. 적용 전에는 백업을 권장합니다.
 
-## Current features
-- Legal chess moves + Stockfish AI (fallback minimax if unavailable).
-- Server-validated random exercise bank: procedural unique mate-in-one and material tactics generated only from legal positions, up to ~100 generated positions per bank build (actual count depends on legality and uniqueness filters); count shown at `/api/health`.
-- Per-account practice sessions, spaced repetition weighting of missed positions, and test sessions where answers/hints are not exposed by API.
-- Domain skill report with *provisional stage*, not a standardized FIDE/Chess.com rating. Estimated real-world Elo cannot be justified without external calibration.
-- Interactive quiz assessments and curriculum gating, account persistence, desktop/mobile theme and click sound options.
+## 사용자 요청 반영
 
-## Caveats
-- Generated tactical captures are heuristic; mate-in-one positions are exhaustively validated using python-chess. Capture puzzles are filtered but not guaranteed to have only one engine-optimal long-term move.
-- Puzzle sessions are server validated, but client-side or automated API cheating cannot be mathematically impossible for a user with access to developer tools. Assessment rating is provisional.
-- Do not modify database schemas casually. Back up PostgreSQL before deployment.
-- Public production launch additionally needs rate limiting, account recovery, backups and security review.
+1. Render 로그에서 `favicon.ico 404`는 리소스 누락 → favicon 엔드포인트 추가. `POST /api/register 422`는 가입 필드 검증 오류 → 문자 수 조건을 API에서 안내하는 400 응답으로 변경. 정확한 당시 입력값/응답은 제공되지 않아 해당 422의 단일 원인은 확정할 수 없습니다.
+2. PC 홈 제목 영역: 상단 카드 폭 재조정, 한국어 줄바꿈 개선, 텍스트의 수동 줄바꿈 제거.
+3. 도움말 화면: 가입, 체스판 조작, AI 대국, 퍼즐, 교육·오프닝, 계정 기록.
+4. 모든 퍼즐 풀이 시 기물 이동 오버레이 애니메이션, 정답 시 다음 문제 버튼 출력.
+5. 대국: 백/흑 선택, 흑 사용 시 체스판 반전, 서버가 백으로 첫 수를 둠. 착수 시 화면을 먼저 갱신하고 스톡피쉬 응수를 기다림. AI 응수 역시 짧은 이동 애니메이션 표시.
+6. 아카데미: 규칙/포획/전술/수읽기/엔드게임/오프닝/복기의 7개 과정이 3회 이상의 *연속된 백 착수*와 상대의 자동 응수로 진행됩니다. 서버가 합법 수 및 교육 수순을 검증하고 끝나면 완료 기록을 저장합니다. 읽기-퀴즈만으로 완료되지 않습니다.
+7. 오프닝 연구실: 이탈리안 게임, 퀸즈 갬빗, 시실리안 디펜스의 백·흑 학습 수순 6개. 사용자가 기물을 움직일 때마다 상대의 표준 응수 및 설명을 제공합니다.
 
-## Test status
-- Passed: Python parse/compile, Node JavaScript syntax, 24 asset files, page asset paths, synthetic question-ID uniqueness over 1,000 sessions.
-- Not verified in this execution environment: import of python-chess, live API responses, real Stockfish decision quality, actual desktop/mobile browser, long-term persistence, end-to-end session correctness.
-- The generated capture problems use a heuristic and must not be treated as validated unique-best-move training problems.
+**교육적 한계**: 이번 버전의 오프닝 수순은 입문자를 위한 선별된 기본 변화이며, 상대의 임의의 응수나 모든 분기를 분석하는 전체 오프닝 DB는 아직 없습니다. 일반 AI 대국은 별도로 자유 플레이할 수 있습니다. 체스판 기물 애니메이션은 CSS/Web Animations 기반입니다.
+
+## 파일 업로드
+
+기존 GitHub 저장소 https://github.com/hee908862-tech/chess-master-academy 의 최상위에 다음 파일을 같은 경로로 교체/추가합니다.
+
+- `server.py` (교체)
+- `public/index.html` (교체)
+- `public/app.js` (교체)
+- `public/extended.js` (교체)
+- `public/v4.js` (추가)
+- `public/favicon.svg` (추가)
+- 나머지 파일들은 기존과 동일하며 ZIP에 포함되어 있어 전체 업로드도 가능
+
+Render Docker 런타임 유지. 기존 `DATABASE_URL`, `STOCKFISH_PATH` 등 환경 변수 유지. Dockerfile은 필요한 파이썬 패키지와 Stockfish를 설치합니다.
+
+**중요**: GitHub 브라우저 업로드에서 기존 파일을 무작정 드래그하면 이름 충돌로 덮어쓰기가 되지 않을 수 있습니다. 로컬 Git을 사용하거나 GitHub 편집 기능으로 정확한 경로에 변경 사항을 반영하세요.
+
+## 배포 후 수동 점검
+
+1. Render `Deploy succeeded / Live` 및 `/api/health`의 `engine` 확인
+2. 기존 코드/PIN으로 로그인해 학습 기록이 남아 있는지 확인
+3. 백 대국: e2e4를 두자마자 폰이 e4로 움직이고, AI 착수 후 화면이 갱신되는지 확인
+4. 흑 대국: `흑으로 플레이` 선택, AI 백 착수, 검은 기물 선택/이동 가능 여부, 흑 관점 체스판 방향 확인
+5. 퍼즐: 선택한 말 이동 표시, 정답 후 `다음 문제 →` 버튼 확인
+6. 아카데미: 규칙 강의 선택 후 e2e4 → g1f3 → f1c4를 직접 진행해 연속 실습/기록 저장 확인
+7. 오프닝: 이탈리안/퀸즈 갬빗/시실리안 각각 백/흑으로 실습
+8. PC와 휴대폰에서 제목/체스판/버튼 레이아웃 확인
+
+## 검증 범위
+
+Python 전체 파일의 AST/구문 검사, 세 JavaScript 파일의 Node 문법 검사, HTML에서 참조하는 요소 ID와 리소스 파일 존재 검사, ZIP 무결성 검사를 수행했습니다. **이 실행 환경에서는 `python-chess` 패키지 설치와 로컬 HTTP 서버 구동이 차단되어, 실제 브라우저/Stockfish 통합 테스트를 완료하지 못했습니다.** 현장 테스트 후 수정이 필요할 수 있습니다.
