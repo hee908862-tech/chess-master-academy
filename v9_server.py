@@ -54,6 +54,8 @@ class CourseStartBody(BaseModel):
  level:str
 class MoveBody(BaseModel):
  move:str
+ session_id:str|None=None
+ expected_fen:str|None=None
 
 def attach_v9(app,ns):
  auth=ns['auth'];get_state=ns['get_state'];save_state=ns['save_state']
@@ -66,6 +68,7 @@ def attach_v9(app,ns):
   b=chess.Board(p['fen'])
   for u in p['moves'][:offset]:b.push_uci(u)
   return {'id':p['id'],'fen':b.fen(),'legal':[m.uci() for m in b.legal_moves],
+          'opponent_last_move':p['moves'][offset-1] if offset>0 else None,
           'rating':p['rating'],'themes':[THEMES[t] for t in p['themes'] if t in THEMES],
           'ply':offset,'total_solver_moves':len(p['moves'][1::2]),
           'remaining':len(p['moves'][offset::2]),'side':'white' if b.turn else 'black'}
@@ -76,7 +79,7 @@ def attach_v9(app,ns):
  def task_payload(task):
   p=LIB.get(task['ids'][task['index']])
   if not p:raise HTTPException(409,'문제 데이터가 업데이트되었습니다. 새 세션을 시작하세요.')
-  return {'type':task['type'],'theme':task.get('theme'),'level':task.get('level'),
+  return {'session_id':task.get('session_id'),'type':task['type'],'theme':task.get('theme'),'level':task.get('level'),
           'index':task['index'],'total':len(task['ids']),'correct_count':task['correct_count'],
           'attempted':task['attempted'],**public(p,task['offset'])}
  def start_for(code,theme,level,typ):
@@ -102,7 +105,7 @@ def attach_v9(app,ns):
   rng=secrets.SystemRandom()
   picks=rng.sample(candidates,count)
   if typ=='puzzle':state['v9_recent_puzzles']=(state.get('v9_recent_puzzles',[])+picks)[-100:]
-  state['v9_'+typ]={'type':typ,'theme':theme,'level':level,'ids':picks,'index':0,
+  state['v9_'+typ]={'session_id':secrets.token_hex(16),'type':typ,'theme':theme,'level':level,'ids':picks,'index':0,
                     'offset':1,'correct_count':0,'attempted':False,'hint_used':False,'wrong_moves':0,'done':False,'awaiting_next':False}
   save_state(code,state)
   return task_payload(state['v9_'+typ])
@@ -149,6 +152,8 @@ def attach_v9(app,ns):
   if task.get('awaiting_next'):raise HTTPException(409,'다음 문제 버튼을 눌러주세요.')
   p=LIB[task['ids'][task['index']]];b=chess.Board(p['fen'])
   for u in p['moves'][:task['offset']]:b.push_uci(u)
+  if body.session_id is not None and body.session_id!=task.get('session_id'):raise HTTPException(409,'문제 세션이 변경되었습니다. 새 문제를 시작하세요.')
+  if body.expected_fen is not None and body.expected_fen!=b.fen():raise HTTPException(409,'문제 위치가 변경되었습니다. 새 문제를 시작하세요.')
   try:m=chess.Move.from_uci(body.move)
   except (ValueError,TypeError):raise HTTPException(400,'잘못된 착수 형식')
   if m not in b.legal_moves:raise HTTPException(400,'합법적으로 이동할 수 없는 수입니다.')

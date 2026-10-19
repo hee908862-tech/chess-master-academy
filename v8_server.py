@@ -13,6 +13,8 @@ class AnswerV8(BaseModel):
     move:str
 class GameMoveV8(BaseModel):
     move:str
+    session_id:str|None=None
+    expected_fen:str|None=None
 
 def attach_v8(app,ns):
     auth=ns['auth'];get_state=ns['get_state'];save_state=ns['save_state']
@@ -63,7 +65,7 @@ def attach_v8(app,ns):
         if t['phase']=='feedback':return {'active':True,'phase':'feedback','feedback':t['feedback'],'index':t['index'],'total':49}
         if t['phase']=='game' and clock_view(t).get('white_ms',1)<=0:
             return {'active':False,**finish_assessment(code,s,t,board_from(t),'백 시간 초과')}
-        if t['phase']=='game':return {'active':True,'phase':'game','board':serialize_board(board_from(t)),
+        if t['phase']=='game':return {'active':True,'phase':'game','session_id':str(t['seed']) if 'seed' in t else None,'board':serialize_board(board_from(t)),
                                      'white_moves':len(t['losses']),'target_white_moves':None,'clock':clock_view(t)}
         return {'active':True,**current(t)}
     @app.post('/api/v8/assessment/answer')
@@ -93,7 +95,7 @@ def attach_v8(app,ns):
         t['index']+=1;t.pop('feedback',None)
         if t['index']>=49:
             t['phase']='game';t['moves']=[];t['losses']=[];t['clock']={'white_ms':600000,'black_ms':600000,'increment_ms':5000};t['clock_started_at']=time.time();save_state(code,s)
-            return {'phase':'game','board':serialize_board(chess.Board()),'white_moves':0,'target_white_moves':None,'clock':clock_view(t)}
+            return {'phase':'game','session_id':str(t['seed']) if 'seed' in t else None,'board':serialize_board(chess.Board()),'white_moves':0,'target_white_moves':None,'clock':clock_view(t)}
         t['phase']='questions';t['shown_at']=time.time();save_state(code,s)
         return current(t)
     def finish_assessment(code,s,t,b,reason):
@@ -122,6 +124,8 @@ def attach_v8(app,ns):
         code,s,t=require(authorization)
         if t['phase']!='game':raise HTTPException(409,'평가 대국 단계가 아닙니다.')
         b=board_from(t)
+        if body.session_id is not None and body.session_id!=str(t.get('seed')):raise HTTPException(409,'진단 세션이 변경되었습니다.')
+        if body.expected_fen is not None and body.expected_fen!=b.fen():raise HTTPException(409,'진단 위치가 변경되었습니다.')
         if b.turn!=chess.WHITE:raise HTTPException(409,'AI 차례입니다.')
         now=time.time(); elapsed=max(0,int((now-t.get('clock_started_at',now))*1000))
         c=t.setdefault('clock',{'white_ms':600000,'black_ms':600000,'increment_ms':5000})
@@ -148,7 +152,7 @@ def attach_v8(app,ns):
         if b.is_game_over(claim_draw=True):return finish_assessment(code,s,t,b,'체스 규칙상 종료')
         t['clock_started_at']=time.time()
         save_state(code,s)
-        return {'phase':'game','board':serialize_board(b),'white_moves':len(t['losses']),
+        return {'phase':'game','session_id':str(t['seed']) if 'seed' in t else None,'board':serialize_board(b),'white_moves':len(t['losses']),
                 'target_white_moves':None,'clock':clock_view(t)}
 
     @app.post('/api/v8/assessment/resign')

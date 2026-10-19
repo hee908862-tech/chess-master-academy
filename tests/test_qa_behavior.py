@@ -147,3 +147,44 @@ def test_timeout_response_retains_player_color(game_api,color,moves):
     assert response.json()['timeout']
     assert response.json()['player_color']==color
     assert state['games'][-1]['color']==color
+
+
+def test_assessment_previous_move_matches_corpus():
+    from assessment_v8 import questions,public_question
+    for q in questions(20261019):
+        source=v9_server.LIB[q['puzzle_id']]
+        board=chess.Board(source['fen']);board.push_uci(source['moves'][0])
+        public=public_question(q)
+        assert public['opponent_last_move']==source['moves'][0]
+        assert public['fen']==board.fen()
+        assert 'answers' not in public
+
+
+def test_puzzle_previous_move_and_stale_fen_rejection(api,monkeypatch):
+    client,state=api
+    seed(monkeypatch,state,['d7d8q'])
+    state['v9_puzzle']['session_id']='current'
+    payload=client.get('/api/v9/session/puzzle').json()
+    assert payload['opponent_last_move']=='c2c1'
+    before=copy.deepcopy(state)
+    for fields in [{'session_id':'old'},{'expected_fen':chess.STARTING_FEN}]:
+        assert client.post('/api/v9/puzzle/move',json={'move':'d7d8q',**fields}).status_code==409
+        assert state==before
+
+
+def test_game_stale_session_and_position_rejected(game_api):
+    client,state,_=game_api
+    state['active_game']={'session_id':'current','moves':[],'color':'white','time_mode':'unlimited'}
+    before=copy.deepcopy(state)
+    for fields in [{'session_id':'old'},{'expected_fen':'stale'}]:
+        assert client.post('/api/game/move',json={'from_sq':'e2','to_sq':'e4',**fields}).status_code==409
+        assert state==before
+
+
+def test_assessment_stale_session_and_position_rejected(api):
+    client,state=api
+    state['assessment_v8']={'seed':77,'phase':'game','moves':[]}
+    before=copy.deepcopy(state)
+    for fields in [{'session_id':'old'},{'expected_fen':'stale'}]:
+        assert client.post('/api/v8/assessment/game-move',json={'move':'e2e4',**fields}).status_code==409
+        assert state==before

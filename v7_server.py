@@ -58,7 +58,7 @@ def attach_v7(app, ns):
             if mover==side:human_removed=True
             if human_removed and board.turn==side:break
         save_state(code,state)
-        return {'board':serialize_board(board,color),'player_color':color,'removed_plies':removed,'message':'마지막 선택을 되돌렸습니다.'}
+        return {'session_id':g.get('session_id'),'board':serialize_board(board,color),'player_color':color,'removed_plies':removed,'message':'마지막 선택을 되돌렸습니다.'}
 
     @app.post('/api/v7/review/variation')
     def variation(req:ReviewVariationRequest,authorization:str|None=Header(default=None)):

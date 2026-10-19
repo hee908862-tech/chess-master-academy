@@ -4,7 +4,7 @@
 const $$=id=>document.getElementById(id);
 let current=null,chosen=null,busy=false,showing=false,selectedBase=null,lastAnswer=null,evalClock=null,evalClockAt=0,revision=0,recommendationRevision=0;
 const dom=$$('v8DomainList'),info=$$('v8ScoreSummary'),board=$$('testBoard'),progress=$$('testProgress'),status=$$('testStatus');
-function assessmentActive(){return ['questions','feedback','game'].includes(current?.phase)}
+function assessmentActive(){return ['loading','questions','feedback','game'].includes(current?.phase)}
 function clearPreviousResult(){
  recommendationRevision++;info.replaceChildren();$$('v8RecommendationList').replaceChildren();
  $$('v8Outcome').textContent='새 진단 진행 중입니다. 완료 후 이번 진단 결과가 표시됩니다.';
@@ -19,22 +19,22 @@ setInterval(evalClockDraw,1000);
 function display(msg,klass=''){status.textContent=msg;status.className='notice '+klass;}
 function hideOverlay(){const o=$$('v8Overlay');o.hidden=true;}
 function feedbackOverlay(data){
- clearPreviousResult();
+ clearPreviousResult();progress.textContent=data.index==null?'문항 채점 결과':`문항 ${data.index+1} / 49 · 채점 결과`;
  const o=$$('v8Overlay');o.hidden=false;const fb=data.feedback;
  $$('v8Verdict').textContent=fb.correct?'✓ 정답입니다':'✕ 오답입니다';
  $$('v8Verdict').style.color=fb.correct?'#74e2c2':'#ffabb1';
  $$('v8VerdictDetails').textContent=`${fb.domain} · 난이도 ${fb.difficulty}/7 · ${fb.seconds}초 · ${fb.points}점`;
  $$('v8AnswerText').textContent=`모범 착수: ${nameMove(fb.original_fen,fb.answer)}`;
  lastAnswer=fb;
- drawBoard('testBoard',fromFen(fb.answer_fen),{last:[fb.answer.slice(0,2),fb.answer.slice(2,4)]});
+ drawBoard('testBoard',fromFen(fb.answer_fen),{flip:fb.original_fen.split(' ')[1]==='b',last:[fb.answer.slice(0,2),fb.answer.slice(2,4)]});
  const squares=board.querySelectorAll('.sq');for(const sq of squares){const a=sq.getAttribute('aria-label')?.split(' ')[0];if(a===fb.answer.slice(2,4))sq.classList.add('v8-correct');}
  display('모범 착수와 채점 결과를 확인한 뒤 다음 문제를 누르세요.');
 }
 function nameMove(fen,uci){const p=fromFen(fen)[uci.slice(0,2)];const sym=({P:'',N:'N',B:'B',R:'R',Q:'Q',K:'K'})[(p||'P').toUpperCase()]||'';return sym+uci.slice(0,2)+' → '+sym+uci.slice(2,4)}
 function showQuestion(r){
- current={phase:'questions',q:r.question};clearPreviousResult();chosen=null;hideOverlay();lastAnswer=null;
+ window.cmaBoardTools.cancel('testBoard');current={phase:'questions',q:r.question};clearPreviousResult();chosen=null;hideOverlay();lastAnswer=null;
  progress.textContent=`문항 ${r.index+1} / 49 · ${r.domain} · 난이도 ${r.question.difficulty}/7`;
- display(r.question.description);
+ display(r.question.description+(r.question.opponent_last_move?` · 상대 직전 수: ${r.question.opponent_last_move} (청록 표시)`:' · 직전 수 기록이 없어 표시할 수 없습니다.'));
  $$('v8Outcome').textContent='문제마다 정답과 걸린 시간을 함께 기록합니다.';
  draw();
 }
@@ -42,13 +42,14 @@ function draw(){
  if(!current)return;
  if(current.phase==='questions'){
  const q=current.q;const targets=chosen?(q.legal||[]).filter(u=>u.slice(0,2)===chosen).map(u=>({to:u.slice(2,4)})):[];
- drawBoard('testBoard',fromFen(q.fen),{flip:q.fen.split(' ')[1]==='b',selected:chosen,targets,onClick:click});
+ drawBoard('testBoard',fromFen(q.fen),{flip:q.fen.split(' ')[1]==='b',opponent:q.opponent_last_move?[q.opponent_last_move.slice(0,2),q.opponent_last_move.slice(2,4)]:[],selected:chosen,targets,onClick:click});
  }else if(current.phase==='game'){
  const g=current.game;const targets=chosen?(g.legal||[]).filter(m=>m.from===chosen):[];
  drawBoard('testBoard',g.squares,{selected:chosen,targets,last:g.last_move?[g.last_move.slice(0,2),g.last_move.slice(2,4)]:[],onClick:click});
  }
 }
 async function click(sq){
+ if(busy&&current?.phase==='game'){window.cmaBoardTools.pick('testBoard',sq);return;}
  if(busy||!current||!['questions','game'].includes(current.phase))return;
  if(chosen===sq){chosen=null;draw();return;}
  const game=current.phase==='game',p=game?current.game.squares:fromFen(current.q.fen);
@@ -58,9 +59,11 @@ async function click(sq){
  if(!chosen){if(friendly(sq)&&legal.some(m=>m.slice(0,2)===sq)){chosen=sq;draw();}return;}
  const from=chosen,found=legal.find(m=>m.slice(0,2)===from&&m.slice(2,4)===sq);
  if(!found){chosen=friendly(sq)&&legal.some(m=>m.slice(0,2)===sq)?sq:null;draw();return;}
- const request=++revision,snapshot=current;busy=true;
+ const request=++revision,snapshot=current,accountToken=token,viewVersion=window.cmaBoardTools.version();busy=true;
  const promo=await choosePromotion(from,sq,p[from],legal);
  if(request!==revision||current!==snapshot)return;
+ if(promo===null||accountToken!==token||viewVersion!==window.cmaBoardTools.version()){busy=false;return;}
+ if(game&&evalClock?.white_ms!=null&&evalClock.white_ms-(Date.now()-evalClockAt)<=0){await restore();return;}
  const selectedMove=promo?(from+sq+promo):found;
  chosen=null;busy=true;
  try{
@@ -72,22 +75,24 @@ async function click(sq){
    optimistic.squares[sq]=optimistic.squares[from];delete optimistic.squares[from];
    if((originalGame.squares[from]||'').toLowerCase()==='p'&&from[0]!==sq[0]&&!originalGame.squares[sq])delete optimistic.squares[sq[0]+from[1]];
    if(promo)optimistic.squares[sq]=(p[from]===p[from].toUpperCase()?promo.toUpperCase():promo.toLowerCase());
-   current={phase:'game',game:optimistic};draw();display('착수가 반영됐습니다. AI가 생각하고 있습니다.');
-   const r=await api('/v8/assessment/game-move','POST',{move:selectedMove});if(request!==revision)return;evalClockSet(r.clock);
+   if(snapshot.session_id)window.cmaBoardTools.begin('testBoard',request,optimistic.squares,'white');else window.cmaBoardTools.unavailable('testBoard');current={phase:'game',session_id:snapshot.session_id,game:optimistic};draw();display('착수가 반영됐습니다. AI가 생각하고 있습니다.');
+   const r=await api('/v8/assessment/game-move','POST',{move:selectedMove,session_id:snapshot.session_id,expected_fen:originalGame.fen});if(request!==revision||accountToken!==token)return;evalClockSet(r.clock);
    if(r.done){showResult(r.result,r.board);}
-   else{current={phase:'game',game:r.board};progress.textContent=`50번째 평가 · 중급 AI 실전 대국`;display('AI가 응수했습니다. 다음 수를 두세요.');draw();}
+   else{current={phase:'game',session_id:r.session_id,game:r.board};progress.textContent=`50번째 평가 · 중급 AI 실전 대국`;display('AI가 응수했습니다. 다음 수를 두세요.');draw();}
   }
  }catch(err){if(request===revision){display(err.message,'err');await restore();}}finally{if(request===revision)busy=false;}
+ const queued=window.cmaBoardTools.take('testBoard',request,current?.game?.legal,request===revision&&accountToken===token&&current?.session_id===snapshot.session_id&&current?.phase==='game'&&current.game.turn==='white'&&!current.game.is_over&&(evalClock?.white_ms==null||evalClock.white_ms-(Date.now()-evalClockAt)>0));
+ if(queued){chosen=queued.from;await click(queued.to);}
 }
-function startGame(r){hideOverlay();chosen=null;current={phase:'game',game:r.board};clearPreviousResult();evalClockSet(r.clock);
+function startGame(r){hideOverlay();chosen=null;current={phase:'game',session_id:r.session_id,game:r.board};clearPreviousResult();evalClockSet(r.clock);
  progress.textContent=`50번째 평가 · AI 대국 (10+5)`;
  $$('v8Outcome').textContent='힌트와 무르기 없는 별도 평가 대국입니다. 백으로 착수해 주세요.';
  display('중급 AI와 실제 종료까지 대국합니다. 제한시간: 10분 + 착수당 5초.');draw();}
-async function start(){if(!token){tab('profile');return;}if(busy)return;busy=true;const request=++revision;
- try{const r=await api('/v8/assessment/start','POST');if(request!==revision)return;showQuestion(r);}catch(e){if(request===revision)display(e.message,'err')}finally{if(request===revision)busy=false;}}
+async function start(){if(!token){tab('profile');return;}if(busy)return;busy=true;const request=++revision;window.cmaBoardTools.cancel('testBoard');current={phase:'loading'};clearPreviousResult();evalClockSet(null);hideOverlay();board.replaceChildren();progress.textContent='새 진단 시작 중';display('새 진단을 준비하고 있습니다.');
+ try{const r=await api('/v8/assessment/start','POST');if(request!==revision)return;showQuestion(r);}catch(e){if(request===revision){display(e.message,'err');await restore();}}finally{if(request===revision)busy=false;}}
 async function next(){if(busy)return;busy=true;const request=++revision;
  try{const r=await api('/v8/assessment/next','POST');if(request!==revision)return;if(r.phase==='game')startGame(r);else showQuestion(r);}catch(e){if(request===revision)display(e.message,'err')}finally{if(request===revision)busy=false}}
-function showResult(r,finalBoard){current={phase:'results'};chosen=null;lastAnswer=null;evalClockSet(null);hideOverlay();
+function showResult(r,finalBoard){window.cmaBoardTools.cancel('testBoard');current={phase:'results'};chosen=null;lastAnswer=null;evalClockSet(null);hideOverlay();
  if(finalBoard)drawBoard('testBoard',finalBoard.squares);else board.replaceChildren();
  progress.textContent='50단계 종합 평가 완료';
  $$('v8Outcome').textContent=`${r.stage} · 내부 실력 지수 ${r.index}/1000 · ${r.delta===null?'첫 진단':(r.delta>=0?'+':'')+r.delta+' 변동'}`;
@@ -103,13 +108,13 @@ function showResult(r,finalBoard){current={phase:'results'};chosen=null;lastAnsw
  const advice=document.createElement('p');advice.textContent=`강점: ${r.strengths.join(', ')} / 보완: ${r.weaknesses.join(', ')}. 공식 Elo와 직접 환산되지 않는 내부 지수입니다.`;info.append(advice);
  display('평가 결과가 계정에 저장되었습니다.');loadHistory();loadRecommendations();
 }
-async function restore(){if(!token)return;const request=++revision;busy=true;chosen=null;
+async function restore(){if(!token)return;window.cmaBoardTools.cancel('testBoard');const request=++revision;busy=true;chosen=null;
  // Remove optimistic positions and input while reconciling with authoritative state.
- board.replaceChildren();current=null;evalClockSet(null);
+ board.replaceChildren();current={phase:'loading'};evalClockSet(null);clearPreviousResult();$$('v8Outcome').textContent='진단 상태 확인 중입니다.';progress.textContent='진단 상태 확인 중';display('진단 상태를 불러오고 있습니다.');
  try{const r=await api('/v8/assessment/status');if(request!==revision)return;
  if(r.phase==='results'&&r.result){showResult(r.result,r.board);return;}
  if(r.active){if(r.phase==='questions')showQuestion(r);else if(r.phase==='feedback'){current={phase:'feedback'};feedbackOverlay(r);}else if(r.phase==='game')startGame(r);}
- else if(r.recent)showResult(r.recent);else hideOverlay();
+ else if(r.recent)showResult(r.recent);else {current=null;hideOverlay();$$('v8Outcome').textContent='새 진단을 시작하세요.';loadRecommendations();}
  }catch(e){if(request===revision)display(e.message,'err')}finally{if(request===revision)busy=false;}}
 
 function renderProfile(data){if(!data)return;
