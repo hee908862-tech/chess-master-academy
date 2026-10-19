@@ -94,7 +94,7 @@ def attach_v9(app,ns):
   picks=rng.sample(candidates,count)
   if typ=='puzzle':state['v9_recent_puzzles']=(state.get('v9_recent_puzzles',[])+picks)[-100:]
   state['v9_'+typ]={'type':typ,'theme':theme,'level':level,'ids':picks,'index':0,
-                    'offset':1,'correct_count':0,'attempted':False,'done':False}
+                    'offset':1,'correct_count':0,'attempted':False,'done':False,'awaiting_next':False}
   save_state(code,state)
   return task_payload(state['v9_'+typ])
  @app.get('/api/v9/catalog')
@@ -119,11 +119,25 @@ def attach_v9(app,ns):
   state=get_state(account(authorization));task=state.get('v9_'+kind)
   return {'active':bool(task),'done':task.get('done',False) if task else False,
           **(task_payload(task) if task and not task['done'] else {})}
+ @app.get('/api/v9/{kind}/hint')
+ def hint(kind:str,authorization:str|None=Header(default=None)):
+  if kind not in ('course','puzzle'):raise HTTPException(400,'잘못된 종류')
+  code=account(authorization);state=get_state(code);task=get_session(state,kind)
+  if task.get('done'):raise HTTPException(409,'이미 끝난 문제입니다.')
+  p=LIB[task['ids'][task['index']]];b=chess.Board(p['fen'])
+  for u in p['moves'][:task['offset']]:b.push_uci(u)
+  u=p['moves'][task['offset']];m=chess.Move.from_uci(u)
+  if m not in b.legal_moves:raise HTTPException(500,'문제 데이터의 수순이 잘못되었습니다.')
+  label=b.san(m)
+  task['attempted']=True;save_state(code,state)
+  return {'from':u[:2],'to':u[2:4],'move_label':label,
+          'explanation':'기록된 정답 수순의 현재 착수입니다. 다른 최선 수가 있을 수 있습니다.'}
  @app.post('/api/v9/{kind}/move')
  def move(kind:str,body:MoveBody,authorization:str|None=Header(default=None)):
   if kind not in ('course','puzzle'):raise HTTPException(400,'잘못된 종류')
   code=account(authorization);state=get_state(code);task=get_session(state,kind)
   if task.get('done'):raise HTTPException(409,'이미 완료된 세션입니다.')
+  if task.get('awaiting_next'):raise HTTPException(409,'다음 문제 버튼을 눌러주세요.')
   p=LIB[task['ids'][task['index']]];b=chess.Board(p['fen'])
   for u in p['moves'][:task['offset']]:b.push_uci(u)
   try:m=chess.Move.from_uci(body.move)
@@ -146,7 +160,7 @@ def attach_v9(app,ns):
   task['attempted']=False
   state.setdefault('puzzle_results',[]).append({'source':'lichess','puzzle_id':p['id'],
       'correct':True,'course':kind=='course','at':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat()})
-  task['index']+=1;task['offset']=1
+  task['index']+=1;task['offset']=1;task['awaiting_next']=True
   task['done']=task['index']>=len(task['ids'])
   if task['done'] and kind=='course':
    item={'theme':task['theme'],'level':task['level'],'attempts':15,'first_try':task['correct_count'],
@@ -156,12 +170,14 @@ def attach_v9(app,ns):
   return {'correct':True,'solved':True,'done':task['done'],'reply':response,'completed_fen':b.fen(),
           'correct_count':task['correct_count'],'index':task['index'],'total':len(task['ids']),
           'mastered':task['done'] and task['correct_count']>=12,
-          'message':'수순 해결 완료. 다음 문제로 진행하세요.' if not task['done'] else '15문제 세션 완료!'}
+          'message':'수순 해결 완료. 다음 문제로 진행하세요.' if not task['done'] else ('랜덤 퍼즐 해결 완료!' if kind=='puzzle' else '15문제 세션 완료!')}
  @app.post('/api/v9/{kind}/next')
  def next_task(kind:str,authorization:str|None=Header(default=None)):
   if kind not in ('course','puzzle'):raise HTTPException(400,'잘못된 종류')
   code=account(authorization);s=get_state(code);t=get_session(s,kind)
   if t.get('done'):return {'done':True,'correct_count':t['correct_count'],'total':len(t['ids'])}
+  if not t.get('awaiting_next'):raise HTTPException(409,'현재 문제의 정답 수순을 먼저 완료하세요.')
+  t['awaiting_next']=False;save_state(code,s)
   # Re-opening a completed item is forbidden; next only when the solver has finished.
   if t['offset']!=1:raise HTTPException(409,'현재 문제를 먼저 완료해야 합니다.')
   return task_payload(t)

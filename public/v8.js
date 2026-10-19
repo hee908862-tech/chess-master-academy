@@ -36,10 +36,10 @@ function draw(){
  if(!current)return;
  if(current.phase==='questions'){
  const q=current.q;const targets=chosen?(q.legal||[]).filter(u=>u.slice(0,2)===chosen).map(u=>({to:u.slice(2,4)})):[];
- drawBoard('testBoard',fromFen(q.fen),{selected:chosen,targets,onClick:click});
+ drawBoard('testBoard',fromFen(q.fen),{flip:q.fen.split(' ')[1]==='b',selected:chosen,targets,onClick:click});
  }else if(current.phase==='game'){
  const g=current.game;const targets=chosen?(g.legal||[]).filter(m=>m.from===chosen):[];
- drawBoard('testBoard',g.squares,{selected:chosen,targets,onClick:click});
+ drawBoard('testBoard',g.squares,{selected:chosen,targets,last:g.last_move?[g.last_move.slice(0,2),g.last_move.slice(2,4)]:[],onClick:click});
  }
 }
 async function click(sq){
@@ -47,19 +47,25 @@ async function click(sq){
  if(chosen===sq){chosen=null;draw();return;}
  const game=current.phase==='game',p=game?current.game.squares:fromFen(current.q.fen);
  const legal=game?(current.game.legal||[]).map(m=>m.from+m.to+(m.promotion||'')):current.q.legal;
- if(!chosen){if(p[sq]&&p[sq]===p[sq].toUpperCase()){chosen=sq;draw();}return;}
+ const side=game?(current.game.turn==='black'?'b':'w'):(current.q.fen.split(' ')[1]);
+ const friendly=x=>p[x]&&((p[x]===p[x].toUpperCase())===(side==='w'||side==='white'));
+ if(!chosen){if(friendly(sq)&&legal.some(m=>m.slice(0,2)===sq)){chosen=sq;draw();}return;}
  const from=chosen,found=legal.find(m=>m.slice(0,2)===from&&m.slice(2,4)===sq);
- if(!found){chosen=p[sq]&&p[sq]===p[sq].toUpperCase()?sq:null;draw();return;}
+ if(!found){chosen=friendly(sq)&&legal.some(m=>m.slice(0,2)===sq)?sq:null;draw();return;}
+ const promo=await choosePromotion(from,sq,p[from],legal);
+ const selectedMove=promo?(from+sq+promo):found;
  chosen=null;busy=true;
  try{
-  if(!game){const r=await api('/v8/assessment/answer','POST',{id:current.q.id,move:found});feedbackOverlay(r);current={phase:'feedback'};}
+  if(!game){const r=await api('/v8/assessment/answer','POST',{id:current.q.id,move:selectedMove});feedbackOverlay(r);current={phase:'feedback'};}
   else{
    // Draw the validated selected move immediately, before waiting for AI analysis.
-   const optimistic={...current.game,squares:{...current.game.squares},legal:[],turn:'black',last_move:found};
+   const originalGame=current.game;
+   const optimistic={...originalGame,squares:{...originalGame.squares},legal:[],turn:'black',last_move:selectedMove};
    optimistic.squares[sq]=optimistic.squares[from];delete optimistic.squares[from];
-   if((current.game.squares[from]||'').toLowerCase()==='p'&&from[0]!==sq[0]&&!current.game.squares[sq])delete optimistic.squares[sq[0]+from[1]];
+   if((originalGame.squares[from]||'').toLowerCase()==='p'&&from[0]!==sq[0]&&!originalGame.squares[sq])delete optimistic.squares[sq[0]+from[1]];
+   if(promo)optimistic.squares[sq]=(p[from]===p[from].toUpperCase()?promo.toUpperCase():promo.toLowerCase());
    current={phase:'game',game:optimistic};draw();display('착수가 반영됐습니다. AI가 생각하고 있습니다.');
-   const r=await api('/v8/assessment/game-move','POST',{move:found});evalClockSet(r.clock);
+   const r=await api('/v8/assessment/game-move','POST',{move:selectedMove});evalClockSet(r.clock);
    if(r.done){current={phase:'results'};drawBoard('testBoard',r.board.squares);showResult(r.result);}
    else{current={phase:'game',game:r.board};progress.textContent=`50번째 평가 · 중급 AI 실전 대국`;display('AI가 응수했습니다. 다음 수를 두세요.');draw();}
   }

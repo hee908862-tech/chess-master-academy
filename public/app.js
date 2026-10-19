@@ -84,6 +84,41 @@ function animateBoardTransition(boardId,from,to,paint){
  const animation=ghost.animate([{transform:'translate(0,0)'},{transform:`translate(${dstBox.left-srcBox.left}px,${dstBox.top-srcBox.top}px)`}],{duration:210,easing:'cubic-bezier(.22,.68,.17,1)',fill:'forwards'});
  animation.finished.catch(()=>{}).then(()=>{ghost.remove();if(rendered)rendered.style.opacity='';});
 }
+
+// Shared promotion picker. UCI suffix is chosen by the learner (q/r/b/n).
+async function choosePromotion(sqFrom,sqTo,piece,moves){
+  const available=(moves||[]).filter(m=>{
+    const str=typeof m==='string'?m:(m.from+m.to+(m.promotion||''));
+    return str.slice(0,2)===sqFrom&&str.slice(2,4)===sqTo;
+  }).map(m=>typeof m==='string'?m.slice(4):(m.promotion||''))
+    .filter(x=>['q','r','b','n'].includes(x.toLowerCase()));
+  const needs=(piece||'').toLowerCase()==='p'&&(sqTo[1]==='1'||sqTo[1]==='8');
+  if(!needs)return '';
+  if(!available.length)return 'q';
+  return new Promise(resolve=>{
+    let modal=document.getElementById('cmaPromotionModal');
+    if(!modal){
+      modal=document.createElement('div');modal.id='cmaPromotionModal';modal.className='cma-promotion-modal';
+      modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');
+      document.body.appendChild(modal);
+    }
+    const turn=piece===piece.toUpperCase()?'w':'b';
+    modal.replaceChildren();
+    const panel=document.createElement('div');panel.className='cma-promotion-panel';
+    const title=document.createElement('h3');title.textContent='어떤 기물로 승격할까요?';panel.appendChild(title);
+    const caption=document.createElement('p');caption.textContent='퀸 · 룩 · 비숍 · 나이트 중 선택하세요.';panel.appendChild(caption);
+    const buttons=document.createElement('div');buttons.className='cma-promotion-choices';
+    for(const [code,name,notation] of [['q','퀸','Q'],['r','룩','R'],['b','비숍','B'],['n','나이트','N']]){
+      if(!available.includes(code))continue;
+      const btn=document.createElement('button');btn.type='button';btn.className='btn';
+      const icon=document.createElement('span');icon.className='cma-promotion-glyph';icon.textContent=(typeof PIECES!=='undefined'?PIECES[turn==='w'?notation:notation.toLowerCase()]:notation)||notation;
+      btn.append(icon,document.createTextNode(name));
+      btn.onclick=()=>{modal.hidden=true;resolve(code)};buttons.append(btn);
+    }
+    panel.append(buttons);modal.append(panel);modal.hidden=false;
+  });
+}
+
 async function onGameSquare(s){
  if(!ready()||!game||game.turn!==playerColor||game.is_over||gameBusy)return;
  ensureAudio();
@@ -91,6 +126,7 @@ async function onGameSquare(s){
  const chosen=selectedGame;
  if(chosen&&game.legal.some(m=>m.from===chosen&&m.to===s)){
   const from=chosen,prior=game;
+  const promotion=await choosePromotion(from,s,prior.squares[from],prior.legal);
   gameBusy=true;selectedGame=null;
   const capture=Boolean(prior.squares[s]) || ((prior.squares[from]||'').toLowerCase()==='p'&&from[0]!==s[0]);
   // Optimistic board state: the learner sees their piece moving before the server calculates its reply.
@@ -102,7 +138,7 @@ async function onGameSquare(s){
   }
   // Promotion appears immediately during the optimistic move.
   if((prior.squares[from]||'').toLowerCase()==='p'&&(s[1]==='8'||s[1]==='1'))
-   optimistic.squares[s]=playerColor==='white'?'Q':'q';
+   optimistic.squares[s]=playerColor==='white'?promotion.toUpperCase():promotion.toLowerCase();
   // For castling also move rook on the temporary local board.
   if((optimistic.squares[s]||'').toLowerCase()==='k'&&Math.abs(FILES.indexOf(from[0])-FILES.indexOf(s[0]))===2){
    const rank=from[1];
@@ -113,7 +149,7 @@ async function onGameSquare(s){
   const target=document.querySelector(`#gameBoard [aria-label^="${s} "]`);if(target)target.classList.add('moving-to');
   notice('gameStatus','착수했습니다. AI 응수를 기다리는 중입니다...');
   try{
-   const r=await api('/game/move','POST',{from_sq:from,to_sq:s,promotion:'q'});setGameClock(r.clock);
+   const r=await api('/game/move','POST',{from_sq:from,to_sq:s,promotion:promotion||'q'});setGameClock(r.clock);
    const updateFinal=()=>showGame(r.board,r.finished?'대국 종료: '+r.board.result:'AI 응수가 완료됐습니다.');
    if(r.ai_move){const aFrom=r.ai_move.slice(0,2),aTo=r.ai_move.slice(2,4);animateBoardTransition('gameBoard',aFrom,aTo,updateFinal);playMoveSound('move');}else updateFinal();
    await refreshSummaryOnly();if(r.finished)renderWinrates();
