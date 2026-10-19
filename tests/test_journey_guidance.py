@@ -1,5 +1,9 @@
 """Uncertainty is not failure; scope and app-local exposure stay explicit."""
 import copy
+import json
+import sqlite3
+import pytest
+from competencies import VERSION
 from datetime import datetime, timedelta, timezone
 from journey_evidence import build_report, additional_plan, recheck_gate, CUED, UNCUED, JOURNEY_VERSION
 from test_learning import setup
@@ -46,11 +50,61 @@ def test_guidance_never_combines_cued_uncued_or_old_versions():
     assert report([],CUED,[prior])['areas'][0]['evidence']['tracked']==1
 
 
+def difficulty_report(scope=CUED,completed=2,**changes):
+    return {'version':JOURNEY_VERSION,'competency_version':VERSION,'measurement_scope':scope,
+            'areas':[{'id':'mate','count':3,'full_success':completed}],**changes}
+
+
 def test_additional_difficulty_follows_observed_completion():
-    assert additional_plan([],'mate')['band']==[600,1200]
-    assert additional_plan([{'areas':[{'id':'mate','count':2,'full_success':2}]}, {'areas':[{'id':'mate','count':0,'full_success':0}]}],'mate')['band']==[1200,1800]
+    assert additional_plan([],'mate',CUED)['band']==[600,1200]
+    empty=difficulty_report(areas=[{'id':'mate','count':0,'full_success':0}])
+    assert additional_plan([difficulty_report(),empty],'mate',CUED)['band']==[1200,1800]
     for count,band in [(0,[600,1200]),(1,[900,1500]),(2,[1200,1800])]:
-        assert additional_plan([{'areas':[{'id':'mate','full_success':count}]}],'mate')['band']==band
+        assert additional_plan([difficulty_report(completed=count)],'mate',CUED)['band']==band
+
+
+@pytest.mark.parametrize('reverse',[False,True])
+def test_difficulty_scopes_do_not_contaminate_either_order(reverse):
+    rows=[difficulty_report(CUED,2),difficulty_report(UNCUED,1)]
+    if reverse:rows.reverse()
+    assert additional_plan(rows,'mate',CUED)['band']==[1200,1800]
+    assert additional_plan(rows,'mate',UNCUED)['band']==[900,1500]
+    for scope,other in [(CUED,UNCUED),(UNCUED,CUED)]:
+        default=additional_plan([difficulty_report(other)],'mate',scope)
+        assert default['band']==[600,1200] and '기본 난도' in default['reason']
+
+
+@pytest.mark.parametrize('scope',[CUED,UNCUED])
+@pytest.mark.parametrize('changes',[{'version':'journey-v2'},{'version':'journey-v4'},
+    {'version':None},{'competency_version':'competency-v1'},{'competency_version':None},
+    {'measurement_scope':None},{'measurement_scope':'legacy_cued_execution'}])
+def test_incompatible_difficulty_evidence_uses_explicit_default(scope,changes):
+    rejected=difficulty_report(scope,**changes)
+    default=additional_plan([rejected],'mate',scope)
+    assert default['band']==[600,1200] and '기본 난도' in default['reason']
+    # Even a newer incompatible result cannot replace compatible observations.
+    assert additional_plan([difficulty_report(scope,1),rejected],'mate',scope)['band']==[900,1500]
+
+
+@pytest.mark.parametrize('mode,scope,band',[('targeted',CUED,[1200,1800]),('recheck',UNCUED,[900,1500])])
+@pytest.mark.parametrize('reverse',[False,True])
+def test_status_and_actual_selection_use_requested_scope(setup,mode,scope,band,reverse):
+    c,_,_,path=attach(setup)
+    rows=[difficulty_report(CUED,2),difficulty_report(UNCUED,1),difficulty_report(version='journey-v2')]
+    if reverse:rows.reverse()
+    state={'active':None,'results':rows,'reserved':[]}
+    # An eligible seven-day gate; do not bypass eligibility to test difficulty selection.
+    learning={'cards':{'source':{'diagnosis':{'report_id':'prior'},'category':'mate'}},
+              'attempts':[{'at':'2000-01-01T00:00:00+00:00','selection':{'source_card':'source'},
+                           'mode':'verify','fresh':True,'helped':False,'assessment_scope':'full_line'}]}
+    with sqlite3.connect(path) as db:
+        db.execute('INSERT INTO journey_progress(code,state) VALUES(?,?)',('A',json.dumps(state)))
+        db.execute('INSERT INTO learning_progress(code,state) VALUES(?,?)',('A',json.dumps(learning)))
+    status=c.get('/api/journey').json()
+    assert status['additional']['mate']['band']==[1200,1800] # UI additional button requests targeted/CUED.
+    started=post(c,'start',{'mode':mode,'competency':'mate'})
+    assert started['measurement_scope']==scope and started['total']==3
+    assert all(i['band']==band and band[0]<=i['rating']<band[1] for i in saved(path)['active']['items'])
 
 
 def test_recheck_status_date_moves_after_related_exposure():

@@ -198,7 +198,7 @@ def attach_journey(app, ns):
         path=learning.get('path');active_training=learning.get('active')
         return {'preparing':_inventory_lock.locked(),'training':{'path_id':path['id'] if path else None,'path_done':path.get('done',False) if path else False,'active':bool(active_training and not active_training.get('done')),'has_path':bool(path)},
                 'rechecks':{c:recheck_gate(learning,c,now()) for c,v in COMPETENCIES.items() if v['measured']},
-                'additional':{c:additional_plan(state['results'],c) for c,v in COMPETENCIES.items() if v['measured']},
+                'additional':{c:additional_plan(state['results'],c,CUED) for c,v in COMPETENCIES.items() if v['measured']},
                 'schema':'journey-v2','competencies':[{'id':k,**v} for k,v in COMPETENCIES.items()],
                 'active':payload(state['active']) if state['active'] else None,
                 'latest':state['results'][-1] if state['results'] else None,'results':state['results'],
@@ -221,8 +221,9 @@ def attach_journey(app, ns):
         if state['active']: raise HTTPException(409,'저장된 진단을 먼저 이어서 완료하세요.')
         for x in state['reserved']: ids.add(x['puzzle_id']); positions.add(key(x['fen']))
         items=[]
+        measurement_scope=UNCUED if body.mode=='recheck' else CUED
         for c in ([body.competency] if body.mode!='basic' else list(pools)):
-            for lo,hi in ([(600,1200),(1200,1800)] if body.mode=='basic' else [additional_plan(state['results'],c)['band']]*3):
+            for lo,hi in ([(600,1200),(1200,1800)] if body.mode=='basic' else [additional_plan(state['results'],c,measurement_scope)['band']]*3):
                 choices=[p for p in pools[c] if p['puzzle_id'] not in ids and lo<=p['rating']<hi and not positions.intersection(footprint(p))]
                 if not choices: continue
                 p=copy.deepcopy(secrets.choice(choices)); p.update(id=secrets.token_hex(8),competency=c,band=[lo,hi],independent=not uncertain,app_new=True,prior_exposure_unknown=True,legacy_exposure_unknown=uncertain,helped=False,first_attempt=True)
@@ -231,7 +232,7 @@ def attach_journey(app, ns):
                 for uci in p['line']:
                     board.push_uci(uci); positions.add(key(board.fen()))
         if not items: raise HTTPException(409,'조건에 맞는 미노출 국면이 없습니다. 기존 훈련을 이용하세요.')
-        s={'session_id':secrets.token_hex(16),'revision':0,'version':JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':UNCUED if body.mode=='recheck' else CUED,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
+        s={'session_id':secrets.token_hex(16),'revision':0,'version':JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':measurement_scope,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
         begin_item(s); state['active']=s
         for item in items:
             board=chess.Board(item['fen'])

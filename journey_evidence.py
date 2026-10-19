@@ -40,9 +40,14 @@ def recheck_gate(learning, competency, current):
             'reason':'새 국면으로 다시 확인할 수 있습니다.' if current>=ready else '연결된 훈련의 마지막 노출 후 7일을 기다립니다.'}
 
 
-def additional_plan(reports, competency):
-    area=next((a for r in reversed(reports) for a in r.get('areas',[]) if a['id']==competency and a.get('count',1)>0),None)
-    if not area:return {'band':[600,1200],'reason':'아직 관찰한 국면이 없어 부담이 낮은 범위부터 확인합니다.'}
+def additional_plan(reports, competency, measurement_scope):
+    # No implicit legacy/cross-scope fallback: guidance and selection share this policy.
+    compatible=(r for r in reversed(reports)
+                if r.get('version')==JOURNEY_VERSION and r.get('competency_version')==VERSION
+                and r.get('measurement_scope')==measurement_scope)
+    area=next((a for r in compatible for a in r.get('areas',[])
+               if a['id']==competency and a.get('count',0)>0),None)
+    if not area:return {'band':[600,1200],'reason':'요청한 평가 조건·현재 버전에 맞는 관찰이 없어 기본 난도(600–1200)에서 시작합니다.'}
     completed=area.get('full_success',0)
     if completed>=2:return {'band':[1200,1800],'reason':'이번 수순 완주를 확인했습니다. 중간 난도의 다른 국면 3개로 적용 범위를 확인합니다.'}
     if completed:return {'band':[900,1500],'reason':'완주한 수순과 미완료 수순이 함께 있어 비슷한 부담의 다른 국면을 확인합니다.'}
