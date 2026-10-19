@@ -57,6 +57,8 @@ class MoveBody(BaseModel):
  from_sq:str
  to_sq:str
  promotion:str='q'
+ session_id:str|None=None
+ expected_fen:str|None=None
 
 class PuzzleBody(BaseModel):
  puzzle_id:int
@@ -246,7 +248,7 @@ def new_game(body:NewGameBody,authorization:str|None=Header(default=None)):
  code=auth(authorization);state=get_state(code)
  if body.color not in ('white','black'):raise HTTPException(400,'백 또는 흑을 선택해 주세요.')
  if body.time_mode not in TIME_MODES:raise HTTPException(400,'지원하지 않는 시간제한입니다.')
- state['active_game']={'moves':[],'color':body.color,'engine':'stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else 'fallback','difficulty':body.difficulty,'started':datetime.now(timezone.utc).isoformat(),'time_mode':body.time_mode,
+ state['active_game']={'session_id':secrets.token_hex(16),'moves':[],'color':body.color,'engine':'stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else 'fallback','difficulty':body.difficulty,'started':datetime.now(timezone.utc).isoformat(),'time_mode':body.time_mode,
  'white_ms':TIME_MODES[body.time_mode][0],'black_ms':TIME_MODES[body.time_mode][0],
  'hint_used':False,'hint_plies':[],'turn_started_at':time.time()}
  board=chess.Board()
@@ -256,7 +258,7 @@ def new_game(body:NewGameBody,authorization:str|None=Header(default=None)):
    board.push(first);state['active_game']['moves'].append(first.uci())
    state['active_game']['turn_started_at']=time.time()
  save_state(code,state)
- return {'board':serialize_board(board,body.color),'clock':clock_payload(state['active_game']),'player_color':body.color,'message':'새 대국을 시작했습니다. '+('백' if body.color=='white' else '흑')+'으로 플레이합니다.'}
+ return {'session_id':state['active_game'].get('session_id'),'board':serialize_board(board,body.color),'clock':clock_payload(state['active_game']),'player_color':body.color,'message':'새 대국을 시작했습니다. '+('백' if body.color=='white' else '흑')+'으로 플레이합니다.'}
 
 @app.get('/api/game')
 def game(authorization:str|None=Header(default=None)):
@@ -269,15 +271,17 @@ def game(authorization:str|None=Header(default=None)):
   if c[side]<=0:
    loser='white' if b.turn else 'black'
    outcome=finish_by_clock(state,loser);save_state(code,state)
-   return {'active':False,'timeout':True,'result':outcome,'player_color':active.get('color','white'),'termination':'timeout','loser':loser,'clock':{'mode':mode,**{k:(0 if k==side else c[k]) for k in ('white_ms','black_ms')}},'board':serialize_board(b,active.get('color','white'))}
- return {'active':True,'board':serialize_board(reconstruct(state['active_game']),state['active_game'].get('color','white')),'clock':clock_payload(state['active_game']),'player_color':state['active_game'].get('color','white')}
+   return {'session_id':active.get('session_id'),'active':False,'timeout':True,'result':outcome,'player_color':active.get('color','white'),'termination':'timeout','loser':loser,'clock':{'mode':mode,**{k:(0 if k==side else c[k]) for k in ('white_ms','black_ms')}},'board':serialize_board(b,active.get('color','white'))}
+ return {'active':True,'session_id':active.get('session_id'),'board':serialize_board(reconstruct(state['active_game']),state['active_game'].get('color','white')),'clock':clock_payload(state['active_game']),'player_color':state['active_game'].get('color','white')}
 
 @app.post('/api/game/move')
 def move(body:MoveBody,authorization:str|None=Header(default=None)):
  code=auth(authorization);state=get_state(code)
  active=state['active_game']
  if not active:raise HTTPException(400,'진행 중인 대국이 없습니다.')
+ if body.session_id is not None and body.session_id!=active.get('session_id'):raise HTTPException(409,'대국이 변경되었습니다. 다시 불러오세요.')
  board=reconstruct(active)
+ if body.expected_fen is not None and body.expected_fen!=board.fen():raise HTTPException(409,'대국 위치가 변경되었습니다. 다시 불러오세요.')
  color=active.get('color','white')
  player_side=chess.WHITE if color=='white' else chess.BLACK
  if board.turn!=player_side:raise HTTPException(400,'현재 AI 차례입니다.')
@@ -293,7 +297,7 @@ def move(body:MoveBody,authorization:str|None=Header(default=None)):
   if active[side_key]<=0:
    outcome=finish_by_clock(state,color)
    save_state(code,state)
-   return {'board':serialize_board(board,color),'ai_move':None,'finished':True,'timeout':True,'termination':'timeout','clock':{'mode':mode,'white_ms':0 if color=='white' else active.get('white_ms'),'black_ms':0 if color=='black' else active.get('black_ms')},'outcome':outcome,'player_color':color}
+   return {'session_id':active.get('session_id'),'board':serialize_board(board,color),'ai_move':None,'finished':True,'timeout':True,'termination':'timeout','clock':{'mode':mode,'white_ms':0 if color=='white' else active.get('white_ms'),'black_ms':0 if color=='black' else active.get('black_ms')},'outcome':outcome,'player_color':color}
  active['moves'].append(candidate.uci());board.push(candidate)
  if mode!='unlimited':active[side_key]+=TIME_MODES[mode][1]
  ai_uci=None
@@ -307,7 +311,7 @@ def move(body:MoveBody,authorization:str|None=Header(default=None)):
    if active[ai_key]<=0:
     outcome=finish_by_clock(state,'black' if color=='white' else 'white')
     save_state(code,state)
-    return {'board':serialize_board(board,color),'ai_move':None,'finished':True,'timeout':True,'termination':'timeout','outcome':outcome,'clock':{'mode':mode,'white_ms':active.get('white_ms'),'black_ms':active.get('black_ms')},'player_color':color}
+    return {'session_id':active.get('session_id'),'board':serialize_board(board,color),'ai_move':None,'finished':True,'timeout':True,'termination':'timeout','outcome':outcome,'clock':{'mode':mode,'white_ms':active.get('white_ms'),'black_ms':active.get('black_ms')},'player_color':color}
   if ai:
    ai_uci=ai.uci();active['moves'].append(ai_uci);board.push(ai)
    if mode!='unlimited':active[ai_key]+=TIME_MODES[mode][1]
@@ -316,7 +320,7 @@ def move(body:MoveBody,authorization:str|None=Header(default=None)):
  clock=clock_payload(active)
  if finished:store_finished(state,board)
  save_state(code,state)
- return {'board':serialize_board(board,color),'ai_move':ai_uci,'finished':finished,'clock':clock,'player_color':color}
+ return {'session_id':active.get('session_id'),'board':serialize_board(board,color),'ai_move':ai_uci,'finished':finished,'clock':clock,'player_color':color}
 
 @app.post('/api/game/resign')
 def resign(authorization:str|None=Header(default=None)):

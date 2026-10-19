@@ -2,15 +2,15 @@
 (()=>{'use strict';
 const el=id=>document.getElementById(id), modes={puzzle:{task:null,selected:null,busy:false,solved:false,last:[],mistakes:0,revision:0},course:{task:null,selected:null,busy:false,solved:false,last:[],mistakes:0,revision:0}};
 let catalog=null,courseTheme=null;
-function invalidate(kind,message){const st=modes[kind];st.revision++;st.task=null;st.selected=null;st.solved=false;st.last=[];st.busy=false;el(boardName(kind)).replaceChildren();el('v9'+props(kind)+'Next').hidden=true;el('v9'+props(kind)+'Hint').disabled=true;el('v9'+props(kind)+'Meta').textContent='새 문제 대기 중';if(message)status(kind,message);}
+function invalidate(kind,message){window.cmaBoardTools.cancel(boardName(kind));const st=modes[kind];st.revision++;st.task=null;st.selected=null;st.solved=false;st.last=[];st.busy=false;el(boardName(kind)).replaceChildren();el('v9'+props(kind)+'Next').hidden=true;el('v9'+props(kind)+'Hint').disabled=true;el('v9'+props(kind)+'Meta').textContent='새 문제 대기 중';if(message)status(kind,message);}
 function failed(kind,error){invalidate(kind,error.message+' · 새 문제를 시작해 주세요.');}
 function status(kind,msg){el('v9'+(kind==='course'?'Course':'Puzzle')+'Message').textContent=msg}
 function boardName(kind){return 'v9'+(kind==='course'?'Course':'Puzzle')+'Board'}
 function props(kind){return kind==='course'?'Course':'Puzzle'}
 function paint(kind){const st=modes[kind];if(!st.task)return;
- const data=st.task, fen=data.fen, p=fromFen(fen), turn=fen.split(' ')[1]==='w';
+ const data=st.task, fen=data.fen, p=fromFen(fen), turn=st.side==='white';
  const targets=st.selected?(data.legal||[]).filter(u=>u.slice(0,2)===st.selected).map(u=>({to:u.slice(2,4)})):[];
- drawBoard(boardName(kind),p,{flip:!turn,selected:st.selected,targets,last:st.last,onClick:sq=>tap(kind,sq)});
+ drawBoard(boardName(kind),p,{flip:!turn,opponent:data.opponent_last_move?[data.opponent_last_move.slice(0,2),data.opponent_last_move.slice(2,4)]:[],hint:st.hint||[],selected:st.selected,targets,last:st.last,onClick:sq=>tap(kind,sq)});
  el('v9'+props(kind)+'Meta').textContent=`${kind==='course'?`${data.index+1}/${data.total} · `:''}${data.rating} 퍼즐 레이팅 · ${data.themes.join(' / ')} · ${data.ply}번째 반수`;
 }
 function optimisticPosition(fen,from,to,promotion){
@@ -25,7 +25,7 @@ function optimisticPosition(fen,from,to,promotion){
  }
  return out;
 }
-async function tap(kind,sq){const st=modes[kind];if(st.busy||st.solved||!st.task)return;
+async function tap(kind,sq){const st=modes[kind];if(st.busy){window.cmaBoardTools.pick(boardName(kind),sq);return;}if(st.busy||st.solved||!st.task)return;
  const task=st.task,p=fromFen(task.fen),white=task.fen.split(' ')[1]==='w';
  if(st.selected===sq){st.selected=null;paint(kind);return;}
  const friendly=s=>p[s]&&(white?p[s]===p[s].toUpperCase():p[s]===p[s].toLowerCase());
@@ -33,45 +33,50 @@ async function tap(kind,sq){const st=modes[kind];if(st.busy||st.solved||!st.task
  const u=(task.legal||[]).find(m=>m.slice(0,2)===st.selected&&m.slice(2,4)===sq);
  if(!u){st.selected=friendly(sq)?sq:null;paint(kind);return;}
  const from=st.selected;
- const revision=st.revision;st.busy=true;
+ const revision=st.revision,accountToken=token,viewVersion=window.cmaBoardTools.version();st.busy=true;
  const promotion=await choosePromotion(from,sq,p[from],task.legal||[]);
  if(revision!==st.revision)return;
+ if(promotion===null||accountToken!==token||viewVersion!==window.cmaBoardTools.version()){st.busy=false;return;}
  const selectedMove=promotion?from+sq+promotion:u;
- st.busy=true;st.selected=null;
+ st.busy=true;st.selected=null;st.hint=null;
  const priorLast=st.last;
  const temporary=optimisticPosition(task.fen,from,sq,promotion);
- animateBoardTransition(boardName(kind),from,sq,()=>drawBoard(boardName(kind),temporary,{flip:!white,last:[from,sq]}));
+ if(task.session_id)window.cmaBoardTools.begin(boardName(kind),task,temporary,st.side);else window.cmaBoardTools.unavailable(boardName(kind));
+ animateBoardTransition(boardName(kind),from,sq,()=>drawBoard(boardName(kind),temporary,{flip:st.side==='black',last:[from,sq],onClick:s=>tap(kind,s)}));
  playMoveSound(p[sq]?'capture':'move');
- try{const r=await api(`/v9/${kind}/move`,'POST',{move:selectedMove});if(revision!==st.revision)return;
+ try{const r=await api(`/v9/${kind}/move`,'POST',{move:selectedMove,session_id:task.session_id,expected_fen:task.fen});if(revision!==st.revision||accountToken!==token)return;
+  if(!r.correct){window.cmaBoardTools.cancel(boardName(kind));}
   if(!r.correct){st.last=priorLast;st.mistakes++;status(kind,`${r.message} (${st.mistakes}회 오답)${st.mistakes>=2?' · 정답 확인 버튼으로 수순을 확인할 수 있습니다.':''}`);st.task=r;paint(kind);return;}
-  st.mistakes=0;st.last=r.reply?[r.reply.slice(0,2),r.reply.slice(2,4)]:[from,sq];
-  if(r.solved){st.solved=true;status(kind,r.done?(kind==='puzzle'?r.message:`${r.message} · 첫 시도 정답 ${r.correct_count}/${r.total} ${r.mastered?'· 숙련 달성':''}`):r.message);
+  st.mistakes=0;st.last=[from,sq];
+  if(r.solved){window.cmaBoardTools.cancel(boardName(kind));st.solved=true;status(kind,r.done?(kind==='puzzle'?r.message:`${r.message} · 첫 시도 정답 ${r.correct_count}/${r.total} ${r.mastered?'· 숙련 달성':''}`):r.message);
    el('v9'+props(kind)+'Next').hidden=false;
-   if(r.completed_fen)drawBoard(boardName(kind),fromFen(r.completed_fen),{flip:task.fen.split(' ')[1]==='b',last:st.last});
+   if(r.completed_fen)drawBoard(boardName(kind),fromFen(r.completed_fen),{flip:st.side==='black',last:st.last});
    await refreshSummaryOnly();if(kind==='course'&&r.done)await history();
   }else{st.task=r;status(kind,r.reply?`정답: ${selectedMove} · 상대 응수: ${r.reply}. 마지막 이동 칸을 강조했습니다. 다음 수를 찾아보세요.`:r.message);paint(kind);}
  }catch(e){if(revision===st.revision)failed(kind,e)}finally{if(revision===st.revision)st.busy=false;}
+ const queued=window.cmaBoardTools.take(boardName(kind),task,st.task?.legal,revision===st.revision&&accountToken===token&&!st.solved&&st.task?.session_id===task.session_id&&st.task?.id===task.id&&st.task?.fen.split(' ')[1]===(st.side==='white'?'w':'b'));
+ if(queued){st.selected=queued.from;await tap(kind,queued.to);}
 }
 async function start(kind){if(!token){tab('profile');return;}const st=modes[kind];if(st.busy)return;
  invalidate(kind);const revision=st.revision;st.busy=true;try{
   const theme=kind==='course'?courseTheme:el('v9PuzzleTheme').value;
   const level=el('v9'+props(kind)+'Level').value;
   const task=await api(`/v9/${kind}/start`,'POST',{theme,level});if(revision!==st.revision)return;
-  st.task=task;el('v9'+props(kind)+'Hint').disabled=false;st.solved=false;st.selected=null;st.last=[];st.mistakes=0;el('v9'+props(kind)+'Next').hidden=true;
-  status(kind,`새 ${task.themes.join(' · ')} 문제입니다. ${task.side==='white'?'백':'흑'}의 최선 수를 찾아보세요.`);paint(kind);
+  st.task=task;st.side=task.side||(task.fen.split(' ')[1]==='w'?'white':'black');st.hint=null;el('v9'+props(kind)+'Hint').disabled=false;st.solved=false;st.selected=null;st.last=[];st.mistakes=0;el('v9'+props(kind)+'Next').hidden=true;
+  status(kind,`새 ${task.themes.join(' · ')} 문제입니다. ${task.side==='white'?'백':'흑'}의 최선 수를 찾아보세요. ${task.opponent_last_move?'상대 직전 수: '+task.opponent_last_move+' (청록 표시)':'직전 수 기록이 없어 표시할 수 없습니다.'}`);paint(kind);
  }catch(e){if(revision===st.revision)failed(kind,e)}finally{if(revision===st.revision)st.busy=false}
 }
 async function next(kind){const st=modes[kind];if(!st.solved||st.busy)return;
  if(kind==='puzzle')return start('puzzle');
  const revision=st.revision;st.busy=true;try{const r=await api('/v9/course/next','POST');if(revision!==st.revision)return;if(r.done){status(kind,`15문제 과정 완료 · 첫 시도 정답 ${r.correct_count}/15`);return;}
- st.task=r;st.solved=false;st.selected=null;st.last=[];st.mistakes=0;el('v9CourseNext').hidden=true;
+ window.cmaBoardTools.cancel(boardName(kind));st.task=r;st.side=r.side||(r.fen.split(' ')[1]==='w'?'white':'black');st.hint=null;st.solved=false;st.selected=null;st.last=[];st.mistakes=0;el('v9CourseNext').hidden=true;
  status(kind,'다음 상황입니다. 상대의 위협과 후속 수순까지 계산해 보세요.');paint(kind);
  }catch(e){if(revision===st.revision)failed(kind,e)}finally{if(revision===st.revision)st.busy=false}
 }
 async function history(){if(!token)return;try{const d=await api('/v9/progress');
  const a=d.courses||[];el('v9CourseHistory').textContent=a.length?'최근 과정: '+a.slice(-8).reverse().map(r=>`${catalog?.themes.find(t=>t.id===r.theme)?.name||r.theme} ${r.level} · 15문제 해결 · 첫 시도 ${r.first_try}/15 ${r.mastered?'✓ 숙련':'복습 권장'}`).join(' | '):'완료한 새 교육 과정이 아직 없습니다.';
  }catch(e){el('v9CourseHistory').textContent=e.message}}
-async function hint(kind){const st=modes[kind];if(!st.task||st.busy||st.solved)return;const revision=st.revision;st.busy=true;try{const r=await api(`/v9/${kind}/hint`);if(revision!==st.revision)return;st.last=[r.from,r.to];status(kind,`추천 이동: ${r.move_label} · ${r.explanation}`);paint(kind)}catch(e){if(revision===st.revision)failed(kind,e)}finally{if(revision===st.revision)st.busy=false}}
+async function hint(kind){const st=modes[kind];if(!st.task||st.busy||st.solved)return;const revision=st.revision;st.busy=true;try{const r=await api(`/v9/${kind}/hint`);if(revision!==st.revision)return;st.hint=[r.from,r.to];status(kind,`추천 이동: ${r.move_label} · ${r.explanation}`);paint(kind)}catch(e){if(revision===st.revision)failed(kind,e)}finally{if(revision===st.revision)st.busy=false}}
 
 function selectCourse(theme){invalidate('course');courseTheme=theme;el('v9LearnMode').hidden=false;const st=modes.course;st.task=null;st.selected=null;st.solved=false;st.last=[];st.mistakes=0;el('v9CourseBoard').replaceChildren();el('v9CourseMeta').textContent='새 과목 대기 중';el('v9CourseNext').hidden=true;el('v9CourseHint').disabled=true;
  const m=catalog?.themes.find(x=>x.id===theme);

@@ -9,17 +9,17 @@
     if(!ready()||gameBusy)return;
     hint.disabled=true;
     try{const data=await api('/v7/game/hint');
-      document.querySelectorAll('#gameBoard .v7-from,#gameBoard .v7-to').forEach(e=>e.classList.remove('v7-from','v7-to'));
-      document.querySelector(`#gameBoard [aria-label^="${data.move.slice(0,2)} "]`)?.classList.add('v7-from');
-      document.querySelector(`#gameBoard [aria-label^="${data.move.slice(2,4)} "]`)?.classList.add('v7-to');
+      document.querySelectorAll('#gameBoard .move-hint').forEach(e=>e.classList.remove('move-hint'));
+      document.querySelector(`#gameBoard [aria-label^="${data.move.slice(0,2)} "]`)?.classList.add('move-hint');
+      document.querySelector(`#gameBoard [aria-label^="${data.move.slice(2,4)} "]`)?.classList.add('move-hint');
       notice('gameStatus',`추천: ${data.san} (${data.move.slice(0,2)} → ${data.move.slice(2,4)}). 분석: ${data.source}. ${data.note}`);
     }catch(e){notice('gameStatus',e.message,'err')}finally{hint.disabled=false}
   };
   undo.onclick=async()=>{
     if(!ready()||gameBusy)return;
-    undo.disabled=true;
-    try{const data=await api('/v7/game/undo','POST');playerColor=data.player_color;showGame(data.board,`이전 ${data.removed_plies}반수를 되돌렸습니다.`);}
-    catch(e){notice('gameStatus',e.message,'err')}finally{undo.disabled=false}
+    window.cmaBoardTools.cancel('gameBoard');cancelPromotion();gameBusy=true;undo.disabled=true;
+    try{const data=await api('/v7/game/undo','POST');playerColor=data.player_color;showGame({...data.board,session_id:data.session_id},`이전 ${data.removed_plies}반수를 되돌렸습니다.`);}
+    catch(e){notice('gameStatus',e.message,'err')}finally{undo.disabled=false;gameBusy=false}
   };
   // For review, the user's selected ply is the branch point, not just the last move.
   const status=document.getElementById('reviewStatus');

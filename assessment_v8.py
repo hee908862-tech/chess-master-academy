@@ -45,13 +45,13 @@ def questions(seed):
             if chess.Move.from_uci(answer) not in board.legal_moves:raise RuntimeError('평가 정답 수 검증 실패')
             out.append({'id':len(out),'domain':code,'domain_name':label,'difficulty':i+1,
                         'fen':board.fen(), 'description':f"{label}: 상대의 직전 수에서 발생한 기회를 계산하세요. (문제 레이팅 {p['rating']})",
-                        'answers':[answer],'puzzle_id':p['id'],'rating':p['rating']})
+                        'opponent_last_move':p['moves'][0],'answers':[answer],'puzzle_id':p['id'],'rating':p['rating']})
     return out
 
 def public_question(q):
     b=chess.Board(q['fen'])
     return {k:q[k] for k in ('id','domain','domain_name','difficulty','fen','description')} | {
-        'legal':[m.uci() for m in b.legal_moves]}
+        'opponent_last_move':q.get('opponent_last_move'), 'legal':[m.uci() for m in b.legal_moves]}
 
 def points(correct,seconds,difficulty):
     if not correct:return 0.0
