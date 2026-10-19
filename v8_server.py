@@ -1,6 +1,7 @@
 """V8 API: 49 timed questions + short AI evaluation game, rating history.
 Works with existing JSON progress records, no schema migration.
 """
+from mate_explanation import finish_line, explain_mate
 import secrets,time,datetime
 import chess
 import chess.engine
@@ -77,15 +78,21 @@ def attach_v8(app,ns):
         try:m=chess.Move.from_uci(body.move)
         except ValueError:raise HTTPException(400,'올바른 착수 형식이 아닙니다.')
         if m not in b.legal_moves:raise HTTPException(400,'합법적인 착수가 아닙니다.')
-        correct=m.uci() in q['answers']
+        from v9_server import LIB
+        original=LIB.get(q.get('puzzle_id'),{})
+        mate_task=any(tag.startswith('mateIn') for tag in original.get('themes',[]))
+        played=b.copy();played.push(m)
+        correct=m.uci() in q['answers'] or (mate_task and played.is_checkmate())
         elapsed=max(0.1,min(3600,time.time()-t['shown_at']))
         score=points(correct,elapsed,q['difficulty'])
         t['log'].append({'id':q['id'],'domain':q['domain'],'difficulty':q['difficulty'],
                          'correct':correct,'seconds':round(elapsed,2),'points':score})
-        best=q['answers'][0];b.push_uci(best)
+        best=body.move if correct else q['answers'][0];b.push_uci(best)
         t['feedback']={'correct':correct,'answer':best,'answer_fen':b.fen(),
                        'original_fen':q['fen'],'submitted':body.move,'seconds':round(elapsed,1),
                        'points':score,'domain':q['domain_name'],'difficulty':q['difficulty']}
+        if correct and mate_task:
+            t['feedback']['mate_explanation']=explain_mate(played) if played.is_checkmate() else (finish_line(q['fen'],original.get('moves',[])[1:]) if body.move==original.get('moves',[None,None])[1] else {'available':False,'reason':'이 대체 정답의 최종 메이트 수순은 확보되지 않았습니다.'})
         t['phase']='feedback';save_state(code,s)
         return {'phase':'feedback','feedback':t['feedback'],'index':t['index'],'total':49}
     @app.post('/api/v8/assessment/next')

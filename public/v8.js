@@ -7,6 +7,7 @@ let current=null,chosen=null,busy=false,showing=false,selectedBase=null,lastAnsw
 const dom=$$('v8DomainList'),info=$$('v8ScoreSummary'),board=$$('testBoard'),progress=$$('testProgress'),status=$$('testStatus');
 function assessmentActive(){return ['loading','questions','feedback','game'].includes(current?.phase)}
 function clearPreviousResult(){
+ window.cmaMate?.clear('testBoard');
  recommendationRevision++;info.replaceChildren();$$('v8RecommendationList').replaceChildren();
  $$('v8Outcome').textContent='새 진단 진행 중입니다. 완료 후 이번 진단 결과가 표시됩니다.';
 }
@@ -27,6 +28,7 @@ function feedbackOverlay(data){
  $$('v8VerdictDetails').textContent=`${fb.domain} · 난이도 ${fb.difficulty}/7 · ${fb.seconds}초 · ${fb.points}점`;
  $$('v8AnswerText').textContent=`모범 착수: ${nameMove(fb.original_fen,fb.answer)}`;
  lastAnswer=fb;
+ if(fb.correct)window.cmaMate?.show('testBoard',fb.mate_explanation,fb.original_fen.split(' ')[1]==='b');
  drawBoard('testBoard',fromFen(fb.answer_fen),{flip:fb.original_fen.split(' ')[1]==='b',last:[fb.answer.slice(0,2),fb.answer.slice(2,4)]});
  const squares=board.querySelectorAll('.sq');for(const sq of squares){const a=sq.getAttribute('aria-label')?.split(' ')[0];if(a===fb.answer.slice(2,4))sq.classList.add('v8-correct');}
  display('모범 착수와 채점 결과를 확인한 뒤 다음 문제를 누르세요.');

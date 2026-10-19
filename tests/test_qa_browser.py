@@ -31,12 +31,13 @@ def site(tmp_path_factory):
     proc=subprocess.Popen([sys.executable,'-m','uvicorn','server:app','--port',str(port)],cwd=ROOT,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     url=f'http://127.0.0.1:{port}'
     try:
-        for _ in range(100):
+        for _ in range(600):
             try:
                 urllib.request.urlopen(url+'/api/health');break
             except Exception:
                 if proc.poll() is not None: raise RuntimeError('test server failed')
                 time.sleep(.1)
+        else: raise RuntimeError('local QA server did not become healthy within 60 seconds')
         req=urllib.request.Request(url+'/api/register',json.dumps({'code':'BROWSER-QA','pin':'test-pin-9384'}).encode(),{'Content-Type':'application/json'})
         token=json.load(urllib.request.urlopen(req))['token']
         yield url,token

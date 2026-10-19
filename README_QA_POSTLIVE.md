@@ -26,7 +26,7 @@ python test_v9_static.py
 
 - 통과: Python 전체 루트/테스트 AST 구문, public 전체 JS `node --check`, QA 정적 계약, v9 정적 검사, `git diff --check`.
 - 수정 과정 실패 후 해결: 기존 프리무브 취소 테스트 3개는 보드 앞 형제 위치를 고정한 선택자를 실제 해당 보드의 조작 요소로 갱신했다(취소 동작 검증 유지). 기존 진단 상태 테스트 1개는 중복 2요청을 전제했으므로 single-flight 1요청과 완료 화면 보존을 검증하도록 갱신했다. 각각 취소 전체 21개 및 QA 브라우저 전체 13개 재실행 통과.
-- 기존 실패 유지: `test_v81_regression.py`의 “7개 영역 중 메이트 한 영역” 문자열 계약, `test_v3_static.py`의 구형 2개 script 목록 계약. 이번 동작 회귀 실패와 구분한다.
+- 당시 기존 실패(이후 [메이트 해설 작업](README_MATE_EXPLANATION.md)에서 현재 사양에 맞게 갱신하고 통과): `test_v81_regression.py`의 “7개 영역 중 메이트 한 영역” 문자열 계약, `test_v3_static.py`의 구형 2개 script 목록 계약. 이번 동작 회귀 실패와 구분한다.
 - 미실행: 전용 타입/린트 도구 설정이 없어 해당 검사는 실행하지 않았다. 운영 PostgreSQL/다중 인스턴스 부하/실물 모바일·Safari/Render 배포 검증도 하지 않았다.
 - Starlette/httpx deprecation 경고 1종. 문제은행 blob은 main과 동일한 `efb19b7b720cc5f3a1c033c41d212c0cd708ec89`.
 

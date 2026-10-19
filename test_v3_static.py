@@ -11,7 +11,11 @@ class Scripts(HTMLParser):
             s=dict(attrs).get('src')
             if s:self.src.append(s)
 parser=Scripts();parser.feed((root/'public/index.html').read_text())
-assert set(parser.src)=={'/assets/app.js','/assets/extended.js'}
+required=['board-tools.js','app.js','extended.js','v4.js','v5.js','v6.js','v7.js','mate-explanation.js','v8.js','v9.js','learning.js']
+assert len(parser.src)==len(set(parser.src)), '중복 script 실행 금지'
+positions=[parser.src.index('/assets/'+name) for name in required]
+assert positions==sorted(positions), '필수 모듈의 의존 순서'
+assert all(s.startswith('/assets/') for s in parser.src), '로컬 배포 script 경로'
 for s in parser.src:assert (root/'public'/s.removeprefix('/assets/')).exists()
 ui=(root/'public/extended.js').read_text()
 app=(root/'public/app.js').read_text()

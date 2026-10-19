@@ -3,6 +3,7 @@ Chess legality validated with python-chess for every loaded line. Dataset-based 
 require complete 15 distinct puzzles for a chosen course and rating band.
 """
 import json, secrets, os, chess
+from mate_explanation import explain_mate
 from pathlib import Path
 from fastapi import HTTPException,Header
 from pydantic import BaseModel
@@ -189,6 +190,9 @@ def attach_v9(app,ns):
           'correct_count':task['correct_count'],'index':task['index'],'total':len(task['ids']),
           'mastered':task['done'] and task['correct_count']>=12,
           'message':'수순 해결 완료. 다음 문제로 진행하세요.' if not task['done'] else ('랜덤 퍼즐 해결 완료!' if kind=='puzzle' else '15문제 세션 완료!')}
+  if any(t.startswith('mateIn') for t in p['themes']):
+   result['mate_explanation']=explain_mate(b)
+   result['mate_explanation']['source']='실제로 해결한 최종 위치 · 대체 메이트 착수 포함'
   task['last_result']=result
   save_state(code,state)
   return result
