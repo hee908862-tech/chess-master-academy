@@ -53,6 +53,8 @@ def page(site):
         page.route('**/api/v9/catalog',lambda route:route.fulfill(json=CATALOG))
         page.route('**/api/v8/assessment/status',lambda route:route.fulfill(json={'active':False}))
         if os.getenv('QA_UI_REVISION'):
+            html=subprocess.check_output(['git','show',os.environ['QA_UI_REVISION']+':public/index.html'],cwd=ROOT,text=True)
+            page.route(site[0]+'/',lambda route:route.fulfill(body=html,content_type='text/html'))
             for name in ['app.js','v8.js','v9.js']:
                 source=subprocess.check_output(['git','show',os.environ['QA_UI_REVISION']+':public/'+name],cwd=ROOT,text=True)
                 def serve_source(content):
