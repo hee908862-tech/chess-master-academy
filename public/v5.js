@@ -120,9 +120,9 @@ async function v5HistoryList(){
 async function v5ReviewLoad(){if(!ready())return;const index=$('reviewGameSelect').value;if(index==='')return;
  $('reviewLoad').disabled=true;$('reviewStatus').textContent='Stockfish가 각 수를 분석 중입니다. 긴 대국은 시간이 걸릴 수 있습니다.';
  try{v5Review=await api('/games/review/'+index);v5ReviewIndex=0;$('reviewMoves').replaceChildren();
-  v5Review.moves.forEach((m,i)=>{const b=document.createElement('button');b.className='review-move';
+  v5Review.moves.forEach((m,i)=>{const b=document.createElement('button');b.className='review-move';if((v5Review.hint_plies||[]).includes(i+1)){b.classList.add('hint-assisted');b.title='힌트를 사용한 착수';}
    const name=document.createElement('b');name.textContent=`${Math.ceil((i+1)/2)}${i%2?'...':'.'} ${m.san}`;
-   const meta=document.createElement('small');meta.textContent=`${m.category} · ${m.centipawn_loss}cp`;
+   const meta=document.createElement('small');meta.textContent=`${(v5Review.hint_plies||[]).includes(i+1)?'💡 힌트 사용 · ':''}${m.category} · ${m.centipawn_loss}cp`;
    b.append(name,meta);b.onclick=()=>{v5ReviewIndex=i+1;v5RenderReview()};$('reviewMoves').appendChild(b)
   });v5RenderReview();
  }catch(e){$('reviewStatus').textContent=e.message}finally{$('reviewLoad').disabled=false}

@@ -35,6 +35,11 @@ def attach_v7(app, ns):
         if board.is_game_over(claim_draw=True) or board.turn!=player:raise HTTPException(409,'본인 차례에만 힌트를 볼 수 있습니다.')
         m,source=best_move(board)
         if not m:raise HTTPException(409,'추천 수를 찾을 수 없습니다.')
+        g['hint_used']=True
+        g.setdefault('hint_plies',[])
+        ply=len(g['moves'])+1
+        if ply not in g['hint_plies']:g['hint_plies'].append(ply)
+        save_state(code,s)
         return {'move':m.uci(),'san':board.san(m),'source':source,'fen':board.fen(),'note':'최선 후보수입니다. 힌트를 사용한 대국은 평가 대국 레이팅에 반영하지 않는 편이 적절합니다.'}
 
     @app.post('/api/v7/game/undo')

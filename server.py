@@ -198,35 +198,79 @@ def reconstruct(game):
  for uci in game['moves']:b.push_uci(uci)
  return b
 
+TIME_MODES={
+ 'unlimited':(None,0,'무제한'),
+ 'rapid':(600000,5000,'래피드 10+5'),
+ 'blitz':(180000,2000,'블리츠 3+2'),
+ 'bullet':(60000,0,'불릿 1+0'),
+}
+def clock_payload(active):
+ mode=active.get('time_mode','unlimited')
+ initial,increment,_=TIME_MODES.get(mode,TIME_MODES['unlimited'])
+ if initial is None:return {'mode':mode,'white_ms':None,'black_ms':None,'increment_ms':0}
+ out={'mode':mode,'white_ms':active.get('white_ms',initial),'black_ms':active.get('black_ms',initial),'increment_ms':increment}
+ # on the server turn the clock time is deducted when a move is received
+ if active.get('turn_started_at'):
+  board=reconstruct(active)
+  side='white_ms' if board.turn else 'black_ms'
+  out[side]=max(0,out[side]-int((time.time()-active['turn_started_at'])*1000))
+ return out
+
+def finish_by_clock(state, loser):
+ active=state['active_game']
+ other='black' if loser=='white' else 'white'
+ result='win' if other==active.get('color','white') else 'loss'
+ state['games'].append({'result':result,'moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),
+    'engine':active['engine'],'color':active.get('color','white'),'difficulty':active.get('difficulty',5),
+    'started':active.get('started'),'time_mode':active.get('time_mode','unlimited'),
+    'hint_used':bool(active.get('hint_used')),'hint_plies':active.get('hint_plies',[]),
+    'termination':'timeout'})
+ state['active_game']=None
+ return result
+
 def store_finished(state,board):
  result=board.result(claim_draw=True)
  outcome='win' if result==('1-0' if state['active_game'].get('color','white')=='white' else '0-1') else 'loss' if result in ('1-0','0-1') else 'draw'
  active=state['active_game']
- state['games'].append({'result':outcome,'moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),'engine':active['engine'],'color':active.get('color','white'),'difficulty':active.get('difficulty',5),'started':active.get('started')})
+ state['games'].append({'result':outcome,'moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),'engine':active['engine'],'color':active.get('color','white'),'difficulty':active.get('difficulty',5),'started':active.get('started'),'time_mode':active.get('time_mode','unlimited'),
+ 'hint_used':bool(active.get('hint_used')),'hint_plies':active.get('hint_plies',[]),'termination':'rules'})
  state['active_game']=None
 
 class NewGameBody(BaseModel):
  color:str='white'
  difficulty:int=Field(default=5,ge=1,le=10)
+ time_mode:str='unlimited'
 
 @app.post('/api/game/new')
 def new_game(body:NewGameBody,authorization:str|None=Header(default=None)):
  code=auth(authorization);state=get_state(code)
  if body.color not in ('white','black'):raise HTTPException(400,'백 또는 흑을 선택해 주세요.')
- state['active_game']={'moves':[],'color':body.color,'engine':'stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else 'fallback','difficulty':body.difficulty,'started':datetime.now(timezone.utc).isoformat()}
+ if body.time_mode not in TIME_MODES:raise HTTPException(400,'지원하지 않는 시간제한입니다.')
+ state['active_game']={'moves':[],'color':body.color,'engine':'stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else 'fallback','difficulty':body.difficulty,'started':datetime.now(timezone.utc).isoformat(),'time_mode':body.time_mode,
+ 'white_ms':TIME_MODES[body.time_mode][0],'black_ms':TIME_MODES[body.time_mode][0],
+ 'hint_used':False,'hint_plies':[],'turn_started_at':time.time()}
  board=chess.Board()
  if body.color=='black':
   first=ai_move(board,body.difficulty)
   if first:
    board.push(first);state['active_game']['moves'].append(first.uci())
+   state['active_game']['turn_started_at']=time.time()
  save_state(code,state)
- return {'board':serialize_board(board,body.color),'player_color':body.color,'message':'새 대국을 시작했습니다. '+('백' if body.color=='white' else '흑')+'으로 플레이합니다.'}
+ return {'board':serialize_board(board,body.color),'clock':clock_payload(state['active_game']),'player_color':body.color,'message':'새 대국을 시작했습니다. '+('백' if body.color=='white' else '흑')+'으로 플레이합니다.'}
 
 @app.get('/api/game')
 def game(authorization:str|None=Header(default=None)):
  code=auth(authorization);state=get_state(code)
  if not state['active_game']:return {'active':False}
- return {'active':True,'board':serialize_board(reconstruct(state['active_game']),state['active_game'].get('color','white')),'player_color':state['active_game'].get('color','white')}
+ active=state['active_game'];mode=active.get('time_mode','unlimited')
+ if mode!='unlimited':
+  c=clock_payload(active);b=reconstruct(active)
+  side='white_ms' if b.turn else 'black_ms'
+  if c[side]<=0:
+   loser='white' if b.turn else 'black'
+   outcome=finish_by_clock(state,loser);save_state(code,state)
+   return {'active':False,'timeout':True,'result':outcome}
+ return {'active':True,'board':serialize_board(reconstruct(state['active_game']),state['active_game'].get('color','white')),'clock':clock_payload(state['active_game']),'player_color':state['active_game'].get('color','white')}
 
 @app.post('/api/game/move')
 def move(body:MoveBody,authorization:str|None=Header(default=None)):
@@ -241,25 +285,64 @@ def move(body:MoveBody,authorization:str|None=Header(default=None)):
   candidate=chess.Move.from_uci(body.from_sq+body.to_sq+(body.promotion if board.piece_at(chess.parse_square(body.from_sq)) and board.piece_at(chess.parse_square(body.from_sq)).piece_type==chess.PAWN and chess.square_rank(chess.parse_square(body.to_sq))==(7 if player_side else 0) else ''))
  except ValueError: raise HTTPException(400,'올바른 이동 좌표가 아닙니다.')
  if candidate not in board.legal_moves: raise HTTPException(400,'체스 규칙상 이동할 수 없는 칸입니다.')
+ mode=active.get('time_mode','unlimited')
+ if mode!='unlimited':
+  side_key='white_ms' if board.turn else 'black_ms'
+  elapsed=int((time.time()-active.get('turn_started_at',time.time()))*1000)
+  active[side_key]=max(0,(active.get(side_key) or 0)-max(0,elapsed))
+  if active[side_key]<=0:
+   outcome=finish_by_clock(state,color)
+   save_state(code,state)
+   return {'board':serialize_board(board,color),'ai_move':None,'finished':True,'timeout':True,'clock':{'mode':mode,'white_ms':0 if color=='white' else None,'black_ms':0 if color=='black' else None},'outcome':outcome,'player_color':color}
  active['moves'].append(candidate.uci());board.push(candidate)
+ if mode!='unlimited':active[side_key]+=TIME_MODES[mode][1]
  ai_uci=None
  if not board.is_game_over(claim_draw=True):
+  ai_start=time.time()
   ai=ai_move(board,active.get('difficulty',5))
+  ai_elapsed=int((time.time()-ai_start)*1000)
+  if mode!='unlimited':
+   ai_key='black_ms' if color=='white' else 'white_ms'
+   active[ai_key]=max(0,(active.get(ai_key) or 0)-ai_elapsed)
+   if active[ai_key]<=0:
+    outcome=finish_by_clock(state,'black' if color=='white' else 'white')
+    save_state(code,state)
+    return {'board':serialize_board(board,color),'ai_move':None,'finished':True,'timeout':True,'outcome':outcome,'clock':{'mode':mode},'player_color':color}
   if ai:
    ai_uci=ai.uci();active['moves'].append(ai_uci);board.push(ai)
+   if mode!='unlimited':active[ai_key]+=TIME_MODES[mode][1]
+ if mode!='unlimited':active['turn_started_at']=time.time()
  finished=board.is_game_over(claim_draw=True)
+ clock=clock_payload(active)
  if finished:store_finished(state,board)
  save_state(code,state)
- return {'board':serialize_board(board,color),'ai_move':ai_uci,'finished':finished,'player_color':color}
+ return {'board':serialize_board(board,color),'ai_move':ai_uci,'finished':finished,'clock':clock,'player_color':color}
 
 @app.post('/api/game/resign')
 def resign(authorization:str|None=Header(default=None)):
  code=auth(authorization);state=get_state(code)
  if not state['active_game']:raise HTTPException(400,'대국이 없습니다.')
  active=state['active_game']
- state['games'].append({'result':'loss','moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),'engine':active['engine'],'resigned':True,'color':active.get('color','white'),'difficulty':active.get('difficulty',5),'started':active.get('started')})
+ state['games'].append({'result':'loss','moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),'engine':active['engine'],'resigned':True,'color':active.get('color','white'),'difficulty':active.get('difficulty',5),'started':active.get('started'),'time_mode':active.get('time_mode','unlimited'),
+ 'hint_used':bool(active.get('hint_used')),'hint_plies':active.get('hint_plies',[]),'termination':'resign'})
  state['active_game']=None;save_state(code,state)
  return {'ok':True}
+
+@app.get('/api/game/stats-by-mode')
+def stats_by_mode(authorization:str|None=Header(default=None)):
+ code=auth(authorization);records=get_state(code).get('games',[])
+ data={}
+ for mode in TIME_MODES:
+  eligible=[g for g in records if g.get('time_mode','unlimited')==mode and g.get('hint_used') is False]
+  wins=sum(g.get('result')=='win' for g in eligible)
+  draws=sum(g.get('result')=='draw' for g in eligible)
+  losses=sum(g.get('result')=='loss' for g in eligible)
+  total=wins+draws+losses
+  data[mode]={'games':total,'wins':wins,'draws':draws,'losses':losses,
+              'win_rate':round(wins/total*100,1) if total else None,
+              'score_rate':round((wins+0.5*draws)/total*100,1) if total else None,
+              'uncertain_legacy_games':sum(g.get('time_mode','unlimited')==mode and 'hint_used' not in g for g in records)}
+ return {'rules':data,'note':'힌트 사용 대국은 승률/무승부율 집계에서 제외합니다.'}
 
 # Curated tactical puzzle positions. Solver must make an exact verified legal move.
 PUZZLES=[
@@ -753,7 +836,7 @@ def practice_retry(authorization:str|None=Header(default=None)):
 @app.get('/api/games/history')
 def games_history(authorization:str|None=Header(default=None)):
  code=auth(authorization);items=get_state(code).get('games',[])
- return [{'index':i,'result':g.get('result'),'ended':g.get('ended'),'color':g.get('color','white'),'difficulty':g.get('difficulty',5),'plies':len(g.get('moves',[])),'engine':g.get('engine')} for i,g in reversed(list(enumerate(items)))]
+ return [{'index':i,'result':g.get('result'),'ended':g.get('ended'),'color':g.get('color','white'),'difficulty':g.get('difficulty',5),'plies':len(g.get('moves',[])),'engine':g.get('engine'),'time_mode':g.get('time_mode','unlimited'),'hint_used':g.get('hint_used',False)} for i,g in reversed(list(enumerate(items)))]
 
 def review_annotation(board,move,engine=None):
  side=board.turn
@@ -819,7 +902,7 @@ def build_review_rows(eng,game,index,moves):
   assessment=review_annotation(board,m,eng)
   board.push(m)
   rows.append({'ply':n+1,'side':side,'uci':uci,'san':san,'before_fen':fen_before,'after_fen':board.fen(),**assessment})
- return {'index':index,'result':game.get('result'),'color':game.get('color','white'),'difficulty':game.get('difficulty',5),'moves':rows,'final_fen':board.fen(),'method':'신속 분석: 깊은 탐색보다 속도를 우선하며, 수 평가 라벨은 근사치입니다.'}
+ return {'index':index,'result':game.get('result'),'color':game.get('color','white'),'difficulty':game.get('difficulty',5),'moves':rows,'final_fen':board.fen(),'time_mode':game.get('time_mode','unlimited'),'hint_used':game.get('hint_used',False),'hint_plies':game.get('hint_plies',[]),'method':'신속 분석: 깊은 탐색보다 속도를 우선하며, 수 평가 라벨은 근사치입니다.'}
 
 # Larger opening catalogue. Each line is verified for legality at startup.
 ADDITIONAL_OPENINGS={

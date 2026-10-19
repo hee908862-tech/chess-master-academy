@@ -12,7 +12,7 @@ const SOUND_THEMES={classic:'Classic Wood',soft:'Soft Click',digital:'Digital'};
 const DEFAULT_PREFS={boardTheme:'walnut',pieceTheme:'classic',soundTheme:'classic',soundOn:true};
 let prefs=loadPrefs();
 let token=localStorage.getItem('chess_token')||sessionStorage.getItem('chess_token')||'';
-let user=null,game=null,selectedGame=null,playerColor='white',gameBusy=false,puzzleItems=[],puzzleIdx=0,selectedPuzzle=null,audioCtx=null;
+let user=null,game=null,selectedGame=null,playerColor='white',gameBusy=false,gameClock=null,gameClockAt=0,puzzleItems=[],puzzleIdx=0,selectedPuzzle=null,audioCtx=null;
 const lessons=[
  ['rules','기초 규칙과 체크메이트 이해','체스는 상대 킹을 체크메이트하는 게임입니다. 각 기물의 이동 방식을 정확히 이해하는 것이 가장 먼저입니다. 킹은 한 칸씩, 퀸은 가로·세로·대각선, 룩은 가로·세로, 비숍은 대각선, 나이트는 L자, 폰은 전진과 대각 포획이라는 점을 기억하세요. 체크는 상대 킹이 공격받는 상태이고, 체크메이트는 어떤 합법 수로도 이를 벗어날 수 없는 상태입니다.'],
  ['capture','기물 가치와 교환 감각','일반적으로 폰=1, 나이트·비숍=3, 룩=5, 퀸=9 정도의 가치를 둡니다. 하지만 실제 대국에서는 체크메이트 위협, 킹 안전, 기물 활동성 때문에 단순 수치보다 상황이 더 중요합니다. 먼저 손해 보는 포획을 줄이고, 잡은 뒤 다시 잡히는 교환이 유리한지 계산하는 습관을 들이세요.'],
@@ -41,13 +41,33 @@ function playMoveSound(kind='move'){const style=prefs.soundTheme;if(!prefs.sound
 else if(style==='soft'){tone({freq:kind==='capture'?780:620,type:'sine',dur:.05,vol:.035});tone({freq:kind==='capture'?520:430,type:'triangle',dur:.07,vol:.02,start:.015});}
 else{tone({freq:kind==='capture'?900:760,type:'square',dur:.04,vol:.022});tone({freq:kind==='capture'?640:520,type:'square',dur:.05,vol:.018,start:.03});}}
 function ready(){if(!token){tab('profile');notice('accountStatus','처음 이용한다면 개인 코드와 PIN으로 가입하세요.','');return false}return true}
-async function refresh(){if(!token){$('userBadge').textContent='게스트';return}try{user=await api('/me');$('userBadge').textContent=user.code;$('homeGames').textContent=user.stats.games+'판';$('homePuzzles').textContent=user.stats.solved+'개';$('homeGrade').textContent='학습 중';$('profileGames').textContent=user.stats.games;$('profilePuzzles').textContent=user.stats.solved;$('profileLessons').textContent=user.state.completed_lessons.length;$('profileAdvice').textContent=user.stats.puzzles?`퍼즐 정답률 ${Math.round(user.stats.solved/user.stats.puzzles*100)}%. ${user.stats.solved<3?'기초 전술을 더 연습해 보세요.':'좋습니다. 이제 계산 문제와 실전 대국을 병행하세요.'}`:'처음에는 퍼즐 3개와 AI 대국 1판으로 현재 학습 패턴을 확인하세요.';$('recommendText').textContent=user.stats.solved<3?'추천: 기초 규칙 확인 → 기초 퍼즐 3개 → AI 대국 1판':'추천: 전술 복습 → 수읽기 2~3수 → 엔드게임 → AI 대국 복기';$('skillBars').innerHTML=[['퍼즐 정확도',user.stats.puzzles?Math.round(user.stats.solved/user.stats.puzzles*100):0],['퍼즐 도전',Math.min(100,user.stats.puzzles*10)],['대국 경험',Math.min(100,user.stats.games*10)],['학습 진도',Math.round(user.state.completed_lessons.length/lessons.length*100)]].map(([label,v])=>`<div class="skill"><span>${label}</span><div class="bar"><div class="fill" style="width:${v}%"></div></div><b>${v}%</b></div>`).join('');$('engineBadge').textContent=user.engine==='stockfish'?'Stockfish':'기본 체스 AI';$('engineExplanation').textContent=user.engine==='stockfish'?'서버 Stockfish 엔진으로 응수합니다.':'현재는 기본 미니맥스 AI로 플레이합니다. 서버에 Stockfish 바이너리를 연결하면 자동으로 교체됩니다.';renderLessons();await resumeGame();if(!window.practiceModeInitialized)await loadPuzzles();}catch(err){token='';localStorage.removeItem('chess_token');sessionStorage.removeItem('chess_token');notice('accountStatus',err.message,'err')}}
+async function refresh(){if(!token){$('userBadge').textContent='게스트';return}try{user=await api('/me');$('userBadge').textContent=user.code;$('homeGames').textContent=user.stats.games+'판';$('homePuzzles').textContent=user.stats.solved+'개';$('homeGrade').textContent='학습 중';$('profileGames').textContent=user.stats.games;$('profilePuzzles').textContent=user.stats.solved;$('profileLessons').textContent=user.state.completed_lessons.length;$('profileAdvice').textContent=user.stats.puzzles?`퍼즐 정답률 ${Math.round(user.stats.solved/user.stats.puzzles*100)}%. ${user.stats.solved<3?'기초 전술을 더 연습해 보세요.':'좋습니다. 이제 계산 문제와 실전 대국을 병행하세요.'}`:'처음에는 퍼즐 3개와 AI 대국 1판으로 현재 학습 패턴을 확인하세요.';$('recommendText').textContent=user.stats.solved<3?'추천: 기초 규칙 확인 → 기초 퍼즐 3개 → AI 대국 1판':'추천: 전술 복습 → 수읽기 2~3수 → 엔드게임 → AI 대국 복기';$('skillBars').innerHTML=[['퍼즐 정확도',user.stats.puzzles?Math.round(user.stats.solved/user.stats.puzzles*100):0],['퍼즐 도전',Math.min(100,user.stats.puzzles*10)],['대국 경험',Math.min(100,user.stats.games*10)],['학습 진도',Math.round(user.state.completed_lessons.length/lessons.length*100)]].map(([label,v])=>`<div class="skill"><span>${label}</span><div class="bar"><div class="fill" style="width:${v}%"></div></div><b>${v}%</b></div>`).join('');$('engineBadge').textContent=user.engine==='stockfish'?'Stockfish':'기본 체스 AI';$('engineExplanation').textContent=user.engine==='stockfish'?'서버 Stockfish 엔진으로 응수합니다.':'현재는 기본 미니맥스 AI로 플레이합니다. 서버에 Stockfish 바이너리를 연결하면 자동으로 교체됩니다.';renderLessons();await resumeGame();renderWinrates();if(!window.practiceModeInitialized)await loadPuzzles();}catch(err){token='';localStorage.removeItem('chess_token');sessionStorage.removeItem('chess_token');notice('accountStatus',err.message,'err')}}
 async function auth(mode){const code=$('codeField').value.trim(),pin=$('pinField').value;try{const result=await api(mode==='signup'?'/register':'/login','POST',{code,pin});token=result.token;localStorage.setItem('chess_token',token);$('pinField').value='';notice('accountStatus','로그인되었습니다. 모든 기록은 서버에 저장됩니다.','ok');await refresh();tab('home')}catch(e){notice('accountStatus',e.message,'err')}}
 $('signup').onclick=()=>auth('signup');$('signin').onclick=()=>auth('signin');$('signout').onclick=async()=>{try{if(token)await api('/logout','POST')}catch(e){}token='';user=null;localStorage.removeItem('chess_token');sessionStorage.removeItem('chess_token');$('userBadge').textContent='게스트';notice('accountStatus','로그아웃했습니다.','');tab('profile')};
+function setGameClock(clock){gameClock=clock||null;gameClockAt=Date.now();drawClock()}
+function drawClock(){const e=$('gameClock');if(!e)return;
+ if(!gameClock||gameClock.mode==='unlimited'||gameClock.white_ms==null){e.textContent='시간 무제한';return;}
+ const ms={white:gameClock.white_ms,black:gameClock.black_ms};
+ if(game&&game.turn&&gameClockAt&&!(game.is_over)){
+  const side=game.turn;ms[side]=Math.max(0,ms[side]-(Date.now()-gameClockAt));
+ }
+ const fmt=x=>`${Math.floor(Math.max(0,x)/60000)}:${String(Math.floor(Math.max(0,x)%60000/1000)).padStart(2,'0')}`;
+ e.textContent=`백 ${fmt(ms.white)} · 흑 ${fmt(ms.black)}`;
+}
+setInterval(drawClock,1000);
+function renderWinrates(){if(!token||!$('gameModeStats'))return;
+ api('/game/stats-by-mode').then(data=>{const labels={unlimited:'무제한',rapid:'래피드 10+5',blitz:'블리츠 3+2',bullet:'불릿 1+0'};
+  $('gameModeStats').replaceChildren();for(const [mode,val] of Object.entries(data.rules||{})){
+   const row=document.createElement('div');row.className='v8-result-item';
+   row.textContent=`${labels[mode]||mode} · ${val.games}판 · ${val.wins}승 ${val.draws}무 ${val.losses}패 · 승률 ${val.win_rate==null?'집계 전':val.win_rate+'%'}`;
+   $('gameModeStats').append(row);
+  }
+ }).catch(e=>{$('gameModeStats').textContent=e.message});
+}
 function showGame(board,msg){game=board;selectedGame=null;drawGame();notice('gameStatus',msg|| (board.is_over?'대국이 종료됐습니다.':board.turn===playerColor?'당신의 차례입니다.':'AI가 생각하고 있습니다.'),board.is_over?'ok':'');$('turnIndicator').textContent=board.is_over?('대국 종료 · '+board.result):(board.turn===playerColor?'당신의 차례 ('+(playerColor==='white'?'백':'흑')+')':'AI 차례')}
 function drawGame(){if(!game){drawBoard('gameBoard',fromFen(chessStart),{flip:playerColor==='black'});return}drawBoard('gameBoard',game.squares,{flip:playerColor==='black',selected:selectedGame,targets:selectedGame?game.legal.filter(m=>m.from===selectedGame):[],last:game.last_move?[game.last_move.slice(0,2),game.last_move.slice(2,4)]:[],onClick:onGameSquare})}
 const chessStart='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-async function resumeGame(){try{const r=await api('/game');if(r.active){playerColor=r.player_color||'white';$('playerColor').value=playerColor;showGame(r.board,'진행 중인 대국을 불러왔습니다.');}else {game=null;drawGame();$('turnIndicator').textContent='새 대국을 시작하세요.'}}catch(e){notice('gameStatus',e.message,'err')}}
+async function resumeGame(){try{const r=await api('/game');if(r.active){playerColor=r.player_color||'white';$('playerColor').value=playerColor;showGame(r.board,'진행 중인 대국을 불러왔습니다.');setGameClock(r.clock);}else {game=null;drawGame();$('turnIndicator').textContent='새 대국을 시작하세요.'}}catch(e){notice('gameStatus',e.message,'err')}}
 // Smooth piece translation: the static board updates immediately while a moving overlay bridges old and new cells.
 function animateBoardTransition(boardId,from,to,paint){
  const boardEl=$(boardId);
@@ -72,10 +92,17 @@ async function onGameSquare(s){
  if(chosen&&game.legal.some(m=>m.from===chosen&&m.to===s)){
   const from=chosen,prior=game;
   gameBusy=true;selectedGame=null;
-  const capture=Boolean(prior.squares[s]);
+  const capture=Boolean(prior.squares[s]) || ((prior.squares[from]||'').toLowerCase()==='p'&&from[0]!==s[0]);
   // Optimistic board state: the learner sees their piece moving before the server calculates its reply.
   const optimistic={...prior,squares:{...prior.squares},legal:[],last_move:from+s,turn:playerColor==='white'?'black':'white'};
   optimistic.squares[s]=optimistic.squares[from];delete optimistic.squares[from];
+  // En passant captures a pawn on the adjacent file, not on the destination square.
+  if((prior.squares[from]||'').toLowerCase()==='p'&&from[0]!==s[0]&&!prior.squares[s]){
+   const taken=s[0]+from[1];delete optimistic.squares[taken];
+  }
+  // Promotion appears immediately during the optimistic move.
+  if((prior.squares[from]||'').toLowerCase()==='p'&&(s[1]==='8'||s[1]==='1'))
+   optimistic.squares[s]=playerColor==='white'?'Q':'q';
   // For castling also move rook on the temporary local board.
   if((optimistic.squares[s]||'').toLowerCase()==='k'&&Math.abs(FILES.indexOf(from[0])-FILES.indexOf(s[0]))===2){
    const rank=from[1];
@@ -86,10 +113,10 @@ async function onGameSquare(s){
   const target=document.querySelector(`#gameBoard [aria-label^="${s} "]`);if(target)target.classList.add('moving-to');
   notice('gameStatus','착수했습니다. AI 응수를 기다리는 중입니다...');
   try{
-   const r=await api('/game/move','POST',{from_sq:from,to_sq:s,promotion:'q'});
+   const r=await api('/game/move','POST',{from_sq:from,to_sq:s,promotion:'q'});setGameClock(r.clock);
    const updateFinal=()=>showGame(r.board,r.finished?'대국 종료: '+r.board.result:'AI 응수가 완료됐습니다.');
    if(r.ai_move){const aFrom=r.ai_move.slice(0,2),aTo=r.ai_move.slice(2,4);animateBoardTransition('gameBoard',aFrom,aTo,updateFinal);playMoveSound('move');}else updateFinal();
-   await refreshSummaryOnly();
+   await refreshSummaryOnly();if(r.finished)renderWinrates();
   }catch(err){game=prior;drawGame();notice('gameStatus',err.message,'err')}
   finally{gameBusy=false}
   return;
@@ -97,8 +124,8 @@ async function onGameSquare(s){
  selectedGame=game.legal.some(m=>m.from===s)?s:null;drawGame();
 }
 async function refreshSummaryOnly(){if(!token)return;try{user=await api('/me');$('homeGames').textContent=user.stats.games+'판';$('profileGames').textContent=user.stats.games;}catch(e){}}
-$('newGame').onclick=async()=>{if(!ready())return;ensureAudio();try{playerColor=$('playerColor').value;const r=await api('/game/new','POST',{color:playerColor,difficulty:Number($('aiLevel')?.value||5)});showGame(r.board,r.message)}catch(e){notice('gameStatus',e.message,'err')}};
-$('resign').onclick=async()=>{if(!ready()||!game||game.is_over)return;if(!confirm('현재 대국을 기권하시겠습니까?'))return;try{await api('/game/resign','POST');game=null;drawGame();notice('gameStatus','기권으로 대국이 종료됐습니다.');await refresh()}catch(e){notice('gameStatus',e.message,'err')}};
+$('newGame').onclick=async()=>{if(!ready())return;ensureAudio();try{playerColor=$('playerColor').value;const r=await api('/game/new','POST',{color:playerColor,difficulty:Number($('aiLevel')?.value||5),time_mode:$('timeMode')?.value||'unlimited'});showGame(r.board,r.message);setGameClock(r.clock)}catch(e){notice('gameStatus',e.message,'err')}};
+$('resign').onclick=async()=>{if(!ready()||!game||game.is_over)return;if(!confirm('현재 대국을 기권하시겠습니까?'))return;try{await api('/game/resign','POST');game=null;drawGame();notice('gameStatus','기권으로 대국이 종료됐습니다.');await refresh();renderWinrates()}catch(e){notice('gameStatus',e.message,'err')}};
 function currentPuzzle(){return puzzleItems[puzzleIdx]}
 async function loadPuzzles(){try{puzzleItems=await api('/puzzles');$('puzzleSelect').innerHTML='';puzzleItems.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${i+1}. ${p.theme} · ${p.difficulty}`;$('puzzleSelect').appendChild(o)});showPuzzle()}catch(e){notice('puzzleStatus',e.message,'err')}}
 function showPuzzle(){const p=currentPuzzle();if(!p)return;selectedPuzzle=null;$('puzzleSelect').value=puzzleIdx;$('puzzleLevel').textContent=p.difficulty;$('puzzleSolved').textContent=p.solved?'✓ 해결 완료':'미해결';$('puzzleTitle').textContent=p.theme;$('puzzleDesc').textContent=p.description;notice('puzzleStatus','백의 최선의 수를 찾아보세요. 말과 목적지를 차례로 누릅니다.');drawPuzzle()}

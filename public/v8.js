@@ -2,8 +2,15 @@
 (function(){
 'use strict';
 const $$=id=>document.getElementById(id);
-let current=null,chosen=null,busy=false,showing=false,selectedBase=null,lastAnswer=null;
+let current=null,chosen=null,busy=false,showing=false,selectedBase=null,lastAnswer=null,evalClock=null,evalClockAt=0;
 const dom=$$('v8DomainList'),info=$$('v8ScoreSummary'),board=$$('testBoard'),progress=$$('testProgress'),status=$$('testStatus');
+function evalClockSet(c){evalClock=c||null;evalClockAt=Date.now();evalClockDraw()}
+function evalClockDraw(){const el=$$('v8Outcome');if(!el||!evalClock||current?.phase!=='game')return;
+ const w=Math.max(0,(evalClock.white_ms||0)-(Date.now()-evalClockAt)),b=evalClock.black_ms||0;
+ const fmt=x=>`${Math.floor(x/60000)}:${String(Math.floor(x%60000/1000)).padStart(2,'0')}`;
+ el.textContent=`평가 대국 10+5 · 백 ${fmt(w)} · 흑 ${fmt(b)} · 힌트/무르기 없음`;
+}
+setInterval(evalClockDraw,1000);
 function display(msg,klass=''){status.textContent=msg;status.className='notice '+klass;}
 function hideOverlay(){const o=$$('v8Overlay');o.hidden=true;}
 function feedbackOverlay(data){
@@ -47,16 +54,21 @@ async function click(sq){
  try{
   if(!game){const r=await api('/v8/assessment/answer','POST',{id:current.q.id,move:found});feedbackOverlay(r);current={phase:'feedback'};}
   else{
-   const r=await api('/v8/assessment/game-move','POST',{move:found});
+   // Draw the validated selected move immediately, before waiting for AI analysis.
+   const optimistic={...current.game,squares:{...current.game.squares},legal:[],turn:'black',last_move:found};
+   optimistic.squares[sq]=optimistic.squares[from];delete optimistic.squares[from];
+   if((current.game.squares[from]||'').toLowerCase()==='p'&&from[0]!==sq[0]&&!current.game.squares[sq])delete optimistic.squares[sq[0]+from[1]];
+   current={phase:'game',game:optimistic};draw();display('착수가 반영됐습니다. AI가 생각하고 있습니다.');
+   const r=await api('/v8/assessment/game-move','POST',{move:found});evalClockSet(r.clock);
    if(r.done){current={phase:'results'};drawBoard('testBoard',r.board.squares);showResult(r.result);}
-   else{current={phase:'game',game:r.board};progress.textContent=`AI 대국 · ${r.white_moves}/12수`;display('AI가 응수했습니다. 다음 수를 두세요.');draw();}
+   else{current={phase:'game',game:r.board};progress.textContent=`50번째 평가 · 중급 AI 실전 대국`;display('AI가 응수했습니다. 다음 수를 두세요.');draw();}
   }
- }catch(err){display(err.message,'err');draw();}finally{busy=false;}
+ }catch(err){display(err.message,'err');restore();}finally{busy=false;}
 }
-function startGame(r){hideOverlay();chosen=null;current={phase:'game',game:r.board};
- progress.textContent=`50번째 평가 · AI 대국 ${r.white_moves||0}/12수`;
+function startGame(r){hideOverlay();chosen=null;current={phase:'game',game:r.board};evalClockSet(r.clock);
+ progress.textContent=`50번째 평가 · AI 대국 (10+5)`;
  $$('v8Outcome').textContent='힌트와 무르기 없는 별도 평가 대국입니다. 백으로 착수해 주세요.';
- display('중급 AI와 12수의 평가 구간을 진행합니다.');draw();}
+ display('중급 AI와 실제 종료까지 대국합니다. 제한시간: 10분 + 착수당 5초.');draw();}
 async function start(){if(!token){tab('profile');return;}if(busy)return;busy=true;
  try{const r=await api('/v8/assessment/start','POST');showQuestion(r);}catch(e){display(e.message,'err')}finally{busy=false;}}
 async function next(){if(busy)return;busy=true;
@@ -75,7 +87,7 @@ function showResult(r){hideOverlay();progress.textContent='50단계 종합 평�
  const advice=document.createElement('p');advice.textContent=`강점: ${r.strengths.join(', ')} / 보완: ${r.weaknesses.join(', ')}. 공식 Elo와 직접 환산되지 않는 내부 지수입니다.`;info.append(advice);
  display('평가 결과가 계정에 저장되었습니다.');loadHistory();loadRecommendations();
 }
-async function restore(){if(!token)return;try{const r=await api('/v8/assessment/status');if(r.active){if(r.phase==='questions')showQuestion(r);else if(r.phase==='feedback'){current={phase:'feedback'};feedbackOverlay(r);}else if(r.phase==='game')startGame(r);}else if(r.recent)showResult(r.recent);else{hideOverlay();}}catch(e){display(e.message,'err')}}
+async function restore(){if(!token)return;try{const r=await api('/v8/assessment/status');if(r.phase==='results'&&r.result){showResult(r.result);return;}if(r.active){if(r.phase==='questions')showQuestion(r);else if(r.phase==='feedback'){current={phase:'feedback'};feedbackOverlay(r);}else if(r.phase==='game')startGame(r);}else if(r.recent)showResult(r.recent);else{hideOverlay();}}catch(e){display(e.message,'err')}}
 function renderProfile(data){if(!data)return;
  const p=$$('v8ProfileResult');if(!p)return;
  const last=data.latest;
