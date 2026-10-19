@@ -1,0 +1,12 @@
+#onboardingDialog{width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;border:1px solid #8795aa;border-radius:18px;background:#152235;color:#f3f6fb;padding:0;box-sizing:border-box}
+#onboardingDialog::backdrop{background:rgb(0 0 0 / .65)}
+.onboarding-content{padding:24px;line-height:1.65}
+#onboardingTitle{font-size:1.45rem;line-height:1.35}
+#onboardingProgress,.onboarding-clock{font-size:.9rem;color:#d1dcea}
+.onboarding-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.onboarding-actions button{min-height:44px;white-space:normal;flex:1 1 100px}
+#onboardingDialog :focus-visible,.onboarding-replay:focus-visible{outline:3px solid #9ddcff;outline-offset:3px}
+#onboardingInvitation{padding:12px 16px;border:1px solid #607994;border-radius:12px;line-height:1.5;margin-bottom:12px}
+#onboardingInvitation[hidden]{display:none}
+.onboarding-replay{margin-bottom:12px}
+@media(max-height:480px){.onboarding-content{padding:12px 18px}#onboardingTitle{margin:8px 0}.onboarding-actions{margin-top:8px}}

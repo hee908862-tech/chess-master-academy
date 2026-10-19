@@ -23,7 +23,7 @@ function show(id,data,flip){clear(id);if(!data)return;
    }
    detail.textContent=cell?`${cell.square||'보드 밖'}: ${cell.reasons.join(' / ')}. 통제 기물: ${cell.attackers.map(a=>a.square+' '+a.piece).join(', ')||'없음'}`:'왕 주변 칸을 선택하면 이동할 수 없는 이유와 모든 통제 기물을 확인할 수 있습니다.';
   }
-  for(const cell of data.cells){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=(cell.square||`보드 밖 (${cell.offset.join(',')})`)+' · '+cell.reasons.join(' / ');b.onclick=()=>select(cell);list.append(b);}
+  for(const cell of data.cells){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=(cell.square||'보드 가장자리 밖')+' · '+cell.reasons.join(' / ');b.onclick=()=>select(cell);list.append(b);}
   panel.addEventListener('toggle',()=>{if(panel.open){window.cmaBoardTools?.cancel(id);select(null);}});
  }
  host.parentElement.append(panel);panels.set(id,panel);

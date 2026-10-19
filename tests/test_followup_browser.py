@@ -65,7 +65,16 @@ def test_guest_return_and_board_layout(site,width,height):
         page.locator('#v9PuzzleStart').click()
         expect(page.locator('#accountStatus')).to_contain_text('로그인이 필요')
         expect(page.locator('#v8ProfileResult')).to_contain_text('로그인하면')
-        page.locator('#codeField').fill('BROWSER-QA');page.locator('#pinField').fill('test-pin-9384');page.locator('#signin').click()
+        page.locator('#codeField').fill('BROWSER-QA');page.locator('#pinField').fill('test-pin-9384')
+        # First-login introduction is now intentional. Close it before exercising
+        # the original guest-return and board-layout contract.
+        with page.expect_response('**/api/onboarding') as notice:
+            page.locator('#signin').click()
+        intro=notice.value.json()
+        if intro['status'] not in ('completed','skipped') and not intro['defer_auto']:
+            expect(page.locator('#onboardingDialog')).to_be_visible()
+            page.locator('#onboardingSkip').click()
+            expect(page.locator('#onboardingDialog')).not_to_be_visible()
         expect(page.locator('#puzzle')).to_have_class('view active')
         assert page.locator('#v9PuzzleBoard .sq').count()==0
         page.evaluate("tab('training')")
