@@ -33,10 +33,13 @@ def test_bridge_full_line_provenance_no_independent_credit(setup):
     report, item = report_fixture(ns)
     linked = post(client, 'from-diagnosis', {'report_id': report['id'], 'item_id': item['id']})
     assert linked['diagnosis']['reason'] == item['reason']
-    assert linked['active'] is None and linked['path']['current'] == 0
+    assert linked['active']['fen'] == item['fen'] and linked['path']['current'] == 0
+    assert not linked['active']['done']
+    assert linked['path']['steps'][0]['status'] == 'active'
     # Idempotence does not create another path or erase work.
     again = post(client, 'from-diagnosis', {'report_id': report['id'], 'item_id': item['id']})
     assert again['path']['id'] == linked['path']['id']
+    assert again['active'] == linked['active']
     session = post(client, 'path', {})['active']
     first = action(client, session, 'move', item['line'][0])
     assert not first['done'], 'Correct first move is not full calculation success'
@@ -149,3 +152,19 @@ def test_concept_uses_real_source_and_locks_pending_transition(route_page,site,w
     assert len(pending) == 1
     pending[0].continue_()
     expect(page.get_by_role('button',name='경로 시작 · 이어가기',exact=True)).to_be_enabled()
+
+
+def test_previous_pending_diagnosis_path_opens_same_source_without_duplicate(setup):
+    client,ns,legacy,db=setup
+    report,item=report_fixture(ns)
+    linked=post(client,'from-diagnosis',{'report_id':report['id'],'item_id':item['id']})
+    state=state_from(db)
+    state['active']=None
+    state['path']['steps'][0]['status']='pending'
+    state['path']['steps'][0].pop('session',None)
+    with sqlite3.connect(db) as conn:
+        conn.execute('UPDATE learning_progress SET state=? WHERE code=?',(json.dumps(state),'A'))
+    restored=post(client,'from-diagnosis',{'report_id':report['id'],'item_id':item['id']})
+    assert restored['path']['id']==linked['path']['id']
+    assert restored['active']['fen']==item['fen']
+    assert restored['path']['steps'][0]['status']=='active'

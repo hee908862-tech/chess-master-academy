@@ -1,0 +1,126 @@
+{
+  "baseline": {
+    "cold": {
+      "path": "/api/journey/start",
+      "seconds": 11.9073,
+      "status": 200
+    },
+    "concurrent": [
+      {
+        "path": "/api/me",
+        "seconds": 11.9002,
+        "status": 200
+      },
+      {
+        "path": "/api/onboarding",
+        "seconds": 11.8826,
+        "status": 200
+      },
+      {
+        "path": "/api/game/new",
+        "seconds": 11.8711,
+        "status": 200
+      }
+    ],
+    "warm": {
+      "path": "/api/journey/start",
+      "seconds": 0.0621,
+      "status": 200
+    },
+    "inventory_work_seconds": 11.8327,
+    "corpus_count": 40721,
+    "database": "temporary SQLite, production server.db/auth, in-process TestClient"
+  },
+  "indexed": {
+    "cold": {
+      "path": "/api/journey/start",
+      "seconds": 0.4097,
+      "status": 200
+    },
+    "concurrent": [
+      {
+        "path": "/api/me",
+        "seconds": 0.0247,
+        "status": 200
+      },
+      {
+        "path": "/api/onboarding",
+        "seconds": 0.0182,
+        "status": 200
+      },
+      {
+        "path": "/api/game/new",
+        "seconds": 0.0246,
+        "status": 200
+      }
+    ],
+    "warm": {
+      "path": "/api/journey/start",
+      "seconds": 0.0713,
+      "status": 200
+    },
+    "inventory_work_seconds": 0.339,
+    "db_metrics": {
+      "connect_ms": {
+        "max_ms": 0.378,
+        "count": 25
+      },
+      "transaction_ms": {
+        "max_ms": 4.915,
+        "count": 25
+      },
+      "wait_ms": {
+        "max_ms": 0.066,
+        "count": 3
+      }
+    },
+    "corpus_count": 40721,
+    "database": "temporary SQLite, production server.db/auth, in-process TestClient"
+  },
+  "fallback": {
+    "cold": {
+      "path": "/api/journey/start",
+      "seconds": 14.3782,
+      "status": 200
+    },
+    "concurrent": [
+      {
+        "path": "/api/me",
+        "seconds": 0.2715,
+        "status": 200
+      },
+      {
+        "path": "/api/onboarding",
+        "seconds": 0.3235,
+        "status": 200
+      },
+      {
+        "path": "/api/game/new",
+        "seconds": 0.4255,
+        "status": 200
+      }
+    ],
+    "warm": {
+      "path": "/api/journey/start",
+      "seconds": 0.0602,
+      "status": 200
+    },
+    "inventory_work_seconds": 14.2991,
+    "db_metrics": {
+      "connect_ms": {
+        "max_ms": 10.573,
+        "count": 25
+      },
+      "transaction_ms": {
+        "max_ms": 88.674,
+        "count": 25
+      },
+      "wait_ms": {
+        "max_ms": 5.322,
+        "count": 3
+      }
+    },
+    "corpus_count": 40721,
+    "database": "temporary SQLite, production server.db/auth, in-process TestClient"
+  }
+}

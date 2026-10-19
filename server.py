@@ -22,27 +22,52 @@ if DATABASE_URL:
  import psycopg
  from psycopg.rows import dict_row
 
-_db_lock=threading.RLock()
+# Connections are request-local. Atomic writes retain SQLite BEGIN IMMEDIATE,
+# PostgreSQL row/advisory locks, and progress CAS; no process-wide I/O mutex.
+from collections import deque
+DB_TIMINGS=deque(maxlen=2000)
+DB_CONNECT_TIMEOUT=5
+DB_LOCK_TIMEOUT=2.0
+DB_STATEMENT_TIMEOUT=8.0
+
+def database_busy():
+ return HTTPException(503,'기록 저장소가 지연되고 있습니다. 잠시 후 저장 상태를 확인하고 다시 시도하세요.',headers={'Retry-After':'2'})
 
 @contextmanager
 def db():
- with _db_lock:
+ conn=None;started=time.perf_counter();connected=started
+ try:
   if DATABASE_URL:
-   conn=psycopg.connect(DATABASE_URL, row_factory=dict_row)
+   conn=psycopg.connect(DATABASE_URL,row_factory=dict_row,connect_timeout=DB_CONNECT_TIMEOUT,
+     options=f'-c lock_timeout={int(DB_LOCK_TIMEOUT*1000)} -c statement_timeout={int(DB_STATEMENT_TIMEOUT*1000)}')
   else:
-   conn=sqlite3.connect(SQLITE_FILE)
+   conn=sqlite3.connect(SQLITE_FILE,timeout=DB_LOCK_TIMEOUT)
    conn.row_factory=sqlite3.Row
-  try:
-   yield conn
-   conn.commit()
-  except:
-   conn.rollback();raise
-  finally:
-   conn.close()
+  connected=time.perf_counter()
+  yield conn
+  conn.commit()
+ except Exception as exc:
+  if conn is not None:
+   try:conn.rollback()
+   except Exception:pass
+  transient=(isinstance(exc,sqlite3.OperationalError) and any(word in str(exc).lower() for word in ('locked','busy')))
+  if DATABASE_URL:
+   transient=transient or isinstance(exc,psycopg.OperationalError) or getattr(exc,'sqlstate',None) in ('55P03','57014')
+  if transient:raise database_busy() from exc
+  raise
+ finally:
+  if conn is not None:conn.close()
+  else:connected=time.perf_counter()
+  DB_TIMINGS.append({'kind':'connection','connect_ms':round((connected-started)*1000,3),
+                    'transaction_ms':round((time.perf_counter()-connected)*1000,3)})
 
 def execute(conn,query,args=()):
  if DATABASE_URL: query=query.replace('?','%s')
- return conn.execute(query,args)
+ started=time.perf_counter()
+ try:return conn.execute(query,args)
+ finally:
+  if 'BEGIN IMMEDIATE' in query or 'pg_advisory_xact_lock' in query or 'FOR UPDATE' in query:
+   DB_TIMINGS.append({'kind':'write_gate','wait_ms':round((time.perf_counter()-started)*1000,3)})
 
 def initdb():
  with db() as c:
@@ -95,7 +120,7 @@ def save_state(code,state):
  # Merge only fields changed by this request; reject concurrent edits of the same field.
  # The comparison and update share one database transaction on SQLite and PostgreSQL.
  with db() as c:
-  if not DATABASE_URL:c.execute('BEGIN IMMEDIATE')
+  if not DATABASE_URL:execute(c,'BEGIN IMMEDIATE')
   execute(c,'INSERT INTO progress(code,state) VALUES(?,?) ON CONFLICT(code) DO NOTHING',(code,'{}'))
   row=execute(c,'SELECT state FROM progress WHERE code=?'+(' FOR UPDATE' if DATABASE_URL else ''),(code,)).fetchone()
   current=json.loads(row['state'])
@@ -131,10 +156,13 @@ def register(body:AccountBody):
  code=clean_code(body.code)
  if not 6<=len(body.pin)<=72:raise HTTPException(400,'PIN은 6~72자로 입력하세요.')
  salt=secrets.token_hex(16)
+ pin_hash=hash_pin(body.pin,salt)
  try:
   with db() as c:
-   execute(c,'INSERT INTO accounts(code,pin_hash,salt,created) VALUES(?,?,?,?)',(code,hash_pin(body.pin,salt),salt,datetime.now(timezone.utc).isoformat()))
- except Exception:
+   execute(c,'INSERT INTO accounts(code,pin_hash,salt,created) VALUES(?,?,?,?)',(code,pin_hash,salt,datetime.now(timezone.utc).isoformat()))
+ except HTTPException:raise
+ except Exception as exc:
+  if not isinstance(exc,sqlite3.IntegrityError) and not (DATABASE_URL and getattr(exc,'sqlstate',None)=='23505'):raise
   raise HTTPException(409,'이미 사용 중인 코드입니다. 다른 코드를 선택하세요.')
  save_state(code,blank_state())
  return issue_token(code)

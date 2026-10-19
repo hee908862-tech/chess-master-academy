@@ -1,0 +1,13 @@
+.git
+.env
+.env.*
+*.sqlite*
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+*.log
+node_modules/
+.DS_Store
+.venv/
+venv/
+journey-index.json.gz

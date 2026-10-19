@@ -1,0 +1,91 @@
+{
+  "image": {
+    "image_id": "sha256:bd87a5ef228ea99f17443b6dbf131d2318170f111378961cbf48869bdc4b1434",
+    "size_bytes": 261295580,
+    "architecture": "amd64",
+    "os": "linux",
+    "verified_source_files": 63,
+    "source_manifest_sha256": "2818501d345aea2457f5e6d6180cccc5ed6cdd146ba3afdbda21ac3bb5737f13",
+    "dockerfile_sha256": "c933bc04b615d79bc80e90afc3fd2394021dddb0325e2f1cbadc22674f788298",
+    "host_test_packages": {
+      "fastapi": "0.148.0",
+      "uvicorn": "0.54.0",
+      "psycopg": "3.3.6",
+      "chess": "1.11.2",
+      "pytest": "9.1.1",
+      "playwright": "1.64.0"
+    }
+  },
+  "index": {
+    "index": "/app/journey-index.json.gz",
+    "policy": "journey-index-v1",
+    "sha256": "241c7a902d7952b7a7501f383aaef4a4b7a189113b61c3b3c51e91d4881b7310",
+    "unique_items": 40713,
+    "pools": {
+      "mate": 13000,
+      "calculation": 38656,
+      "capture": 16912,
+      "defense": 3270,
+      "promotion": 3187,
+      "endgame": 5222
+    },
+    "python": "3.12.15 (main, Oct  6 2026, 02:02:22) [GCC 14.2.0]",
+    "packages": {
+      "fastapi": "0.149.0",
+      "uvicorn": "0.54.0",
+      "psycopg": "3.3.6",
+      "chess": "1.11.2"
+    }
+  },
+  "http": {
+    "conditions": "Docker app 1 CPU/512MiB, PG 1 CPU/512MiB, loopback HTTP, unique temporary accounts, single sample",
+    "memory_before": {
+      "VmHWM": "149100 kB",
+      "VmRSS": "149100 kB"
+    },
+    "cold": {
+      "path": "journey/start",
+      "seconds": 0.3829
+    },
+    "concurrent": [
+      {
+        "path": "me",
+        "seconds": 0.0329
+      },
+      {
+        "path": "onboarding",
+        "seconds": 0.0408
+      },
+      {
+        "path": "game/new",
+        "seconds": 0.0445
+      }
+    ],
+    "warm": {
+      "path": "journey/start",
+      "seconds": 0.104
+    },
+    "memory_after": {
+      "VmHWM": "250840 kB",
+      "VmRSS": "250064 kB"
+    },
+    "lost_response_recovery": "PASS: actual TCP disconnect after commit; GET restores same session; repeat POST 409",
+    "restart_command_seconds": 0.6998,
+    "process_restart_resume": "PASS: same saved diagnostic session/revision after actual image process restart",
+    "training_restart_resume": "PASS: saved hint/session/revision retained; repeated bridge returns same path/task"
+  },
+  "graceful_exit_events": [
+    {
+      "execDuration": "26",
+      "exitCode": "0",
+      "image": "cma-predeploy:verified",
+      "name": "cma-predeploy-app"
+    },
+    {
+      "execDuration": "7",
+      "exitCode": "0",
+      "image": "cma-predeploy:verified",
+      "name": "cma-predeploy-app"
+    }
+  ]
+}

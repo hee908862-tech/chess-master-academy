@@ -89,7 +89,9 @@ def test_unmeasured_no_overwrite_and_unverified_alternative(setup):
     while s['phase']!='complete':
         if s['phase']=='question':s=act(c,s,'skip')
         s=act(c,s,'next')
-    assert s['report']['areas'][1]['independent']==1
+    assert s['report']['areas'][1]['independent']==0
+    assert s['report']['areas'][1]['unverified']==1
+    assert s['report']['areas'][1]['assessed_denominator']==0
     before={i['puzzle_id'] for i in s['report']['items']}
     nxt=post(c,'start',{'mode':'targeted','competency':'calculation'})
     assert not before.intersection(i['puzzle_id'] for i in saved(path)['active']['items'])
@@ -115,12 +117,14 @@ def test_recheck_delay_and_learning_positions_excluded(setup,monkeypatch):
     s=post(c,'start',request)
     assert all(journey.key(i['fen'])!=journey.key(card['fen']) for i in saved(path)['active']['items'])
     assert s['total']==3
+    assert s['measurement_scope']=='uncued_execution'
+    assert not {'competency','label','rating','total_plies'}.intersection(s['question'])
 
 
 def test_promotion_and_actual_mate_explanation(setup,monkeypatch):
     # Legal underpromotion mate from the original full-line contract.
     c,ns,old,path=attach(setup)
-    puzzle=next(p for p in journey.inventory()['promotion'] if chess.Move.from_uci(p['line'][0]).promotion and len(p['line'])==1 and chess.Board(p['fen']).is_valid() and 600<=p['rating']<1800)
+    puzzle=next(p for p in journey.inventory()['promotion'] if chess.Move.from_uci(p['line'][0]).promotion and len(p['line'])==1 and chess.Board(p['fen']).is_valid() and 600<=p['rating']<1200)
     monkeypatch.setattr(journey,'inventory',lambda:{'promotion':[puzzle]})
     s=post(c,'start',{'mode':'targeted','competency':'promotion'})
     s=act(c,s,'move',puzzle['line'][0]);assert s['feedback']['complete']

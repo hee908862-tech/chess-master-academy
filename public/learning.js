@@ -2,7 +2,7 @@
 (() => {
   const el = (tag, text, cls) => { const n=document.createElement(tag); if(text)n.textContent=text;if(cls)n.className=cls;return n; };
   const button = (text, fn) => {const b=el('button',text,'btn');b.onclick=fn;return b;};
-  let dashboard=null, task=null, selected=null, busy=false, generation=0, playbackIndex=-1;
+  let dashboard=null, task=null, selected=null, busy=false, generation=0, playbackIndex=-1, pendingLoad=false;
   const statusNames={unaided_first_success:'무도움 첫 시도 성공',later_unaided_success:'다른 날짜 무도움 성공',revealed_success:'정답 공개 후 성공',hinted_success:'도움 사용 후 성공',retry_success:'오답 후 재시도 성공',not_yet:'아직 미달성',unverified_alternative:'대안 수 미검증 (능력 집계 제외)',unaided_repeat_success:'같은 날짜 무도움 재시도 성공'};
   const modeNames={practice:'연습',verify:'검증',situation_practice:'상황 연습',situation_verify:'상황 검증'};
   const home=el('div',null,'card learning-home');
@@ -28,8 +28,9 @@
     await run(async()=>{const r=await api('/learning/import/'+$('reviewGameSelect').value,'POST');tab('training');await load();$('learningMessage').textContent=r.message;});
   }));
   function clear(){generation++;task=null;dashboard=null;selected=null;busy=false;render();$('learningCards').replaceChildren();$('learningAttempts').replaceChildren();$('learningSkills').replaceChildren();$('learningReason').textContent='로그인하면 나의 학습 경로를 안내합니다.';}
-  async function run(fn){if(busy)return;busy=true;renderControls();lockControls();const identity=token, rev=generation;try{await fn();}catch(e){if(identity===token&&rev===generation)$('learningMessage').textContent=e.message;}finally{if(identity===token){busy=false;renderDashboard();renderControls();lockControls();}}}
-  async function load(){
+  async function run(fn){if(busy)return;busy=true;renderControls();lockControls();const identity=token, rev=generation;try{await fn();}catch(e){if(identity===token&&rev===generation)$('learningMessage').textContent=e.message;}finally{if(identity===token){busy=false;renderDashboard();renderControls();lockControls();if(pendingLoad){pendingLoad=false;load();}}}}
+  async function load(force=false){
+    if(busy&&!force){pendingLoad=true;return;}
     if(!token){clear();$('learningRouteStatus').textContent='로그인 후 경로를 시작할 수 있습니다. 아직 수행한 학습은 없습니다.';$('learningRouteActions').replaceChildren(button('로그인 후 경로 준비',()=>ready('training')));$('learningCards').textContent='로그인하면 저장된 위치가 표시됩니다.';$('learningSkills').textContent='학습 기록을 확인하려면 로그인하세요.';$('learningNotice').textContent='로그인하면 나에게 맞는 학습 경로와 기록을 볼 수 있습니다. 시작 버튼에서 로그인한 뒤 이 화면으로 돌아옵니다.';return;}const identity=token, rev=++generation;
     try{const d=await api('/learning/dashboard');if(identity!==token||rev!==generation)return;dashboard=d;task=d.active;selected=null;playbackIndex=-1;renderDashboard();render();}
     catch(e){if(identity===token&&rev===generation)$('learningMessage').textContent=e.message;}
@@ -134,17 +135,27 @@
   window.learningFromDiagnosis=async(report_id,item_id)=>{
     if(!ready('training')||busy)return;
     tab('training');generation++;
+    task=null;dashboard=null;selected=null;playbackIndex=-1;render();
+    $('learningMessage').textContent='선택한 진단의 원본 훈련을 여는 중입니다…';
     await run(async()=>{
       const identity=token,rev=generation;
-      const result=await api('/learning/from-diagnosis','POST',{report_id,item_id});
-      if(identity!==token||rev!==generation)return;
-      task=result.active;selected=null;playbackIndex=-1;
-      await updateStats();render();
-      $('learningMessage').textContent='진단 근거를 경로에 연결했습니다. 경로 시작 · 이어가기로 연습하세요.';
+      try{
+        const result=await api('/learning/from-diagnosis','POST',{report_id,item_id});
+        if(identity!==token||rev!==generation)return;
+        task=result.active;selected=null;playbackIndex=-1;
+        await updateStats();render();
+        $('learningMessage').textContent=task?.message||(task?'선택한 진단 문제입니다. 보드에서 바로 연습하세요.':'보존된 경로의 현재 단계를 이어서 진행하세요.');
+      }catch(e){
+        if(identity!==token||rev!==generation)return;
+        // A timeout can follow a successful save: read state before allowing another start.
+        await load(true);
+        $('learningMessage').textContent=e.message;
+        if(e.detail?.code==='active_learning_path')$('learningRouteActions').replaceChildren(button('보존된 경로 이어하기',()=>continuePath()));
+      }
     });
   };
   const oldTab=tab;
-  tab=function(id){document.body.classList.toggle('learning-active',id==='training');generation++;selected=null;busy=false;oldTab(id);if(id==='training'||id==='home')load();};
+  tab=function(id){document.body.classList.toggle('learning-active',id==='training');generation++;selected=null;oldTab(id);if(id==='training'||id==='home')load();};
   const oldSignout=$('signout')?.onclick;
   if($('signout'))$('signout').onclick=function(e){clear();return oldSignout?.call(this,e);};
   const mq=matchMedia('(max-width: 760px)');const details=()=>{$('learningDetails').open=!mq.matches;};details();mq.addEventListener('change',details);

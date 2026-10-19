@@ -1,0 +1,198 @@
+"""Explicit opt-in integration checks against disposable, loopback PostgreSQL only.
+Run: CMA_TEST_PG_URL=postgresql://...@127.0.0.1:55432/cma_predeploy python -m pytest -q scripts/predeploy_postgres.py
+Never consumes DATABASE_URL from the invoking environment.
+"""
+import os
+import sys
+from pathlib import Path
+from urllib.parse import urlparse
+url=os.environ.get('CMA_TEST_PG_URL','')
+target=urlparse(url)
+if target.hostname not in ('127.0.0.1','localhost') or target.path!='/cma_predeploy':
+    raise RuntimeError('Requires explicit loopback disposable cma_predeploy database')
+os.environ['DATABASE_URL']=url
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+import json
+import secrets
+import socket
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+import psycopg
+import pytest
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+import server
+import journey_server as journey
+from journey_evidence import CUED,UNCUED,JOURNEY_VERSION,additional_plan
+from competencies import VERSION
+
+
+def account():
+    code=('PG-'+secrets.token_hex(5)).upper()
+    c=TestClient(server.app,raise_server_exceptions=False)
+    r=c.post('/api/register',json={'code':code,'pin':'temporary-local-pin'})
+    assert r.status_code==200,r.text
+    c.headers['Authorization']='Bearer '+r.json()['token']
+    return c,code
+
+
+def state(table,code):
+    with server.db() as db:
+        row=server.execute(db,f'SELECT state FROM {table} WHERE code=?',(code,)).fetchone()
+        return json.loads(row['state']) if row else None
+
+
+def post(c,path,body):
+    r=c.post('/api/'+path,json=body);assert r.status_code==200,r.text
+    return r.json()
+
+
+def test_real_pg_settings_and_two_account_concurrency():
+    with server.db() as db:
+        assert db.info.host=='127.0.0.1'
+        assert db.info.get_parameters()['connect_timeout']=='5'
+        assert db.execute('SHOW lock_timeout').fetchone()['lock_timeout']=='2s'
+        assert db.execute('SHOW statement_timeout').fetchone()['statement_timeout']=='8s'
+    a,ac=account();b,bc=account()
+    journey.inventory()
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        jobs=[pool.submit(a.post,'/api/journey/start',json={}),pool.submit(b.post,'/api/journey/start',json={}),
+              pool.submit(b.post,'/api/login',json={'code':bc,'pin':'temporary-local-pin'}),
+              pool.submit(a.post,'/api/game/new',json={'color':'white'})]
+        responses=[job.result(timeout=15) for job in jobs]
+    assert responses[2].status_code==responses[3].status_code==200
+    for c,r in zip((a,b),responses[:2]):
+        assert r.status_code in (200,409),r.text
+        if not c.get('/api/journey').json()['active']:post(c,'journey/start',{})
+    assert a.get('/api/journey').json()['active']['session_id']!=b.get('/api/journey').json()['active']['session_id']
+    assert a.get('/api/me').status_code==b.get('/api/onboarding').status_code==200
+
+
+def test_same_account_two_tabs_start_and_save_are_atomic():
+    c,code=account()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        rs=list(pool.map(lambda _:c.post('/api/journey/start',json={}),range(2)))
+    assert sorted(r.status_code for r in rs)==[200,409]
+    s=c.get('/api/journey').json()['active']
+    body={'session_id':s['session_id'],'revision':s['revision'],'action':'skip'}
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        rs=list(pool.map(lambda _:c.post('/api/journey/action',json=body),range(2)))
+    assert sorted(r.status_code for r in rs)==[200,409]
+    saved=state('journey_progress',code)
+    assert saved['active']['revision']==1 and len(saved['active']['items'])==s['total']
+    snapshots=[server.get_state(code) for _ in range(3)]
+    def save(i):
+        snapshots[i]['completed_lessons']=[str(i)]
+        try:server.save_state(code,snapshots[i]);return 200
+        except HTTPException as e:return e.status_code
+    with ThreadPoolExecutor(max_workers=3) as pool:assert sorted(pool.map(save,range(3)))==[200,409,409]
+
+
+def test_advisory_lock_timeout_503_and_safe_retry():
+    c,code=account()
+    with psycopg.connect(url) as lock:
+        lock.execute('SELECT pg_advisory_xact_lock(hashtext(%s))',('chess-evidence:'+code,))
+        start=time.monotonic();r=c.post('/api/journey/start',json={});elapsed=time.monotonic()-start
+        assert r.status_code==503 and r.headers['retry-after']=='2',r.text
+        assert 1.8<=elapsed<5,elapsed
+        print('observed_lock_timeout_seconds',round(elapsed,3))
+        assert c.get('/api/journey').json()['active'] is None
+    s=post(c,'journey/start',{})
+    assert c.get('/api/journey').json()['active']['session_id']==s['session_id']
+    assert c.post('/api/journey/start',json={}).status_code==409
+
+
+def test_statement_timeout_rolls_back_all_writes():
+    c,code=account();before=server.get_state(code)
+    start=time.monotonic()
+    with pytest.raises(HTTPException) as error:
+        with server.db() as db:
+            server.execute(db,'UPDATE progress SET state=? WHERE code=?',('{}',code))
+            server.execute(db,'SELECT pg_sleep(10)')
+    assert error.value.status_code==503
+    elapsed=time.monotonic()-start
+    assert 7.8<=elapsed<11
+    print('observed_statement_timeout_seconds',round(elapsed,3))
+    assert server.get_state(code)==before and c.get('/api/me').status_code==200
+
+
+def test_connection_timeout_is_503_and_then_recovers(monkeypatch):
+    c,_=account();stop=threading.Event()
+    listener=socket.socket();listener.bind(('127.0.0.1',0));listener.listen()
+    def stalled_handshake():
+        conn,_=listener.accept()
+        with conn:stop.wait(10)
+    worker=threading.Thread(target=stalled_handshake,daemon=True);worker.start()
+    try:
+        with monkeypatch.context() as patch:
+            patch.setattr(server,'DATABASE_URL',f'postgresql://local:local@127.0.0.1:{listener.getsockname()[1]}/cma_predeploy')
+            start=time.monotonic();r=c.get('/api/me');elapsed=time.monotonic()-start
+            assert r.status_code==503 and 4.5<=elapsed<8,(r.text,elapsed)
+            print('observed_connect_timeout_seconds',round(elapsed,3))
+    finally:stop.set();listener.close();worker.join(2)
+    assert c.get('/api/me').status_code==200
+
+
+def test_legacy_session_records_and_training_survive_reinitialization():
+    c,code=account()
+    legacy=server.get_state(code);legacy['completed_lessons']=['legacy-lesson'];legacy['assessment_history']=[{'version':'v1','score':42}]
+    server.save_state(code,legacy)
+    old_attempt={'card_id':'legacy-card','position':'legacy-position','at':'2020-01-01T00:00:00+00:00',
+        'category':'mate','success':True,'independent_kind':'novel','mode':'verify','fresh':True,
+        'status':'unaided_first_success','helped':False,'competency_version':'competency-v1','assessment_scope':'first_move'}
+    old_learning={'schema':1,'cards':{},'attempts':[old_attempt],'seen':[],'intervals':[1,3,7],'active':None}
+    with server.db() as db:server.execute(db,'INSERT INTO learning_progress(code,state) VALUES(?,?)',(code,json.dumps(old_learning)))
+    s=post(c,'journey/start',{'mode':'targeted','competency':'mate'})
+    original=state('journey_progress',code)
+    old_report={'id':'legacy-result','version':'journey-v2','areas':[],'items':[]}
+    original['results'].append(old_report)
+    original['active']['version']='journey-v2'
+    original['active'].pop('measurement_scope',None)
+    original['active'].pop('competency_version',None)
+    with server.db() as db:server.execute(db,'UPDATE journey_progress SET state=? WHERE code=?',(json.dumps(original),code))
+    server.initdb() # Additive initialization must not rewrite saved JSON.
+    assert state('journey_progress',code)==original
+    s=c.get('/api/journey').json()['active'];assert s['measurement_scope']=='legacy_cued_execution'
+    while s['phase']!='complete':
+        if s['phase']=='question':s=post(c,'journey/action',{'session_id':s['session_id'],'revision':s['revision'],'action':'skip'})
+        s=post(c,'journey/action',{'session_id':s['session_id'],'revision':s['revision'],'action':'next'})
+    assert state('journey_progress',code)['results'][0]==old_report
+    report=s['report'];item=report['items'][0]
+    linked=post(c,'learning/from-diagnosis',{'report_id':report['id'],'item_id':item['id']})
+    training=post(c,'learning/action',{'session_id':linked['active']['session_id'],'revision':linked['active']['revision'],'action':'hint'})
+    before=state('learning_progress',code);server.initdb()
+    assert state('learning_progress',code)==before
+    assert before['attempts']==[old_attempt]
+    skill=next(s for s in c.get('/api/learning/dashboard').json()['skills'] if s['id']=='mate')
+    assert skill['distinct']==0 and skill['groups'][0]['reference_only']
+    assert c.get('/api/learning/dashboard').json()['active']==training
+    again=post(c,'learning/from-diagnosis',{'report_id':report['id'],'item_id':item['id']})
+    assert again['active']==training and again['path']['id']==linked['path']['id']
+    assert server.get_state(code)['completed_lessons']==['legacy-lesson']
+    assert server.get_state(code)['assessment_history']==[{'version':'v1','score':42}]
+
+
+def test_pg_restored_evidence_scopes_remain_separate():
+    c,code=account()
+    def result(scope,n):return {'id':scope,'version':JOURNEY_VERSION,'competency_version':VERSION,
+        'measurement_scope':scope,'areas':[{'id':'mate','count':3,'full_success':n}],'items':[]}
+    reports=[result(CUED,2),result(UNCUED,1),{**result(CUED,0),'version':'journey-v2'}]
+    with server.db() as db:server.execute(db,'INSERT INTO journey_progress(code,state) VALUES(?,?)',
+        (code,json.dumps({'active':None,'results':reports,'reserved':[]})))
+    assert c.get('/api/journey').json()['additional']['mate']['band']==[1200,1800]
+    restored=state('journey_progress',code)['results']
+    assert additional_plan(restored,'mate',UNCUED)['band']==[900,1500]
+    assert restored==reports
+
+
+def test_cross_module_reservations_share_pg_account_lock(monkeypatch):
+    import learning_server as learning
+    c,code=account()
+    row=next(p for p in journey.inventory()['calculation'] if 600<=p['rating']<1200)
+    monkeypatch.setattr(journey,'inventory',lambda:{'calculation':[row]})
+    monkeypatch.setattr(learning,'LIB',{row['puzzle_id']:journey.LIB[row['puzzle_id']]})
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        jobs=[pool.submit(c.post,'/api/journey/start',json={}),pool.submit(c.post,'/api/learning/start',json={'fresh':True})]
+        responses=[j.result(timeout=10) for j in jobs]
+    assert sorted(r.status_code for r in responses)==[200,409],[r.text for r in responses]
