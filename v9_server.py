@@ -3,6 +3,7 @@ Chess legality validated with python-chess for every loaded line. Dataset-based 
 require complete 15 distinct puzzles for a chosen course and rating band.
 """
 import json, secrets, os, chess
+from mate_explanation import explain_mate
 from pathlib import Path
 from fastapi import HTTPException,Header
 from pydantic import BaseModel
@@ -130,7 +131,9 @@ def attach_v9(app,ns):
   if kind not in ('course','puzzle'):raise HTTPException(400,'잘못된 종류')
   state=get_state(account(authorization));task=state.get('v9_'+kind)
   return {'active':bool(task),'done':task.get('done',False) if task else False,
-          **(task_payload(task) if task and not task['done'] else {})}
+          'session_id':task.get('session_id') if task else None,
+          'result':task.get('last_result') if task and (task.get('done') or task.get('awaiting_next')) else None,
+          **(task_payload(task) if task and not task['done'] and not task.get('awaiting_next') else {})}
  @app.get('/api/v9/{kind}/hint')
  def hint(kind:str,authorization:str|None=Header(default=None)):
   if kind not in ('course','puzzle'):raise HTTPException(400,'잘못된 종류')
@@ -183,11 +186,16 @@ def attach_v9(app,ns):
    item={'theme':task['theme'],'level':task['level'],'attempts':15,'first_try':task['correct_count'],
          'mastered':task['correct_count']>=12}
    state.setdefault('v9_course_history',[]).append(item)
-  save_state(code,state)
-  return {'correct':True,'solved':True,'done':task['done'],'reply':response,'completed_fen':b.fen(),
+  result={'session_id':task.get('session_id'),'correct':True,'solved':True,'done':task['done'],'reply':response,'completed_fen':b.fen(),
           'correct_count':task['correct_count'],'index':task['index'],'total':len(task['ids']),
           'mastered':task['done'] and task['correct_count']>=12,
           'message':'수순 해결 완료. 다음 문제로 진행하세요.' if not task['done'] else ('랜덤 퍼즐 해결 완료!' if kind=='puzzle' else '15문제 세션 완료!')}
+  if any(t.startswith('mateIn') for t in p['themes']):
+   result['mate_explanation']=explain_mate(b)
+   result['mate_explanation']['source']='실제로 해결한 최종 위치 · 대체 메이트 착수 포함'
+  task['last_result']=result
+  save_state(code,state)
+  return result
  @app.post('/api/v9/{kind}/next')
  def next_task(kind:str,authorization:str|None=Header(default=None)):
   if kind not in ('course','puzzle'):raise HTTPException(400,'잘못된 종류')

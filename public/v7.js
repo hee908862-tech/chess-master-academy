@@ -6,20 +6,23 @@
   const hint=ui('v7Hint','button','💡 추천 수 힌트');const undo=ui('v7Undo','button','↶ 한 수 무르기');
   actionGroup.append(hint,undo);playStatus.parentElement.insertBefore(actionGroup,playStatus.nextSibling);
   hint.onclick=async()=>{
-    if(!ready()||gameBusy)return;
-    hint.disabled=true;
-    try{const data=await api('/v7/game/hint');
+    if(!ready()||gameBusy||!game||game.is_over)return;
+    const current=game,identity=token,revision=gameRequest;
+    hint.disabled=true;gameBusy=true;
+    try{const data=await api('/v7/game/hint?'+new URLSearchParams({...(current?.session_id?{session_id:current.session_id}:{}),...(current?.fen?{expected_fen:current.fen}:{})}));
+      if(token!==identity||gameRequest!==revision||game!==current)return;
       document.querySelectorAll('#gameBoard .move-hint').forEach(e=>e.classList.remove('move-hint'));
       document.querySelector(`#gameBoard [aria-label^="${data.move.slice(0,2)} "]`)?.classList.add('move-hint');
       document.querySelector(`#gameBoard [aria-label^="${data.move.slice(2,4)} "]`)?.classList.add('move-hint');
       notice('gameStatus',`추천: ${data.san} (${data.move.slice(0,2)} → ${data.move.slice(2,4)}). 분석: ${data.source}. ${data.note}`);
-    }catch(e){notice('gameStatus',e.message,'err')}finally{hint.disabled=false}
+    }catch(e){if(token===identity&&gameRequest===revision)notice('gameStatus',e.message,'err')}finally{hint.disabled=false;if(gameRequest===revision)gameBusy=false}
   };
   undo.onclick=async()=>{
-    if(!ready()||gameBusy)return;
+    if(!ready()||gameBusy||!game||game.is_over)return;
+    const current=game,identity=token,revision=gameRequest;
     window.cmaBoardTools.cancel('gameBoard');cancelPromotion();gameBusy=true;undo.disabled=true;
-    try{const data=await api('/v7/game/undo','POST');playerColor=data.player_color;showGame({...data.board,session_id:data.session_id},`이전 ${data.removed_plies}반수를 되돌렸습니다.`);}
-    catch(e){notice('gameStatus',e.message,'err')}finally{undo.disabled=false;gameBusy=false}
+    try{const data=await api('/v7/game/undo','POST',{session_id:current?.session_id,expected_fen:current?.fen});if(token!==identity||gameRequest!==revision||game!==current)return;playerColor=data.player_color;showGame({...data.board,session_id:data.session_id},`이전 ${data.removed_plies}반수를 되돌렸습니다.`);}
+    catch(e){if(token===identity&&gameRequest===revision)notice('gameStatus',e.message,'err')}finally{undo.disabled=false;if(gameRequest===revision)gameBusy=false}
   };
   // For review, the user's selected ply is the branch point, not just the last move.
   const status=document.getElementById('reviewStatus');

@@ -306,11 +306,27 @@ def test_daily_route_keeps_source_and_resumes_after_free_practice(setup,monkeypa
     assert sum(k['transfer'] for k in d['skills'])==1
 
 
-def test_empty_route_records_skips_without_fake_completion(setup):
+def test_newcomer_route_starts_real_beginner_task(setup):
     c,_,_,_=setup
     result=path_request(c)
-    assert result['path']['done']
-    assert all(s['status']=='skipped' and s['reason'] for s in result['path']['steps'])
+    assert not result['path']['done'] and result['path']['fresh']
+    assert result['path']['steps'][0]['status']=='active'
+    task=result['active']; original=learning.LIB[task['card_id'].removeprefix('puzzle-')]
+    assert 600<=original['rating']<=1200 and 'mateIn1' in original['themes']
+    assert c.get('/api/learning/dashboard').json()['attempts']==[]
+    finished=action(c,task,'move',solution(task))
+    assert finished['done'] and finished['outcome']['status']=='unaided_first_success'
+    route=path_request(c)['path']
+    assert route['current']==1 and not route['done']
+
+
+def test_missing_corpus_route_never_claims_completion(setup,monkeypatch):
+    c,_,_,_=setup
+    monkeypatch.setattr(learning,'LIB',{})
+    result=path_request(c)
+    assert not result['path']['done'] and result['active'] is None
+    assert all(s['status']=='pending' for s in result['path']['steps'])
+    assert '완료한 상태가 아닙니다' in result['path']['selection_reason']
     assert c.get('/api/learning/dashboard').json()['attempts']==[]
 
 

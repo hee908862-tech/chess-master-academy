@@ -1,6 +1,9 @@
+import copy
 import os, json, secrets, hashlib, hmac, sqlite3, random, threading, time
 from datetime import datetime, timezone
 from contextlib import contextmanager
+from functools import wraps
+from inspect import signature
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import FileResponse
@@ -8,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import chess
 import chess.engine
+from assistance import ledger as assistance_ledger, record_move as assistance_move, archive as assistance_archive, review as assistance_review
 from exercises import bank as exercise_bank, public as public_exercise
 
 ROOT=Path(__file__).resolve().parent
@@ -77,16 +81,36 @@ def hash_pin(pin,salt):return hashlib.scrypt(pin.encode(),salt=bytes.fromhex(sal
 
 def blank_state():return {'games':[],'active_game':None,'puzzle_results':[],'completed_lessons':[],'assessment':None,'exercise_history':{},'practice':None,'test':None,'lesson_attempts':[]}
 
+class ProgressState(dict):
+ def __init__(self, value):
+  super().__init__(value)
+  self.base = copy.deepcopy(value)
+
 def get_state(code):
  with db() as c:
   r=execute(c,'SELECT state FROM progress WHERE code=?',(code,)).fetchone()
- return json.loads(r['state']) if r else blank_state()
+ return ProgressState(json.loads(r['state']) if r else blank_state())
 
 def save_state(code,state):
- serialized=json.dumps(state,ensure_ascii=False)
+ # Merge only fields changed by this request; reject concurrent edits of the same field.
+ # The comparison and update share one database transaction on SQLite and PostgreSQL.
  with db() as c:
-  execute(c,'DELETE FROM progress WHERE code=?',(code,))
-  execute(c,'INSERT INTO progress(code,state) VALUES(?,?)',(code,serialized))
+  if not DATABASE_URL:c.execute('BEGIN IMMEDIATE')
+  execute(c,'INSERT INTO progress(code,state) VALUES(?,?) ON CONFLICT(code) DO NOTHING',(code,'{}'))
+  row=execute(c,'SELECT state FROM progress WHERE code=?'+(' FOR UPDATE' if DATABASE_URL else ''),(code,)).fetchone()
+  current=json.loads(row['state'])
+  if isinstance(state,ProgressState):
+   missing=object()
+   changed=[key for key in set(state.base)|set(state) if state.base.get(key,missing)!=state.get(key,missing)]
+   for key in changed:
+    if current.get(key,missing)!=state.base.get(key,missing) and current.get(key,missing)!=state.get(key,missing):
+     raise HTTPException(409,'다른 요청에서 기록이 변경되었습니다. 현재 상태를 다시 불러와 주세요.')
+   for key in changed:
+    if key in state:current[key]=state[key]
+    else:current.pop(key,None)
+  else:current=dict(state)  # Explicit initialization/reset retains its existing semantics.
+  execute(c,'UPDATE progress SET state=? WHERE code=?',(json.dumps(current,ensure_ascii=False),code))
+  if isinstance(state,ProgressState):state.base=copy.deepcopy(dict(state))
 
 def auth(authorization):
  token=authorization.removeprefix('Bearer ').strip() if authorization else ''
@@ -225,8 +249,8 @@ def finish_by_clock(state, loser):
  state['games'].append({'result':result,'moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),
     'engine':active['engine'],'color':active.get('color','white'),'difficulty':active.get('difficulty',5),
     'started':active.get('started'),'time_mode':active.get('time_mode','unlimited'),
-    'hint_used':bool(active.get('hint_used')),'hint_plies':active.get('hint_plies',[]),
-    'termination':'timeout'})
+    'hint_used':active.get('hint_used'),'hint_plies':active.get('hint_plies',[]),
+    'termination':'timeout',**assistance_archive(active)})
  state['active_game']=None
  return result
 
@@ -235,7 +259,7 @@ def store_finished(state,board):
  outcome='win' if result==('1-0' if state['active_game'].get('color','white')=='white' else '0-1') else 'loss' if result in ('1-0','0-1') else 'draw'
  active=state['active_game']
  state['games'].append({'result':outcome,'moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),'engine':active['engine'],'color':active.get('color','white'),'difficulty':active.get('difficulty',5),'started':active.get('started'),'time_mode':active.get('time_mode','unlimited'),
- 'hint_used':bool(active.get('hint_used')),'hint_plies':active.get('hint_plies',[]),'termination':'rules'})
+ 'hint_used':active.get('hint_used'),'hint_plies':active.get('hint_plies',[]),'termination':'rules',**assistance_archive(active)})
  state['active_game']=None
 
 class NewGameBody(BaseModel):
@@ -243,7 +267,22 @@ class NewGameBody(BaseModel):
  difficulty:int=Field(default=5,ge=1,le=10)
  time_mode:str='unlimited'
 
+_game_action_locks = {}
+_game_action_locks_guard = threading.Lock()
+
+def game_serialized(fn):
+ parameters = signature(fn)
+ @wraps(fn)
+ def wrapped(*args,**kwargs):
+  code = auth(parameters.bind_partial(*args,**kwargs).arguments.get('authorization'))
+  # Serialize this account's game actions without holding the shared DB lock during AI work.
+  with _game_action_locks_guard:
+   lock = _game_action_locks.setdefault(code, threading.RLock())
+  with lock:return fn(*args,**kwargs)
+ return wrapped
+
 @app.post('/api/game/new')
+@game_serialized
 def new_game(body:NewGameBody,authorization:str|None=Header(default=None)):
  code=auth(authorization);state=get_state(code)
  if body.color not in ('white','black'):raise HTTPException(400,'백 또는 흑을 선택해 주세요.')
@@ -251,6 +290,7 @@ def new_game(body:NewGameBody,authorization:str|None=Header(default=None)):
  state['active_game']={'session_id':secrets.token_hex(16),'moves':[],'color':body.color,'engine':'stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else 'fallback','difficulty':body.difficulty,'started':datetime.now(timezone.utc).isoformat(),'time_mode':body.time_mode,
  'white_ms':TIME_MODES[body.time_mode][0],'black_ms':TIME_MODES[body.time_mode][0],
  'hint_used':False,'hint_plies':[],'turn_started_at':time.time()}
+ assistance_ledger(state['active_game'], complete=True)
  board=chess.Board()
  if body.color=='black':
   first=ai_move(board,body.difficulty)
@@ -261,6 +301,7 @@ def new_game(body:NewGameBody,authorization:str|None=Header(default=None)):
  return {'session_id':state['active_game'].get('session_id'),'board':serialize_board(board,body.color),'clock':clock_payload(state['active_game']),'player_color':body.color,'message':'새 대국을 시작했습니다. '+('백' if body.color=='white' else '흑')+'으로 플레이합니다.'}
 
 @app.get('/api/game')
+@game_serialized
 def game(authorization:str|None=Header(default=None)):
  code=auth(authorization);state=get_state(code)
  if not state['active_game']:return {'active':False}
@@ -275,6 +316,7 @@ def game(authorization:str|None=Header(default=None)):
  return {'active':True,'session_id':active.get('session_id'),'board':serialize_board(reconstruct(state['active_game']),state['active_game'].get('color','white')),'clock':clock_payload(state['active_game']),'player_color':state['active_game'].get('color','white')}
 
 @app.post('/api/game/move')
+@game_serialized
 def move(body:MoveBody,authorization:str|None=Header(default=None)):
  code=auth(authorization);state=get_state(code)
  active=state['active_game']
@@ -298,6 +340,7 @@ def move(body:MoveBody,authorization:str|None=Header(default=None)):
    outcome=finish_by_clock(state,color)
    save_state(code,state)
    return {'session_id':active.get('session_id'),'board':serialize_board(board,color),'ai_move':None,'finished':True,'timeout':True,'termination':'timeout','clock':{'mode':mode,'white_ms':0 if color=='white' else active.get('white_ms'),'black_ms':0 if color=='black' else active.get('black_ms')},'outcome':outcome,'player_color':color}
+ assistance_move(active,board,candidate)
  active['moves'].append(candidate.uci());board.push(candidate)
  if mode!='unlimited':active[side_key]+=TIME_MODES[mode][1]
  ai_uci=None
@@ -323,12 +366,13 @@ def move(body:MoveBody,authorization:str|None=Header(default=None)):
  return {'session_id':active.get('session_id'),'board':serialize_board(board,color),'ai_move':ai_uci,'finished':finished,'clock':clock,'player_color':color}
 
 @app.post('/api/game/resign')
+@game_serialized
 def resign(authorization:str|None=Header(default=None)):
  code=auth(authorization);state=get_state(code)
  if not state['active_game']:raise HTTPException(400,'대국이 없습니다.')
  active=state['active_game']
  state['games'].append({'result':'loss','moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),'engine':active['engine'],'resigned':True,'color':active.get('color','white'),'difficulty':active.get('difficulty',5),'started':active.get('started'),'time_mode':active.get('time_mode','unlimited'),
- 'hint_used':bool(active.get('hint_used')),'hint_plies':active.get('hint_plies',[]),'termination':'resign'})
+ 'hint_used':active.get('hint_used'),'hint_plies':active.get('hint_plies',[]),'termination':'resign',**assistance_archive(active)})
  state['active_game']=None;save_state(code,state)
  return {'ok':True}
 
@@ -840,7 +884,7 @@ def practice_retry(authorization:str|None=Header(default=None)):
 @app.get('/api/games/history')
 def games_history(authorization:str|None=Header(default=None)):
  code=auth(authorization);items=get_state(code).get('games',[])
- return [{'index':i,'result':g.get('result'),'ended':g.get('ended'),'color':g.get('color','white'),'difficulty':g.get('difficulty',5),'plies':len(g.get('moves',[])),'engine':g.get('engine'),'time_mode':g.get('time_mode','unlimited'),'hint_used':g.get('hint_used',False)} for i,g in reversed(list(enumerate(items)))]
+ return [{'index':i,'result':g.get('result'),'ended':g.get('ended'),'color':g.get('color','white'),'difficulty':g.get('difficulty',5),'plies':len(g.get('moves',[])),'engine':g.get('engine'),'time_mode':g.get('time_mode','unlimited'),'hint_used':g.get('hint_used')} for i,g in reversed(list(enumerate(items)))]
 
 def review_annotation(board,move,engine=None):
  side=board.turn
@@ -878,8 +922,11 @@ def review_annotation(board,move,engine=None):
  return {'centipawn_loss':loss,'category':grade,'comment':comment,'best_move':bestmove.uci() if bestmove else None,'source':source}
 
 @app.get('/api/games/review/{index}')
-def game_review(index:int,authorization:str|None=Header(default=None)):
- code=auth(authorization);games=get_state(code).get('games',[])
+def game_review(index:str,authorization:str|None=Header(default=None)):
+ code=auth(authorization)
+ try:index=int(index)
+ except (ValueError,TypeError):raise HTTPException(400,'분석할 대국을 목록에서 선택하세요.')
+ games=get_state(code).get('games',[])
  if index<0 or index>=len(games):raise HTTPException(404,'대국을 찾을 수 없습니다.')
  game=games[index];board=chess.Board();rows=[]
  # Cap synchronous analysis per request for free-instance performance.
@@ -905,8 +952,8 @@ def build_review_rows(eng,game,index,moves):
   fen_before=board.fen();san=board.san(m);side='백' if board.turn else '흑'
   assessment=review_annotation(board,m,eng)
   board.push(m)
-  rows.append({'ply':n+1,'side':side,'uci':uci,'san':san,'before_fen':fen_before,'after_fen':board.fen(),**assessment})
- return {'index':index,'result':game.get('result'),'color':game.get('color','white'),'difficulty':game.get('difficulty',5),'moves':rows,'final_fen':board.fen(),'time_mode':game.get('time_mode','unlimited'),'hint_used':game.get('hint_used',False),'hint_plies':game.get('hint_plies',[]),'method':'신속 분석: 깊은 탐색보다 속도를 우선하며, 수 평가 라벨은 근사치입니다.'}
+  rows.append({'ply':n+1,'side':side,'uci':uci,'san':san,'before_fen':fen_before,'after_fen':board.fen(),'assistance':assistance_review(game,n+1,fen_before,uci),**assessment})
+ return {'index':index,'session_id':game.get('session_id'),'result':game.get('result'),'color':game.get('color','white'),'difficulty':game.get('difficulty',5),'moves':rows,'final_fen':board.fen(),'time_mode':game.get('time_mode','unlimited'),'hint_used':game.get('hint_used'),'hint_plies':game.get('hint_plies',[]),'assistance_version':(game.get('assistance') or {}).get('version'),'assistance_events':(game.get('assistance') or {}).get('events',[]),'method':'신속 분석: 깊은 탐색보다 속도를 우선하며, 수 평가 라벨은 근사치입니다.'}
 
 # Larger opening catalogue. Each line is verified for legality at startup.
 ADDITIONAL_OPENINGS={

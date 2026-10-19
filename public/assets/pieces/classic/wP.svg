@@ -9,6 +9,10 @@
     </filter>
   </defs>
   <circle cx="50" cy="50" r="46" fill="rgba(255,255,255,0.03)"/>
-  <text x="50" y="66" text-anchor="middle" font-size="66" font-family="Georgia, 'Times New Roman', serif" fill="url(#g)" stroke="#9099aa" stroke-width="1.8" paint-order="stroke" filter="url(#shadow)">♙</text>
+  <g fill="url(#g)" stroke="#454f5d" stroke-width="2.2" stroke-linejoin="round" filter="url(#shadow)">
+    <circle cx="50" cy="27" r="11"/>
+    <path d="M39 40h22v8h-5c0 13 3 20 11 27v7H33v-7c8-7 11-14 11-27h-5z"/>
+    <path d="M32 81h36l3 8H29z"/>
+  </g>
   <ellipse cx="40" cy="28" rx="16" ry="9" fill="rgba(255,255,255,0.18)" transform="rotate(-18 40 28)"/>
 </svg>

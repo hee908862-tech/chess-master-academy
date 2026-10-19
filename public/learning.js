@@ -29,7 +29,7 @@
   function clear(){generation++;task=null;dashboard=null;selected=null;busy=false;render();$('learningCards').replaceChildren();$('learningAttempts').replaceChildren();$('learningSkills').replaceChildren();$('learningReason').textContent='로그인하면 나의 학습 경로를 안내합니다.';}
   async function run(fn){if(busy)return;busy=true;const identity=token, rev=generation;try{await fn();}catch(e){if(identity===token&&rev===generation)$('learningMessage').textContent=e.message;}finally{if(identity===token){busy=false;renderControls();}}}
   async function load(){
-    if(!token){clear();return;}const identity=token, rev=++generation;
+    if(!token){clear();$('learningRouteStatus').textContent='로그인 후 경로를 시작할 수 있습니다. 아직 수행한 학습은 없습니다.';$('learningRouteActions').replaceChildren(button('로그인 후 경로 준비',()=>ready('training')));$('learningCards').textContent='로그인하면 저장된 위치가 표시됩니다.';$('learningSkills').textContent='학습 기록을 확인하려면 로그인하세요.';$('learningNotice').textContent='로그인하면 나에게 맞는 학습 경로와 기록을 볼 수 있습니다. 시작 버튼에서 로그인한 뒤 이 화면으로 돌아옵니다.';return;}const identity=token, rev=++generation;
     try{const d=await api('/learning/dashboard');if(identity!==token||rev!==generation)return;dashboard=d;task=d.active;selected=null;playbackIndex=-1;renderDashboard();render();}
     catch(e){if(identity===token&&rev===generation)$('learningMessage').textContent=e.message;}
   }
@@ -63,7 +63,7 @@
     $('learningIntervals').value=dashboard.intervals.join(',');
     $('learningPath').replaceChildren();
     const route=dashboard.path;
-    const labels=['01 · 복습','02 · 개념','03 · 공통 태그 새 문제','04 · 상황 대국'];
+    const labels=[route?.fresh?'01 · 입문 새 문제':'01 · 복습','02 · 개념','03 · 공통 태그 새 문제','04 · 상황 대국'];
     const states={pending:'대기',active:'진행 중',completed:'완료',skipped:'건너뜀'};
     labels.forEach((label,i)=>{const step=route?.steps[i];const b=button('',()=>continuePath());b.classList.add('learning-step');b.append(el('strong',label),el('span',step?`${states[step.status]} · ${step.reason}`:'경로 시작 시 항목 선택'));b.disabled=!!route&&(route.done||route.current!==i);$('learningPath').append(b);});
     $('learningRouteStatus').textContent=route?`${route.date} · ${route.done?'경로 처리 완료 (성공 여부는 별도)' :`${route.current+1}/4 단계`} · ${route.selection_reason}`:'복습할 카드를 선택해 경로를 저장하고 시작합니다.';

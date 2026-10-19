@@ -188,3 +188,19 @@ def test_assessment_stale_session_and_position_rejected(api):
     for fields in [{'session_id':'old'},{'expected_fen':'stale'}]:
         assert client.post('/api/v8/assessment/game-move',json={'move':'e2e4',**fields}).status_code==409
         assert state==before
+
+
+def test_reported_black_mate_and_completed_session_recovery(api):
+    client,state=api
+    puzzle=v9_server.LIB['WPj39']
+    assert puzzle['rating']==1090 and puzzle['moves']==['h2h1','e3h3']
+    state['v9_puzzle']={'session_id':'reported-position','type':'puzzle','theme':'mateIn1','level':'입문',
+        'ids':['WPj39'],'index':0,'offset':1,'correct_count':0,'attempted':False,'done':False,'awaiting_next':False}
+    before=client.get('/api/v9/session/puzzle').json()
+    assert before['fen'].split()[0]=='8/8/8/8/8/4r3/5k2/1R5K'
+    result=client.post('/api/v9/puzzle/move',json={'session_id':'reported-position','expected_fen':before['fen'],'move':'e3h3'})
+    assert result.status_code==200 and result.json()['solved']
+    restored=client.get('/api/v9/session/puzzle')
+    assert restored.status_code==200 and restored.json()['result']==result.json()
+    assert restored.json()['done'] and 'fen' not in restored.json()
+    assert len(state['puzzle_results'])==1
