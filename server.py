@@ -1152,3 +1152,8 @@ attach_v9(app,globals())
 # Independent, transactional learning records; legacy state remains untouched.
 from learning_server import attach_learning
 attach_learning(app, globals())
+
+from journey_server import attach_journey
+attach_journey(app, globals())
+from onboarding_server import attach_onboarding
+attach_onboarding(app, globals())
