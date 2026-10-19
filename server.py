@@ -139,7 +139,7 @@ def me(authorization:str|None=Header(default=None)):
  draws=sum(g['result']=='draw' for g in games)
  attempts=state.get('puzzle_results',[])
  solved=sum(bool(r.get('correct')) for r in attempts)
- return {'code':code,'state':{'completed_lessons':state.get('completed_lessons',[]),'assessment':state.get('assessment')},'stats':{'games':len(games),'wins':wins,'losses':losses,'draws':draws,'puzzles':len(attempts),'solved':solved},'engine':'stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else 'fallback'}
+ return {'code':code,'state':{'completed_lessons':state.get('completed_lessons',[]),'assessment':state.get('assessment')},'stats':{'games':len(games),'wins':wins,'losses':losses,'draws':draws,'puzzles':len(attempts),'solved':solved,'first_try_total':sum(1 for a in attempts if a.get('source')=='lichess' and a.get('first_try_correct') is not None),'first_try_correct':sum(1 for a in attempts if a.get('source')=='lichess' and a.get('first_try_correct') is True),'hint_solved':sum(1 for a in attempts if a.get('source')=='lichess' and a.get('hint_used')),'courses_completed':len(state.get('v9_course_history',[])),'courses_mastered':sum(bool(c.get('mastered')) for c in state.get('v9_course_history',[]))},'engine':'stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else 'fallback'}
 
 PIECE_SCORE={chess.PAWN:100,chess.KNIGHT:320,chess.BISHOP:335,chess.ROOK:500,chess.QUEEN:900,chess.KING:0}
 def positional_score(board):
@@ -269,7 +269,7 @@ def game(authorization:str|None=Header(default=None)):
   if c[side]<=0:
    loser='white' if b.turn else 'black'
    outcome=finish_by_clock(state,loser);save_state(code,state)
-   return {'active':False,'timeout':True,'result':outcome}
+   return {'active':False,'timeout':True,'result':outcome,'termination':'timeout','loser':loser,'clock':{'mode':mode,**{k:(0 if k==side else c[k]) for k in ('white_ms','black_ms')}},'board':serialize_board(b,active.get('color','white'))}
  return {'active':True,'board':serialize_board(reconstruct(state['active_game']),state['active_game'].get('color','white')),'clock':clock_payload(state['active_game']),'player_color':state['active_game'].get('color','white')}
 
 @app.post('/api/game/move')
@@ -293,7 +293,7 @@ def move(body:MoveBody,authorization:str|None=Header(default=None)):
   if active[side_key]<=0:
    outcome=finish_by_clock(state,color)
    save_state(code,state)
-   return {'board':serialize_board(board,color),'ai_move':None,'finished':True,'timeout':True,'clock':{'mode':mode,'white_ms':0 if color=='white' else None,'black_ms':0 if color=='black' else None},'outcome':outcome,'player_color':color}
+   return {'board':serialize_board(board,color),'ai_move':None,'finished':True,'timeout':True,'termination':'timeout','clock':{'mode':mode,'white_ms':0 if color=='white' else active.get('white_ms'),'black_ms':0 if color=='black' else active.get('black_ms')},'outcome':outcome,'player_color':color}
  active['moves'].append(candidate.uci());board.push(candidate)
  if mode!='unlimited':active[side_key]+=TIME_MODES[mode][1]
  ai_uci=None
@@ -307,7 +307,7 @@ def move(body:MoveBody,authorization:str|None=Header(default=None)):
    if active[ai_key]<=0:
     outcome=finish_by_clock(state,'black' if color=='white' else 'white')
     save_state(code,state)
-    return {'board':serialize_board(board,color),'ai_move':None,'finished':True,'timeout':True,'outcome':outcome,'clock':{'mode':mode},'player_color':color}
+    return {'board':serialize_board(board,color),'ai_move':None,'finished':True,'timeout':True,'termination':'timeout','outcome':outcome,'clock':{'mode':mode,'white_ms':active.get('white_ms'),'black_ms':active.get('black_ms')},'player_color':color}
   if ai:
    ai_uci=ai.uci();active['moves'].append(ai_uci);board.push(ai)
    if mode!='unlimited':active[ai_key]+=TIME_MODES[mode][1]

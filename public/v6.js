@@ -24,6 +24,7 @@ async function c6LoadCourses(){
  }catch(e){coursesBox.textContent=e.message}
 }
 async function c6LoadSuggestions(){
+ return; // The legacy v6 suggestion renderer is retired.
  if(!token)return;
  try{const d=await api('/v6/diagnostic/recommend');recommendBox.replaceChildren();
   const head=document.createElement('strong');head.textContent=`진단 결과에 따른 추천 · ${d.stage}`;recommendBox.append(head);

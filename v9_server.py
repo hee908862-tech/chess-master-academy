@@ -37,6 +37,15 @@ def build():
    except Exception:BAD+=1
 build()
 
+
+def _is_alternative_mate(board, move, puzzle, task):
+ """Allow another proven mating finish; never accept mere checking or a guessed move."""
+ trial=board.copy();trial.push(move)
+ if trial.is_checkmate():
+  return True
+ # Non-terminal alternative lines are not accepted without full forced-mate proof.
+ return False
+
 class ModeBody(BaseModel):
  theme:str='random'
  level:str='중급'
@@ -94,7 +103,7 @@ def attach_v9(app,ns):
   picks=rng.sample(candidates,count)
   if typ=='puzzle':state['v9_recent_puzzles']=(state.get('v9_recent_puzzles',[])+picks)[-100:]
   state['v9_'+typ]={'type':typ,'theme':theme,'level':level,'ids':picks,'index':0,
-                    'offset':1,'correct_count':0,'attempted':False,'done':False,'awaiting_next':False}
+                    'offset':1,'correct_count':0,'attempted':False,'hint_used':False,'wrong_moves':0,'done':False,'awaiting_next':False}
   save_state(code,state)
   return task_payload(state['v9_'+typ])
  @app.get('/api/v9/catalog')
@@ -129,7 +138,7 @@ def attach_v9(app,ns):
   u=p['moves'][task['offset']];m=chess.Move.from_uci(u)
   if m not in b.legal_moves:raise HTTPException(500,'문제 데이터의 수순이 잘못되었습니다.')
   label=b.san(m)
-  task['attempted']=True;save_state(code,state)
+  task['attempted']=True;task['hint_used']=True;save_state(code,state)
   return {'from':u[:2],'to':u[2:4],'move_label':label,
           'explanation':'기록된 정답 수순의 현재 착수입니다. 다른 최선 수가 있을 수 있습니다.'}
  @app.post('/api/v9/{kind}/move')
@@ -144,8 +153,8 @@ def attach_v9(app,ns):
   except (ValueError,TypeError):raise HTTPException(400,'잘못된 착수 형식')
   if m not in b.legal_moves:raise HTTPException(400,'합법적으로 이동할 수 없는 수입니다.')
   expected=p['moves'][task['offset']]
-  if m.uci()!=expected:
-   task['attempted']=True;save_state(code,state)
+  if m.uci()!=expected and not (any(t.startswith('mateIn') for t in p['themes']) and _is_alternative_mate(b,m,p,task)):
+   task['attempted']=True;task['wrong_moves']=task.get('wrong_moves',0)+1;save_state(code,state)
    return {'correct':False,'message':'합법적인 착수이지만 이 퍼즐의 검증된 정답 수순과 다릅니다. 다른 동등한 최선 수가 있을 가능성은 별도 엔진 분석이 필요합니다.',
            'can_retry':True,**task_payload(task)}
   b.push(m);task['offset']+=1
@@ -157,10 +166,10 @@ def attach_v9(app,ns):
    save_state(code,state)
    return {'correct':True,'solved':False,'reply':response,'message':'맞는 수입니다. 상대의 응수를 확인하고 다음 수를 찾아보세요.',**task_payload(task)}
   if not task['attempted']:task['correct_count']+=1
-  task['attempted']=False
+  # Reset per-puzzle flags only after persisting the result.
   state.setdefault('puzzle_results',[]).append({'source':'lichess','puzzle_id':p['id'],
-      'correct':True,'course':kind=='course','at':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat()})
-  task['index']+=1;task['offset']=1;task['awaiting_next']=True
+      'correct':True,'first_try_correct':not task['attempted'],'hint_used':bool(task.get('hint_used')),'wrong_moves':task.get('wrong_moves',0),'course':kind=='course','at':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat()})
+  task['index']+=1;task['offset']=1;task['attempted']=False;task['hint_used']=False;task['wrong_moves']=0;task['awaiting_next']=True
   task['done']=task['index']>=len(task['ids'])
   if task['done'] and kind=='course':
    item={'theme':task['theme'],'level':task['level'],'attempts':15,'first_try':task['correct_count'],

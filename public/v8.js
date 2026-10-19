@@ -114,7 +114,7 @@ async function loadRecommendations(){
   for(const course of d.courses){
    const btn=document.createElement('button');btn.className='btn';
    btn.style.textAlign='left';btn.textContent=`${course.reason} · 실습 열기`;
-   btn.onclick=()=>{tab('learn');if(typeof c6Begin==='function')c6Begin(course.id)};
+   btn.onclick=()=>{tab('learn');const raw=(course.id+' '+course.reason).toLowerCase();const theme=raw.includes('메이트')||raw.includes('mate')?'mateIn2':raw.includes('킹')||raw.includes('endgame')?'endgame':raw.includes('방어')||raw.includes('defen')?'defensiveMove':raw.includes('포크')||raw.includes('fork')?'fork':raw.includes('핀')||raw.includes('pin')?'pin':'advantage';if(!window.cmaOpenV9Course?.(theme)){const x=document.getElementById('v9CourseHistory');if(x)x.textContent='추천 과목 연결을 확인할 수 없습니다. 과목 목록에서 직접 선택하세요.';}};
    box.append(btn);
   }
  }catch(e){}

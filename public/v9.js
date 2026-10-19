@@ -41,7 +41,7 @@ async function tap(kind,sq){const st=modes[kind];if(st.busy||st.solved||!st.task
  try{const r=await api(`/v9/${kind}/move`,'POST',{move:selectedMove});
   if(!r.correct){st.last=priorLast;st.mistakes++;status(kind,`${r.message} (${st.mistakes}회 오답)${st.mistakes>=2?' · 정답 확인 버튼으로 수순을 확인할 수 있습니다.':''}`);st.task=r;paint(kind);return;}
   st.mistakes=0;st.last=r.reply?[r.reply.slice(0,2),r.reply.slice(2,4)]:[from,sq];
-  if(r.solved){st.solved=true;status(kind,r.done?`${r.message} · 첫 시도 정답 ${r.correct_count}/15 ${r.mastered?'· 숙련 달성':''}`:r.message);
+  if(r.solved){st.solved=true;status(kind,r.done?(kind==='puzzle'?r.message:`${r.message} · 첫 시도 정답 ${r.correct_count}/${r.total} ${r.mastered?'· 숙련 달성':''}`):r.message);
    el('v9'+props(kind)+'Next').hidden=false;
    if(r.completed_fen)drawBoard(boardName(kind),fromFen(r.completed_fen),{flip:task.fen.split(' ')[1]==='b',last:st.last});
    if(kind==='course'&&r.done)await history();
@@ -53,7 +53,7 @@ async function start(kind){if(!token){tab('profile');return;}const st=modes[kind
   const theme=kind==='course'?courseTheme:el('v9PuzzleTheme').value;
   const level=el('v9'+props(kind)+'Level').value;
   const task=await api(`/v9/${kind}/start`,'POST',{theme,level});
-  st.task=task;st.solved=false;st.selected=null;st.last=[];st.mistakes=0;el('v9'+props(kind)+'Next').hidden=true;
+  st.task=task;el('v9'+props(kind)+'Hint').disabled=false;st.solved=false;st.selected=null;st.last=[];st.mistakes=0;el('v9'+props(kind)+'Next').hidden=true;
   status(kind,`새 ${task.themes.join(' · ')} 문제입니다. ${task.side==='white'?'백':'흑'}의 최선 수를 찾아보세요.`);paint(kind);
  }catch(e){status(kind,e.message)}finally{st.busy=false}
 }
@@ -68,12 +68,12 @@ async function history(){if(!token)return;try{const d=await api('/v9/progress');
  const a=d.courses||[];el('v9CourseHistory').textContent=a.length?'최근 과정: '+a.slice(-8).reverse().map(r=>`${catalog?.themes.find(t=>t.id===r.theme)?.name||r.theme} ${r.level} · 15문제 해결 · 첫 시도 ${r.first_try}/15 ${r.mastered?'✓ 숙련':'복습 권장'}`).join(' | '):'완료한 새 교육 과정이 아직 없습니다.';
  }catch(e){el('v9CourseHistory').textContent=e.message}}
 async function hint(kind){const st=modes[kind];if(!st.task||st.busy||st.solved)return;try{const r=await api(`/v9/${kind}/hint`);st.last=[r.from,r.to];status(kind,`추천 이동: ${r.move_label} · ${r.explanation}`);paint(kind)}catch(e){status(kind,e.message)}}
-function selectCourse(theme){courseTheme=theme;el('v9LearnMode').hidden=false;
+function selectCourse(theme){courseTheme=theme;el('v9LearnMode').hidden=false;const st=modes.course;st.task=null;st.selected=null;st.solved=false;st.last=[];st.mistakes=0;el('v9CourseBoard').replaceChildren();el('v9CourseMeta').textContent='새 과목 대기 중';el('v9CourseNext').hidden=true;el('v9CourseHint').disabled=true;
  const m=catalog?.themes.find(x=>x.id===theme);
  el('v9CourseTitle').textContent=(m?.name||theme)+' · 난이도 선택';
  el('v9CourseMessage').textContent='난이도에 따라 다른 실제 대국 퍼즐을 15개 무작위로 출제합니다. 같은 포지션은 한 세션에 중복되지 않습니다.';
  el('v9CourseLevel').innerHTML='';for(const level of catalog.levels){const op=new Option(`${level} (${m?.counts[level]||0}개)`,level);op.disabled=(m?.counts[level]||0)<15;el('v9CourseLevel').add(op)}
- if([...el('v9CourseLevel').options].some(o=>!o.disabled))el('v9CourseLevel').value=[...el('v9CourseLevel').options].find(o=>!o.disabled).value;
+ const available=[...el('v9CourseLevel').options].filter(o=>!o.disabled);el('v9CourseStart').disabled=!available.length;if(available.length)el('v9CourseLevel').value=available[0].value;else el('v9CourseMessage').textContent='이 과목은 준비된 문제가 부족하여 시작할 수 없습니다.';
  el('v9LearnMode').scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 async function init(){try{
@@ -81,8 +81,8 @@ async function init(){try{
  const select=el('v9PuzzleTheme');select.replaceChildren();select.add(new Option('모든 주제 · 랜덤','random'));
  const card=el('v9CourseCards');card.replaceChildren();
  for(const t of catalog.themes){const total=Object.values(t.counts).reduce((a,b)=>a+b,0);
-  select.add(new Option(`${t.name} (${total})`,t.id));
-  const btn=document.createElement('button');btn.className='v9-course-card';
+  const option=new Option(`${t.name} (${total})`,t.id);option.disabled=total===0;select.add(option);
+  const btn=document.createElement('button');btn.className='v9-course-card';btn.disabled=total===0;
   const title=document.createElement('strong');title.textContent=t.name;const small=document.createElement('small');small.textContent=`입문 ${t.counts['입문']} · 중급 ${t.counts['중급']} · 고급 ${t.counts['고급']}`;
   btn.append(title,small);btn.onclick=()=>selectCourse(t.id);card.append(btn);
  }
@@ -97,5 +97,6 @@ el('v9PuzzleHint').onclick=()=>hint('puzzle');el('v9CourseHint').onclick=()=>hin
 el('v9PuzzleStart').onclick=()=>start('puzzle');el('v9PuzzleNext').onclick=()=>next('puzzle');
 el('v9CourseStart').onclick=()=>start('course');el('v9CourseNext').onclick=()=>next('course');
 el('v9CourseBack').onclick=()=>{el('v9LearnMode').hidden=true;courseTheme=null};
+window.cmaOpenV9Course=(theme)=>{if(!catalog)return false;const m=catalog.themes.find(t=>t.id===theme);if(!m)return false;selectCourse(theme);return true};
 init();
 })();

@@ -70,13 +70,13 @@ def finalize(question_log,game_losses,engine_supported,completed_games,previous=
                              'median_seconds':round(sorted(a['seconds'] for a in items)[len(items)//2],1) if items else None}
     quizscore=round(sum(x['score'] for x in domain_scores.values())/7,1)
     game_score=None
-    if engine_supported and game_losses:
+    if engine_supported and len(game_losses)>=12 and completed_games>=12:
         # Internal accuracy proxy from centipawn loss, not Chess.com's formula.
         # Errors >300 cp heavily penalized; wins/losses alone don't determine score.
         game_score=round(sum(100*math.exp(-max(0,loss)/180) for loss in game_losses)/len(game_losses),1)
     if game_score is None:
         overall=round(quizscore,1)
-        status='문제 기반 예비 평가 · 엔진 정확도 미포함'
+        status='문제 기반 예비 평가 · 대국 분석 유효 착수 12개 미만 또는 엔진 미사용: 정확도 미포함'
     else:
         overall=round(quizscore*.7+game_score*.3,1)
         status='49문항 70% + 엔진 기반 실전 정확도 30%'
