@@ -161,10 +161,10 @@ def attach_v8(app,ns):
     def recommendations(authorization:str|None=Header(default=None)):
         code=auth(authorization);s=get_state(code);r=s.get('assessment_v8_latest')
         if not r:return {'ready':False,'courses':[]}
-        mapping={'mate':['mate','safecheck'],'king':['safecheck','mate'],
-                 'calculation':['fork','double','mate'],'capture':['capture','pin'],
-                 'tactics':['fork','skewer','discovered','double'],
-                 'opening':['opening'],'endgame':['endgame']}
+        mapping={'mate':['mateIn1','mateIn2','mateIn3'],'defense':['defensiveMove','equality'],
+                 'calculation':['fork','discoveredAttack'],'capture':['hangingPiece','trappedPiece'],
+                 'tactics':['pin','skewer'],'strategy':['quietMove','interference'],
+                 'endgame':['endgame','zugzwang']}
         ordered=sorted(r['domains'].items(),key=lambda item:item[1]['score'])
         seen=set();courses=[]
         for domain,data in ordered:

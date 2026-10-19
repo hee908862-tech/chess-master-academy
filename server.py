@@ -1093,3 +1093,7 @@ attach_v8(app,globals())
 # Guided mate-in-three drill (small curated set; not an infinite puzzle bank).
 from mate3_v8 import attach_mate3
 attach_mate3(app,globals())
+
+# V9 theme-based CC0 puzzle and curriculum API
+from v9_server import attach_v9
+attach_v9(app,globals())

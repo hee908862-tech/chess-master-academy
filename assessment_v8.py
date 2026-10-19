@@ -8,53 +8,45 @@ import chess
 from exercises import bank
 from assessment_v3 import _opening, _endgame
 
+# V9: replace the old simple pawn-push / arbitrary-knight-development questions.
+# Only curated Lichess positions with validated moves can be used for diagnosis.
+from v9_server import LIB, BY_THEME
 DOMAINS=[
- ('mate','체크메이트 패턴','mate'),
- ('king','킹 안전과 기물 보존','capture'),
- ('calculation','전술 계산','capture'),
- ('capture','기물 손익','capture'),
- ('tactics','기물 포획 전술','capture'),
- ('opening','오프닝 전개','opening'),
- ('endgame','킹·폰 엔드게임','endgame'),
+ ('mate','체크메이트 계산','mate'),
+ ('defense','위협 감지와 방어','defense'),
+ ('calculation','다수 수순 계산','calculation'),
+ ('capture','기물 손익과 전환','capture'),
+ ('tactics','전술적 기회','tactics'),
+ ('strategy','조용한 수와 전략','strategy'),
+ ('endgame','실전 엔드게임·역전','endgame'),
 ]
-
-DIFFICULTY_FACTORS=(0.85,0.9,0.95,1.0,1.05,1.10,1.15)
-
+DOMAIN_TAGS={
+ 'mate':['mateIn1','mateIn2','mateIn3','mateIn4','mateIn5'],
+ 'defense':['defensiveMove','equality','exposedKing'],
+ 'calculation':['fork','discoveredAttack','intermezzo','clearance'],
+ 'capture':['hangingPiece','trappedPiece','capturingDefender'],
+ 'tactics':['pin','skewer','deflection','overloading'],
+ 'strategy':['quietMove','advantage','interference','sacrifice'],
+ 'endgame':['endgame','zugzwang','promotion','underPromotion']}
+# Ratings increase with each band; unlike the legacy version, item number does not define difficulty.
+RATING_BANDS=[(600,950),(950,1200),(1200,1450),(1450,1700),(1700,1950),(1950,2250),(2250,2900)]
 @lru_cache(maxsize=128)
 def questions(seed):
-    rng=random.Random(seed)
-    pool=bank()
-    mates=list({x['fen']:x for x in pool if x['kind']=='mate'}.values())
-    captures=list({x['fen']:x for x in pool if x['kind']=='capture'}.values())
-    rng.shuffle(mates);rng.shuffle(captures)
-    if len(mates)<7 or len(captures)<28:
-        raise RuntimeError(f'검증된 평가 문항 부족: 체크메이트 {len(mates)}, 기물 {len(captures)}')
-    pools={'mate':mates,'capture':captures}
-    used=set();out=[]
-    for code,label,kind in DOMAINS:
-        for i in range(7):
-            if kind in pools:
-                p=next((p for p in pools[kind] if p['fen'] not in used),None)
-            else:
-                p=None
-                for _ in range(200):
-                    q=_opening(rng) if kind=='opening' else _endgame(rng)
-                    if q is not None and q['fen'] not in used:
-                        p=q;break
-            if p is None:raise RuntimeError('평가 문항 생성 실패: '+label)
-            fen=p['fen'];used.add(fen)
-            board=chess.Board(fen)
-            if not board.is_valid():raise RuntimeError('유효하지 않은 평가 포지션')
-            answers=[u for u in p['answers'] if chess.Move.from_uci(u) in board.legal_moves]
-            if not answers:raise RuntimeError('합법 정답 없음')
+    if not LIB:raise RuntimeError('검증된 체스 평가 데이터가 없습니다. Lichess 문제 데이터를 가져온 뒤 진단을 시작하세요.')
+    rng=random.Random(seed);used=set();out=[]
+    for i,(lo,hi) in enumerate(RATING_BANDS):
+        for code,label,_ in DOMAINS:
+            possible=set()
+            for tag in DOMAIN_TAGS[code]:possible.update(BY_THEME.get(tag,[]))
+            possible=[LIB[k] for k in possible if k not in used and lo<=LIB[k]['rating']<hi]
+            if not possible:raise RuntimeError(f'평가 문제 데이터 부족: {label}, 레이팅 {lo}~{hi}. Lichess CSV를 추가로 선별하세요.')
+            p=rng.choice(possible);used.add(p['id'])
+            board=chess.Board(p['fen']);board.push_uci(p['moves'][0]);answer=p['moves'][1]
+            if chess.Move.from_uci(answer) not in board.legal_moves:raise RuntimeError('평가 정답 수 검증 실패')
             out.append({'id':len(out),'domain':code,'domain_name':label,'difficulty':i+1,
-                        'fen':fen,'description':p['description'],'answers':answers})
-    assert len(out)==49 and len(used)==49
-    # Rotate domains within each difficulty band rather than showing long runs of one pattern.
-    # Levels are instructional bands, NOT empirically normed chess ratings.
-    rotated=[out[j*7+i] for i in range(7) for j in range(7)]
-    for i,q in enumerate(rotated):q['id']=i
-    return rotated
+                        'fen':board.fen(), 'description':f"{label}: 상대의 직전 수에서 발생한 기회를 계산하세요. (문제 레이팅 {p['rating']})",
+                        'answers':[answer],'puzzle_id':p['id'],'rating':p['rating']})
+    return out
 
 def public_question(q):
     b=chess.Board(q['fen'])
