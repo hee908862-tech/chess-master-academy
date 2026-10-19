@@ -24,22 +24,27 @@ async function freshPractice(){
 function drawPracticeBoard(){if(!activePractice)return;drawBoard('puzzleBoard',fromFen(activePractice.fen),{selected:practiceSelected,targets:practiceSelected?moveTargets(activePractice.fen,activePractice.legal||[],practiceSelected):[],onClick:practiceClick})}
 async function practiceClick(square){
  if(!activePractice||practicePending)return;
- ensureAudio();const position=fromFen(activePractice.fen);
- if(practiceSelected===square){practiceSelected=null;drawPracticeBoard();return;}if(!practiceSelected){if(!position[square]||position[square]!==position[square].toUpperCase())return;practiceSelected=square;drawPracticeBoard();return}
- const move=practiceSelected+square;practiceSelected=null;practicePending=true;
- const optimistic={...position,[square]:position[move.slice(0,2)]};delete optimistic[move.slice(0,2)];
- animateBoardTransition('puzzleBoard',move.slice(0,2),square,()=>drawBoard('puzzleBoard',optimistic,{last:[move.slice(0,2),square]}));
- const arrive=document.querySelector(`#puzzleBoard [aria-label^="${square} "]`);if(arrive)arrive.classList.add('moving-to');
- const type=position[square]?'capture':'move';playMoveSound(type);
+ const position=fromFen(activePractice.fen);
+ if(practiceSelected===square){practiceSelected=null;drawPracticeBoard();return;}
+ if(!practiceSelected){if(!position[square]||position[square]!==position[square].toUpperCase())return;practiceSelected=square;drawPracticeBoard();return;}
+ const from=practiceSelected,move=from+square;
+ // This is the same server supplied legal list used for the green target markers.
+ const allowed=(activePractice.legal||[]).some(u=>u===move||u.slice(0,4)===move);
+ if(!allowed){practiceSelected=position[square]&&position[square]===position[square].toUpperCase()?square:null;drawPracticeBoard();return;}
+ practiceSelected=null;practicePending=true;drawPracticeBoard();
  try{
   const result=await api('/practice/answer','POST',{exercise_id:activePractice.id,move});
+  if(result.correct){
+   ensureAudio(); const optimistic={...position,[square]:position[from]};delete optimistic[from];
+   animateBoardTransition('puzzleBoard',from,square,()=>drawBoard('puzzleBoard',optimistic,{last:[from,square]}));
+   playMoveSound(position[square]?'capture':'move');
+  } else drawPracticeBoard();
   notice('puzzleStatus',result.explanation,result.correct?'ok':'err');
   $('puzzleSolved').textContent=result.correct?'✓ 정답':'오답 · 재학습';
   $('nextPuzzle').style.display=result.correct?'inline-flex':'none';
-  if(!result.correct)setTimeout(()=>drawPracticeBoard(),260);
   await refreshPuzzleStats();
- }catch(err){notice('puzzleStatus',err.message,'err');drawPracticeBoard()}
- finally{practicePending=false}
+ }catch(err){notice('puzzleStatus',err.message,'err');drawPracticeBoard();}
+ finally{practicePending=false;}
 }
 $('freshPuzzle').addEventListener('click',freshPractice);
 // The practice stream overrides old list selection: a learner cannot pick only remembered ids.

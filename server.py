@@ -998,3 +998,15 @@ def v6_assessment_advance(authorization:str|None=Header(default=None)):
  t['phase']='game';t['game_moves']=[];t['game_scores']=[]
  save_state(code,state)
  return {'done':False,'phase':'game','board':serialize_board(chess.Board()),'target_white_moves':12,'message':'25문항을 완료했습니다. 이제 중급 AI 대국을 시작합니다.'}
+
+# V7 additive endpoints; keeps existing database and account tokens intact.
+from v7_server import attach_v7
+attach_v7(app,globals())
+
+# V8 diagnostic: independent, server-timed examination with rating history.
+from v8_server import attach_v8
+attach_v8(app,globals())
+
+# Guided mate-in-three drill (small curated set; not an infinite puzzle bank).
+from mate3_v8 import attach_mate3
+attach_mate3(app,globals())

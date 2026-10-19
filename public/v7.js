@@ -1,0 +1,73 @@
+/* V7 deliberate practice and verified-move safety layer */
+(function(){
+  const ui=(name,tag='button',label='',cls='btn')=>{const e=document.createElement(tag);e.id=name;if(tag==='button'){e.type='button';e.className=cls;e.textContent=label;}return e};
+  const playStatus=document.getElementById('gameStatus');
+  const actionGroup=document.createElement('div');actionGroup.className='btn-row';actionGroup.style.margin='12px 0';
+  const hint=ui('v7Hint','button','💡 추천 수 힌트');const undo=ui('v7Undo','button','↶ 한 수 무르기');
+  actionGroup.append(hint,undo);playStatus.parentElement.insertBefore(actionGroup,playStatus.nextSibling);
+  hint.onclick=async()=>{
+    if(!ready()||gameBusy)return;
+    hint.disabled=true;
+    try{const data=await api('/v7/game/hint');
+      document.querySelectorAll('#gameBoard .v7-from,#gameBoard .v7-to').forEach(e=>e.classList.remove('v7-from','v7-to'));
+      document.querySelector(`#gameBoard [aria-label^="${data.move.slice(0,2)} "]`)?.classList.add('v7-from');
+      document.querySelector(`#gameBoard [aria-label^="${data.move.slice(2,4)} "]`)?.classList.add('v7-to');
+      notice('gameStatus',`추천: ${data.san} (${data.move.slice(0,2)} → ${data.move.slice(2,4)}). 분석: ${data.source}. ${data.note}`);
+    }catch(e){notice('gameStatus',e.message,'err')}finally{hint.disabled=false}
+  };
+  undo.onclick=async()=>{
+    if(!ready()||gameBusy)return;
+    undo.disabled=true;
+    try{const data=await api('/v7/game/undo','POST');playerColor=data.player_color;showGame(data.board,`이전 ${data.removed_plies}반수를 되돌렸습니다.`);}
+    catch(e){notice('gameStatus',e.message,'err')}finally{undo.disabled=false}
+  };
+  // For review, the user's selected ply is the branch point, not just the last move.
+  const status=document.getElementById('reviewStatus');
+  const reviewActions=document.createElement('div');reviewActions.className='v7-review-actions';
+  const note=ui('v7ReviewHeading','div','');note.textContent='선택한 포지션에서 다른 수를 직접 실험해 보세요.';note.className='subtle';
+  const moveInput=ui('v7MoveInput','input');moveInput.className='field';moveInput.placeholder='착수 입력 (예: e2e4 또는 g1f3)';moveInput.maxLength=5;
+  const doMove=ui('v7TryMove','button','다른 수로 진행');
+  const best=ui('v7TryBest','button','추천 수로 진행');
+  const branch=ui('v7Branch','div','');branch.className='notice';branch.textContent='원래 대국 기록은 변경되지 않습니다.';
+  reviewActions.append(note,moveInput,doMove,best,branch);status.parentElement.append(reviewActions);
+  async function evaluateVariation(move){
+    if(!ready()||!v5Review){branch.textContent='먼저 저장된 대국을 선택하고 분석하세요.';return;}
+    const index=Number(document.getElementById('reviewGameSelect').value);
+    branch.textContent='선택한 수의 후속 진행을 분석하고 있습니다...';
+    doMove.disabled=true;best.disabled=true;
+    try{
+      const r=await api('/v7/review/variation','POST',{index,ply:v5ReviewIndex,move,depth:4});
+      branch.replaceChildren();
+      const summary=document.createElement('div');summary.textContent=`엔진: ${r.engine} · ${r.note}`;branch.append(summary);
+      r.moves.forEach((m,i)=>{const b=document.createElement('button');b.className='btn tiny';b.style.margin='6px 6px 0 0';b.textContent=`${i+1}. ${m.side} ${m.san}`;b.onclick=()=>drawBoard('reviewBoard',fromFen(m.fen),{flip:v5Review.color==='black'});branch.append(b)});
+      if(r.moves.length)drawBoard('reviewBoard',fromFen(r.moves[r.moves.length-1].fen),{flip:v5Review.color==='black'});
+    }catch(e){branch.textContent=e.message}
+    finally{doMove.disabled=false;best.disabled=false}
+  }
+  doMove.onclick=()=>evaluateVariation(moveInput.value.trim().toLowerCase());
+  best.onclick=()=>{
+    if(!v5Review){branch.textContent='먼저 대국을 선택하세요.';return;}
+    const row=v5Review.moves[v5ReviewIndex];
+    if(!row?.best_move){branch.textContent='현재 위치에 검증된 추천 수가 없습니다. 임의의 수를 입력하여 분석할 수 있습니다.';return;}
+    moveInput.value=row.best_move;evaluateVariation(row.best_move);
+  };
+  const openingView=document.getElementById('opening');
+  const openingHeader=openingView?.querySelector('.row');
+  const family=document.createElement('div');family.className='card';family.innerHTML='<h3 class="heading">오프닝 계보 탐색</h3><p class="subtle">먼저 원류(오프닝 계열)를 고르고 해당 변화의 백·흑 실습을 선택하세요. 현재 목록은 제공된 기본 수순이며, 실제 대국 빈도 통계 순위는 아직 연동되지 않았습니다.</p>';
+  const familyList=document.createElement('div');familyList.className='v7-families';family.append(familyList);
+  if(openingHeader)openingHeader.after(family);
+  const familyNames={italian:'이탈리안 게임',queens:'퀸즈 갬빗',sicilian:'시실리안 디펜스',london:'런던 시스템',carokann:'카로칸',french:'프렌치 디펜스',scotch:'스카치 게임',kingsindian:'킹즈 인디언',ruylopez:'루이 로페즈',english:'잉글리시 오프닝'};
+  async function loadFamilies(){if(!token)return;
+    try{const lines=await api('/openings');familyList.replaceChildren();
+     Object.entries(familyNames).forEach(([key,label])=>{
+      const variants=lines.filter(x=>x.id.startsWith(key+'_'));
+      if(!variants.length)return;
+      const details=document.createElement('details');details.className='v7-family';
+      const head=document.createElement('summary');head.textContent=`${label} · ${variants.length}개 실습`;details.append(head);
+      for(const line of variants){const btn=ui('','button',line.name,'btn tiny');btn.style.margin='6px';btn.onclick=()=>{document.getElementById('openingSelect').value=line.id;document.getElementById('openingBegin').click();openingView.scrollIntoView({behavior:'smooth'})};details.append(btn)};
+      familyList.append(details);
+     });
+    }catch(e){familyList.textContent='계보 목록을 불러오지 못했습니다: '+e.message}
+  }
+  document.querySelectorAll('[data-tab="opening"]').forEach(x=>x.addEventListener('click',loadFamilies));
+})();
