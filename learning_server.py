@@ -16,7 +16,7 @@ import chess.engine
 from fastapi import Header, HTTPException
 from pydantic import BaseModel, Field
 from v9_server import LIB, THEMES
-from competencies import VERSION as COMPETENCY_VERSION, COMPETENCIES, supports
+from competencies import VERSION as COMPETENCY_VERSION, COMPETENCIES, supports, line_positions
 
 CATEGORIES = {key: value['label'] for key, value in COMPETENCIES.items()}
 CONCEPTS = {
@@ -96,6 +96,39 @@ class DiagnosisSource(BaseModel):
 
 class Settings(BaseModel):
     intervals: list[int] = Field(min_length=1, max_length=5)
+
+
+def evidence_groups(rows):
+    """Never compare first-move, full-line, engine-play or unversioned evidence."""
+    buckets={}
+    for row in rows:
+        version=row.get('competency_version') or 'unrecorded'
+        scope=('engine_situation' if row.get('mode','').startswith('situation')
+               else row.get('assessment_scope') or 'unrecorded')
+        buckets.setdefault((version,scope),[]).append(row)
+    result=[]
+    for (version,scope),attempts in sorted(buckets.items()):
+        independent=[a for a in attempts if a.get('independent_kind') in ('novel','delayed')
+                     and isinstance(a.get('success'),bool) and not a.get('helped')]
+        latest={}
+        for a in sorted(independent,key=lambda x:x.get('at','')):
+            position=a.get('position') or a['card_id']
+            latest.pop(position,None); latest[position]=a
+        comparable=list(latest.values())
+        rate=lambda rows: round(100*sum(a['success'] for a in rows)/len(rows)) if len(rows)==5 else None
+        known=version!='unrecorded' and scope!='unrecorded'
+        result.append({'version':version,'assessment_scope':scope,'count':len(attempts),
+            'independent':len(independent),'distinct':len(comparable),
+            'novel':sum(a['independent_kind']=='novel' for a in independent),
+            'delayed':sum(a['independent_kind']=='delayed' for a in independent),
+            'recent':rate(comparable[-5:]) if known else None,
+            'previous':rate(comparable[-10:-5]) if known else None,
+            'recent_n':min(5,len(comparable)) if known else 0,
+            'previous_n':min(5,max(0,len(comparable)-5)) if known else 0,
+            'insufficient':not known or len(comparable)<5,
+            'trend_available':known and len(comparable)>=10,
+            'reference_only':version!=COMPETENCY_VERSION or scope!='full_line'})
+    return result
 
 
 def attach_learning(app, ns):
@@ -277,26 +310,29 @@ def attach_learning(app, ns):
             skills = []
             for key, label in CATEGORIES.items():
                 rows = [a for a in state['attempts'] if a['category'] == key]
-                independent = [a for a in rows if a.get('independent_kind') in ('novel', 'delayed')]
-                distinct = len({a.get('position', a['card_id']) for a in independent})
-                rates = lambda r: round(100 * sum(a['success'] for a in r) / len(r)) if r else None
-                skills.append({'id': key, 'name': label, 'count': len(rows), 'independent': len(independent),
-                               'recent': rates(independent[-5:]), 'previous': rates(independent[-10:-5]),
-                               'insufficient': distinct < 5, 'distinct': distinct, 'measured': COMPETENCIES[key]['measured'], 'scope': COMPETENCIES[key]['scope'],
-                               'novel': sum(a['independent_kind'] == 'novel' for a in independent),
-                               'delayed': sum(a['independent_kind'] == 'delayed' for a in independent),
-                               'first_move_count': sum(a.get('assessment_scope', 'first_move') == 'first_move' for a in rows),
-                               'full_line_count': sum(a.get('assessment_scope') == 'full_line' for a in rows),
-                               'practice_count': sum(a['mode'] in ('practice', 'situation_practice') for a in rows),
-                               'verification_count': sum(a['mode'] in ('verify', 'situation_verify') for a in rows),
-                               'transfer': sum(bool((a.get('selection') or {}).get('overlap')) and a['fresh'] and a['mode'] == 'verify' and a['status'] == 'unaided_first_success' for a in rows)})
-            weakest = min([skill for skill in skills if skill['measured']], key=lambda x: (x['recent'] if x['recent'] is not None else 101, x['count']))
+                groups=evidence_groups(rows)
+                primary=next((g for g in groups if not g['reference_only']),
+                    {'independent':0,'distinct':0,'recent':None,'previous':None,'novel':0,'delayed':0,
+                     'insufficient':True,'trend_available':False,'recent_n':0,'previous_n':0})
+                skills.append({'id':key,'name':label,'count':len(rows),'groups':groups,
+                    'rate_version':COMPETENCY_VERSION,'rate_scope':'full_line',
+                    **{k:primary[k] for k in ('independent','distinct','recent','previous','novel','delayed','insufficient','trend_available','recent_n','previous_n')},
+                    'measured':COMPETENCIES[key]['measured'],'scope':COMPETENCIES[key]['scope'],
+                    'first_move_count':sum(a.get('assessment_scope')=='first_move' for a in rows),
+                    'full_line_count':sum(a.get('assessment_scope')=='full_line' for a in rows),
+                    'practice_count':sum(a['mode'] in ('practice','situation_practice') for a in rows),
+                    'verification_count':sum(a['mode'] in ('verify','situation_verify') for a in rows),
+                    'transfer':sum(bool((a.get('selection') or {}).get('overlap')) and a['fresh'] and a['mode']=='verify' and a['status']=='unaided_first_success' for a in rows)})
+            eligible=[s for s in skills if s['measured'] and not s['insufficient'] and s['recent']<100]
+            lowest=min((s['recent'] for s in eligible),default=None)
+            priorities=[s for s in eligible if s['recent']==lowest]
+            weakest=priorities[0] if len(priorities)==1 else None
             return {'competency_version': COMPETENCY_VERSION, 'due': due, 'cards': [public_card(c) for c in state['cards'].values()],
                     'attempts': state['attempts'][-50:][::-1], 'skills': skills, 'intervals': state['intervals'],
-                    'active': payload(state), 'path': public_path(state), 'recommended': weakest['id'],
-                    'reason': '최근 무도움 시도에서 성공 비율이 낮은 영역' if weakest['recent'] is not None else '아직 학습 근거가 없어 기초부터 시작',
+                    'active': payload(state), 'path': public_path(state), 'recommended': weakest['id'] if weakest else None,
+                    'reason': '같은 버전·전체 수순의 최근 독립 국면에서 미완료 근거가 있는 영역' if weakest else '비교 가능한 전체 수순 근거가 부족하거나 동률입니다. 보완 순위를 정하지 않습니다.',
                     'engine': bool(ns['STOCKFISH_PATH'] and Path(ns['STOCKFISH_PATH']).is_file()),
-                    'notice': '공통 역량 이름을 사용하지만 이 지도는 훈련 기록입니다. 첫 수 판단과 전체 수순 시도를 구분하며 진단 점수로 환산하지 않습니다. 새 학습 경로의 기록만 집계합니다. 미출제는 저장된 문제 ID 기준이며 ID 없는 과거 진단까지 보장하지 않습니다. 기존 진단·대국 통계는 기록 메뉴에 보존됩니다. 실제 레이팅이 아닙니다.'}
+                    'notice': '공통 역량 이름을 사용하지만 이 지도는 훈련 기록입니다. 성공률과 추천은 같은 버전·같은 측정 범위 안에서만 계산합니다. 구형·미기록 버전과 첫 수 판단은 별도 참고이며 전체 수순 근거로 합산하지 않습니다. 각 비교 구간에 독립 국면 5개가 없으면 추세를 표시하지 않습니다. 미출제는 기록된 문제 ID와 전체 원본 수순의 국면 기준이며, 식별 기록이 없는 과거·외부 노출까지 보장하지 않습니다. 기존 진단·대국 통계는 기록 메뉴에 보존됩니다. 실제 레이팅이 아닙니다.'}
 
     @app.post('/api/learning/settings')
     def settings(body: Settings, authorization: str | None = Header(default=None)):
@@ -372,13 +408,13 @@ def attach_learning(app, ns):
             old = LIB.get(pid)
             if old:
                 old_board = chess.Board(old['fen']); old_board.push_uci(old['moves'][0])
-                seen_positions.add(' '.join(old_board.fen().split()[:4]))
+                seen_positions.update(line_positions(old_board.fen(),old['moves'][1:]))
         choices = []
         for p in LIB.values():
             if p['id'] in seen: continue
             if beginner and not (600 <= p['rating'] <= 1200 and 'mateIn1' in p['themes']): continue
             b = chess.Board(p['fen']); b.push_uci(p['moves'][0])
-            if ' '.join(b.fen().split()[:4]) in seen_positions: continue
+            if seen_positions.intersection(line_positions(b.fen(),p['moves'][1:])): continue
             cat = category(b, chess.Move.from_uci(p['moves'][1]), p['themes'])
             overlap = sorted(tags & set(p['themes']))
             if source and not overlap: continue
@@ -470,9 +506,11 @@ def attach_learning(app, ns):
         if previous: state.setdefault('path_history', []).append(previous)
         due = [c for c in state['cards'].values() if c['due'] <= now().isoformat()]
         latest_verifications = {}
-        for attempt in state['attempts'][-30:]:
-            if attempt['mode'] in ('verify', 'situation_verify') and attempt['success'] is not None:
-                latest_verifications[attempt['card_id']] = attempt['success']
+        eligible_verifications=[a for a in state['attempts'] if a['mode']=='verify'
+            and a.get('competency_version')==COMPETENCY_VERSION
+            and a.get('assessment_scope')=='full_line' and isinstance(a['success'],bool)]
+        for attempt in eligible_verifications[-30:]:
+            latest_verifications[attempt['card_id']] = attempt['success']
         failed_verifications = {key for key, success in latest_verifications.items() if not success}
         due.sort(key=lambda c: (c['id'] not in failed_verifications, c['due'], c['id']))
         card = selected

@@ -242,8 +242,10 @@ def test_delayed_credit_once_daily_and_distinct_evidence(setup,monkeypatch):
     d=c.get('/api/learning/dashboard').json()
     assert d['cards'][0]['due']==due and d['cards'][0]['successes']==2
     skill=next(k for k in d['skills'] if k['count'])
-    assert skill['independent']==2 and skill['distinct']==1 and skill['insufficient']
-    assert skill['novel']==1 and skill['delayed']==1
+    first=next(g for g in skill['groups'] if g['assessment_scope']=='first_move')
+    assert first['independent']==2 and first['distinct']==1 and first['insufficient']
+    assert first['novel']==1 and first['delayed']==1
+    assert skill['independent']==0 and skill['recent'] is None
 
 
 def test_shared_tag_selection_and_no_unrelated_fallback(setup,monkeypatch):
@@ -336,7 +338,9 @@ def test_next_route_prioritizes_failed_verification(setup,monkeypatch):
     second=post(c,'start',{'fresh':True})
     with sqlite3.connect(path) as conn:
         state=json.loads(conn.execute('SELECT state FROM learning_progress').fetchone()[0])
-        state['attempts'].append({'card_id':second['card_id'],'mode':'verify','success':False})
+        state['cards'][second['card_id']]['full_line']=True
+        state['attempts'].append({'card_id':second['card_id'],'mode':'verify','success':False,
+                                  'competency_version':learning.COMPETENCY_VERSION,'assessment_scope':'full_line'})
         conn.execute('UPDATE learning_progress SET state=?',(json.dumps(state),))
     route=path_request(c)
     assert route['path']['source_card']==second['card_id']

@@ -9,13 +9,17 @@ from typing import Literal
 import chess
 from fastapi import Header, HTTPException
 from pydantic import BaseModel
-from competencies import VERSION, COMPETENCIES
+from competencies import VERSION, COMPETENCIES, position_key, line_positions
 from v9_server import LIB
 from mate_explanation import explain_mate
 
 
 def now(): return datetime.now(timezone.utc)
-def key(fen): return ' '.join(fen.split()[:4])
+key = position_key
+
+def footprint(item):
+    # Inventory stores this alongside the already-validated immutable snapshot.
+    return frozenset(item['position_keys']) if 'position_keys' in item else line_positions(item['fen'],item['line'])
 
 
 @lru_cache(maxsize=1)
@@ -28,11 +32,13 @@ def inventory():
             line = p['moves'][1:]
             if not line or len(line) % 2 != 1 or not b.is_valid(): continue
             promotion = False
+            positions={key(initial.fen())}
             for i, u in enumerate(line):
                 m = chess.Move.from_uci(u)
                 if m not in b.legal_moves: raise ValueError()
                 promotion |= i % 2 == 0 and bool(m.promotion)
                 b.push(m)
+                positions.add(key(b.fen()))
             tags = p['themes']
             categories = []
             if b.is_checkmate() and any(t.startswith('mateIn') for t in tags): categories.append('mate')
@@ -42,7 +48,7 @@ def inventory():
             if promotion: categories.append('promotion')
             if 'endgame' in tags and len(initial.piece_map()) <= 10: categories.append('endgame')
             snapshot = {'puzzle_id':pid, 'fen':initial.fen(), 'line':line, 'tags':tags,
-                        'rating':p['rating'], 'prior':p['moves'][0], 'version':VERSION}
+                        'position_keys':sorted(positions), 'rating':p['rating'], 'prior':p['moves'][0], 'version':VERSION}
             for c in categories: pools[c].append(snapshot)
         except (ValueError, KeyError, IndexError): continue
     return pools
@@ -183,7 +189,7 @@ def attach_journey(app, ns):
             items=[]
             for c in ([body.competency] if body.mode!='basic' else list(inventory())):
                 for lo,hi in ([(600,1200),(1200,1800)] if body.mode=='basic' else [(600,1200),(1200,1800),(1800,2400)]):
-                    choices=[p for p in inventory()[c] if p['puzzle_id'] not in ids and key(p['fen']) not in positions and lo<=p['rating']<hi]
+                    choices=[p for p in inventory()[c] if p['puzzle_id'] not in ids and lo<=p['rating']<hi and not positions.intersection(footprint(p))]
                     if not choices: continue
                     p=copy.deepcopy(secrets.choice(choices)); p.update(id=secrets.token_hex(8),competency=c,band=[lo,hi],independent=not uncertain,helped=False,first_attempt=True)
                     ids.add(p['puzzle_id']); positions.add(key(p['fen'])); items.append(p)
@@ -243,7 +249,7 @@ def attach_journey(app, ns):
             s=state['active']
             if not s or s['session_id']!=body.session_id or s['revision']!=body.revision: raise HTTPException(409,'진단 상태가 변경되었습니다. 저장 상태를 다시 확인하세요.')
             for item in s['items']:
-                if uncertain or item['puzzle_id'] in external_ids or key(item['fen']) in external_positions:
+                if uncertain or item['puzzle_id'] in external_ids or external_positions.intersection(footprint(item)):
                     item['independent']=False
             if body.action=='next':
                 if s['phase']!='feedback': raise HTTPException(409,'문항 풀이를 먼저 마치세요.')

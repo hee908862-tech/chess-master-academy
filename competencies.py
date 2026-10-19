@@ -1,4 +1,6 @@
 """Shared, explicitly scoped competency vocabulary; not a calibrated rating scale."""
+from functools import lru_cache
+
 VERSION = 'competency-v2'
 COMPETENCIES = {
  'mate': {'label':'메이트 수순', 'scope':'합법적인 체크메이트 수순 실행', 'measured':True},
@@ -32,3 +34,32 @@ def supports(competency, fen, line, tags):
             'strategy':False,
         }.get(competency,False)
     except (ValueError,IndexError): return False
+
+
+
+def position_key(fen):
+    """Canonical FEN's pieces, turn, castling and legal en-passant rights.
+
+    Clocks are deliberately ignored for exposure identity, not game adjudication.
+    Callers generating positions use python-chess Board.fen() (legal EP default).
+    """
+    return ' '.join(fen.split()[:4])
+
+
+def line_positions(fen, line):
+    return _line_positions(fen, tuple(line))
+
+
+@lru_cache(maxsize=65536)
+def _line_positions(fen, line):
+    """All validated positions, including both start and terminal position."""
+    import chess
+    board=chess.Board(fen)
+    if not board.is_valid(): raise ValueError('Invalid exposure position')
+    positions={position_key(board.fen())}
+    for uci in line:
+        move=chess.Move.from_uci(uci)
+        if move not in board.legal_moves: raise ValueError('Invalid exposure continuation')
+        board.push(move)
+        positions.add(position_key(board.fen()))
+    return frozenset(positions)
