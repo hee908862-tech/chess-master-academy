@@ -139,7 +139,7 @@ def attach_learning(app, ns):
     @contextmanager
     def store(code):
         with db() as conn:
-            if not ns['DATABASE_URL']: conn.execute('BEGIN IMMEDIATE')
+            if not ns['DATABASE_URL']: execute(conn,'BEGIN IMMEDIATE')
             else: execute(conn,'SELECT pg_advisory_xact_lock(hashtext(?))',('chess-evidence:'+code,))
             default = {'schema': 1, 'cards': {}, 'attempts': [], 'seen': [], 'intervals': [1, 3, 7], 'active': None}
             execute(conn, 'INSERT INTO learning_progress(code,state) VALUES(?,?) ON CONFLICT(code) DO NOTHING', (code, json.dumps(default)))
@@ -202,13 +202,25 @@ def attach_learning(app, ns):
             if path and not path['done']:
                 existing = state['cards'].get(path.get('source_card'), {}).get('diagnosis', {})
                 if existing.get('report_id') == body.report_id and existing.get('item_id') == body.item_id:
+                    active=state.get('active')
+                    if active and not active['done'] and active.get('path_id')!=path['id']:
+                        raise HTTPException(409, '진행 중인 다른 훈련의 착수를 보존했습니다. 먼저 완료해 주세요.')
+                    if path['current']==0 and path['steps'][0]['status']=='pending':
+                        begin(state,state['cards'][path['source_card']],'practice')
+                        state['active'].update(path_id=path['id'],path_step=0)
+                        path['steps'][0]['status']='active'
+                        sync_path(state)
                     return {'path': public_path(state), 'active': payload(state), 'diagnosis': existing}
-                raise HTTPException(409, '진행 중인 오늘의 경로를 먼저 완료하세요. 현재 경로는 보존했습니다.')
+                raise HTTPException(409, {'code':'active_learning_path','path_id':path['id'],'message':'진행 중인 경로를 보존했습니다. 이어서 완료한 뒤 선택한 진단 훈련을 시작하세요.'})
             if state.get('active') and not state['active']['done']:
                 raise HTTPException(409, '진행 중인 훈련을 먼저 마쳐 주세요. 현재 착수는 보존했습니다.')
             card = diagnosis_card(state, report, item)
             create_path(state, legacy, card)
-            return {'path': public_path(state), 'active': None, 'diagnosis': card['diagnosis']}
+            begin(state, card, 'practice')
+            state['active'].update(path_id=state['path']['id'], path_step=0)
+            state['path']['steps'][0]['status']='active'
+            sync_path(state)
+            return {'path': public_path(state), 'active': payload(state), 'diagnosis': card['diagnosis']}
 
     @contextmanager
     def engine():

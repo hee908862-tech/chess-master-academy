@@ -58,7 +58,7 @@ def test_journey_partial_resume_result_training(site,width,height):
         page.locator('#journeyNext').click()
         expect(page.locator('#journeyResults')).to_contain_text('독립 국면 1')
         expect(page.locator('#journeyResults')).to_contain_text('전체 성공 0')
-        page.locator('#journeyResults summary').click()
+        page.locator('#journeyResults summary').first.click()
         expect(page.locator('#journeyResults')).to_contain_text('내 응답: e3h3')
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
         page.locator('#journeyResults button',has_text='이 근거로 훈련하기').click()
@@ -119,7 +119,7 @@ def test_real_journey_complete_skipped_then_training(site,width,height,label):
     import urllib.request
     req=urllib.request.Request(site[0]+'/api/register',json.dumps({'code':'JOURNEY-'+secrets.token_hex(4),'pin':'qa-journey-pin'}).encode(),{'Content-Type':'application/json'})
     account=json.load(urllib.request.urlopen(req))
-    captures=Path(__file__).resolve().parents[1]/'docs'/'qa-journey'
+    captures=Path(__file__).resolve().parents[1]/'docs'/'qa-reliability'
     captures.mkdir(parents=True,exist_ok=True)
     with sync_playwright() as p:
         browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
@@ -140,11 +140,11 @@ def test_real_journey_complete_skipped_then_training(site,width,height,label):
         expect(page.locator('#journeyProgress')).to_have_text(f'1 / {total} 문항')
         for index in range(total):
             page.locator('#journeySkip').click()
-            expect(page.locator('#journeyFeedback')).to_contain_text('첫수 미성공')
+            expect(page.locator('#journeyFeedback')).to_contain_text('미응답 · 수행 미관찰')
             page.locator('#journeyNext').click()
             if index<total-1:expect(page.locator('#journeyProgress')).to_have_text(f'{index+2} / {total} 문항')
         expect(page.locator('#journeyResults')).to_contain_text('전체 성공 0')
-        expect(page.locator('#journeyResults')).to_contain_text('근거 부족')
+        expect(page.locator('#journeyResults')).to_contain_text('실력 부족을 뜻하지 않습니다')
         page.screenshot(path=str(captures/f'results-{label}.png'),full_page=True)
         data=page.evaluate("api('/journey')")
         assert data['active'] is None
@@ -154,4 +154,37 @@ def test_real_journey_complete_skipped_then_training(site,width,height,label):
         expect(page.locator('#learningRouteStatus')).to_contain_text('왜 이 훈련인가')
         linked=page.evaluate("api('/learning/dashboard')")
         assert linked['path']['diagnosis']['report_id']==data['latest']['id']
+        expect(page.locator('#learningBoard .sq')).to_have_count(64)
+        assert linked['active']['fen']==data['latest']['items'][0]['fen']
+        page.screenshot(path=str(captures/f'training-{label}.png'),full_page=True)
+        browser.close()
+
+
+def test_one_click_clears_old_board_and_suppresses_duplicate_start(site):
+    pending=[]
+    task={'session_id':'selected-source','revision':0,'card_id':'source','fen':FEN,'legal':['e3h3'],
+          'side':'black','mode':'practice','done':False,'goal':'원본 연습','category':'메이트',
+          'hint_level':0,'playback':[]}
+    dashboard={'active':{**task,'done':True},'notice':'기록 유지','reason':'원본 연습','due':[],
+               'intervals':[1,3,7],'path':None,'cards':[],'skills':[],'attempts':[],'engine':False}
+    with sync_playwright() as p:
+        browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+        page=browser.new_page()
+        page.add_init_script(f"localStorage.setItem('chess_token',{json.dumps(site[1])});")
+        page.route('**/api/learning/dashboard',lambda r:r.fulfill(json=dashboard))
+        page.route('**/api/learning/from-diagnosis',lambda r:pending.append(r))
+        page.goto(site[0]);page.evaluate("tab('training')")
+        expect(page.locator('#learningBoard .sq')).to_have_count(64)
+        page.evaluate("void window.learningFromDiagnosis('report','item')")
+        expect(page.locator('#learningBoard')).to_be_empty()
+        expect(page.locator('#learningMessage')).to_contain_text('여는 중')
+        expect(page.locator('#learningFresh')).to_be_disabled()
+        page.evaluate("void window.learningFromDiagnosis('report','item')")
+        page.wait_for_timeout(100)
+        assert len(pending)==1
+        assert pending[0].request.post_data_json=={'report_id':'report','item_id':'item'}
+        dashboard['active']=task
+        pending[0].fulfill(json={'active':task})
+        expect(page.locator('#learningBoard .sq:enabled')).to_have_count(64)
+        expect(page.locator('#learningMessage')).to_contain_text('바로 연습')
         browser.close()
