@@ -158,6 +158,9 @@ def attach_v9(app,ns):
    return {'correct':False,'message':'합법적인 착수이지만 이 퍼즐의 검증된 정답 수순과 다릅니다. 다른 동등한 최선 수가 있을 가능성은 별도 엔진 분석이 필요합니다.',
            'can_retry':True,**task_payload(task)}
   b.push(m);task['offset']+=1
+  if b.is_checkmate():
+   # A proven terminal alternative has no remaining opponent reply.
+   task['offset']=len(p['moves'])
   if task['offset']<len(p['moves']):
    response=p['moves'][task['offset']]
    b.push_uci(response);task['offset']+=1

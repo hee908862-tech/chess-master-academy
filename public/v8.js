@@ -2,7 +2,7 @@
 (function(){
 'use strict';
 const $$=id=>document.getElementById(id);
-let current=null,chosen=null,busy=false,showing=false,selectedBase=null,lastAnswer=null,evalClock=null,evalClockAt=0;
+let current=null,chosen=null,busy=false,showing=false,selectedBase=null,lastAnswer=null,evalClock=null,evalClockAt=0,revision=0;
 const dom=$$('v8DomainList'),info=$$('v8ScoreSummary'),board=$$('testBoard'),progress=$$('testProgress'),status=$$('testStatus');
 function evalClockSet(c){evalClock=c||null;evalClockAt=Date.now();evalClockDraw()}
 function evalClockDraw(){const el=$$('v8Outcome');if(!el||!evalClock||current?.phase!=='game')return;
@@ -52,11 +52,13 @@ async function click(sq){
  if(!chosen){if(friendly(sq)&&legal.some(m=>m.slice(0,2)===sq)){chosen=sq;draw();}return;}
  const from=chosen,found=legal.find(m=>m.slice(0,2)===from&&m.slice(2,4)===sq);
  if(!found){chosen=friendly(sq)&&legal.some(m=>m.slice(0,2)===sq)?sq:null;draw();return;}
+ const request=++revision,snapshot=current;busy=true;
  const promo=await choosePromotion(from,sq,p[from],legal);
+ if(request!==revision||current!==snapshot)return;
  const selectedMove=promo?(from+sq+promo):found;
  chosen=null;busy=true;
  try{
-  if(!game){const r=await api('/v8/assessment/answer','POST',{id:current.q.id,move:selectedMove});feedbackOverlay(r);current={phase:'feedback'};}
+  if(!game){const r=await api('/v8/assessment/answer','POST',{id:current.q.id,move:selectedMove});if(request!==revision)return;feedbackOverlay(r);current={phase:'feedback'};}
   else{
    // Draw the validated selected move immediately, before waiting for AI analysis.
    const originalGame=current.game;
@@ -65,21 +67,23 @@ async function click(sq){
    if((originalGame.squares[from]||'').toLowerCase()==='p'&&from[0]!==sq[0]&&!originalGame.squares[sq])delete optimistic.squares[sq[0]+from[1]];
    if(promo)optimistic.squares[sq]=(p[from]===p[from].toUpperCase()?promo.toUpperCase():promo.toLowerCase());
    current={phase:'game',game:optimistic};draw();display('착수가 반영됐습니다. AI가 생각하고 있습니다.');
-   const r=await api('/v8/assessment/game-move','POST',{move:selectedMove});evalClockSet(r.clock);
-   if(r.done){current={phase:'results'};drawBoard('testBoard',r.board.squares);showResult(r.result);}
+   const r=await api('/v8/assessment/game-move','POST',{move:selectedMove});if(request!==revision)return;evalClockSet(r.clock);
+   if(r.done){showResult(r.result,r.board);}
    else{current={phase:'game',game:r.board};progress.textContent=`50번째 평가 · 중급 AI 실전 대국`;display('AI가 응수했습니다. 다음 수를 두세요.');draw();}
   }
- }catch(err){display(err.message,'err');restore();}finally{busy=false;}
+ }catch(err){if(request===revision){display(err.message,'err');await restore();}}finally{if(request===revision)busy=false;}
 }
 function startGame(r){hideOverlay();chosen=null;current={phase:'game',game:r.board};evalClockSet(r.clock);
  progress.textContent=`50번째 평가 · AI 대국 (10+5)`;
  $$('v8Outcome').textContent='힌트와 무르기 없는 별도 평가 대국입니다. 백으로 착수해 주세요.';
  display('중급 AI와 실제 종료까지 대국합니다. 제한시간: 10분 + 착수당 5초.');draw();}
-async function start(){if(!token){tab('profile');return;}if(busy)return;busy=true;
- try{const r=await api('/v8/assessment/start','POST');showQuestion(r);}catch(e){display(e.message,'err')}finally{busy=false;}}
-async function next(){if(busy)return;busy=true;
- try{const r=await api('/v8/assessment/next','POST');if(r.phase==='game')startGame(r);else showQuestion(r);}catch(e){display(e.message,'err')}finally{busy=false}}
-function showResult(r){hideOverlay();progress.textContent='50단계 종합 평가 완료';
+async function start(){if(!token){tab('profile');return;}if(busy)return;busy=true;const request=++revision;
+ try{const r=await api('/v8/assessment/start','POST');if(request!==revision)return;showQuestion(r);}catch(e){if(request===revision)display(e.message,'err')}finally{if(request===revision)busy=false;}}
+async function next(){if(busy)return;busy=true;const request=++revision;
+ try{const r=await api('/v8/assessment/next','POST');if(request!==revision)return;if(r.phase==='game')startGame(r);else showQuestion(r);}catch(e){if(request===revision)display(e.message,'err')}finally{if(request===revision)busy=false}}
+function showResult(r,finalBoard){current={phase:'results'};chosen=null;lastAnswer=null;evalClockSet(null);hideOverlay();
+ if(finalBoard)drawBoard('testBoard',finalBoard.squares);else board.replaceChildren();
+ progress.textContent='50단계 종합 평가 완료';
  $$('v8Outcome').textContent=`${r.stage} · 내부 실력 지수 ${r.index}/1000 · ${r.delta===null?'첫 진단':(r.delta>=0?'+':'')+r.delta+' 변동'}`;
  const fmt=n=>n===null||n===undefined?'측정 불가':n.toFixed?.(1)??String(n);
  info.replaceChildren();
@@ -93,7 +97,15 @@ function showResult(r){hideOverlay();progress.textContent='50단계 종합 평�
  const advice=document.createElement('p');advice.textContent=`강점: ${r.strengths.join(', ')} / 보완: ${r.weaknesses.join(', ')}. 공식 Elo와 직접 환산되지 않는 내부 지수입니다.`;info.append(advice);
  display('평가 결과가 계정에 저장되었습니다.');loadHistory();loadRecommendations();
 }
-async function restore(){if(!token)return;try{const r=await api('/v8/assessment/status');if(r.phase==='results'&&r.result){showResult(r.result);return;}if(r.active){if(r.phase==='questions')showQuestion(r);else if(r.phase==='feedback'){current={phase:'feedback'};feedbackOverlay(r);}else if(r.phase==='game')startGame(r);}else if(r.recent)showResult(r.recent);else{hideOverlay();}}catch(e){display(e.message,'err')}}
+async function restore(){if(!token)return;const request=++revision;busy=true;chosen=null;
+ // Remove optimistic positions and input while reconciling with authoritative state.
+ board.replaceChildren();current=null;evalClockSet(null);
+ try{const r=await api('/v8/assessment/status');if(request!==revision)return;
+ if(r.phase==='results'&&r.result){showResult(r.result,r.board);return;}
+ if(r.active){if(r.phase==='questions')showQuestion(r);else if(r.phase==='feedback'){current={phase:'feedback'};feedbackOverlay(r);}else if(r.phase==='game')startGame(r);}
+ else if(r.recent)showResult(r.recent);else hideOverlay();
+ }catch(e){if(request===revision)display(e.message,'err')}finally{if(request===revision)busy=false;}}
+
 function renderProfile(data){if(!data)return;
  const p=$$('v8ProfileResult');if(!p)return;
  const last=data.latest;
@@ -108,13 +120,16 @@ function renderProfile(data){if(!data)return;
 async function loadRecommendations(){
  if(!token)return;
  try{
-  const d=await api('/v8/recommendations'), box=$$('v8RecommendationList');
+  const [d,catalog]=await Promise.all([api('/v8/recommendations'),api('/v9/catalog')]), box=$$('v8RecommendationList');
   box.replaceChildren();if(!d.ready)return;
   const title=document.createElement('h3');title.textContent='진단 기반 보완 과목 추천';box.append(title);
+  const seen=new Set();
   for(const course of d.courses){
+   if(seen.has(course.id))continue;seen.add(course.id);
+   const target=catalog.themes.find(t=>t.id===course.id);
    const btn=document.createElement('button');btn.className='btn';
-   btn.style.textAlign='left';btn.textContent=`${course.reason} · 실습 열기`;
-   btn.onclick=()=>{tab('learn');const raw=(course.id+' '+course.reason).toLowerCase();const theme=raw.includes('메이트')||raw.includes('mate')?'mateIn2':raw.includes('킹')||raw.includes('endgame')?'endgame':raw.includes('방어')||raw.includes('defen')?'defensiveMove':raw.includes('포크')||raw.includes('fork')?'fork':raw.includes('핀')||raw.includes('pin')?'pin':'advantage';if(!window.cmaOpenV9Course?.(theme)){const x=document.getElementById('v9CourseHistory');if(x)x.textContent='추천 과목 연결을 확인할 수 없습니다. 과목 목록에서 직접 선택하세요.';}};
+   btn.style.textAlign='left';btn.textContent=`${target?.name||course.id} · ${course.reason} · ${target?'실습 열기':'현재 제공되지 않는 과목'}`;btn.disabled=!target;
+   btn.onclick=async()=>{tab('learn');if(!await window.cmaOpenV9Course?.(course.id)){const x=document.getElementById('v9CourseHistory');if(x)x.textContent='추천 과목을 불러올 수 없습니다. 과목 목록을 다시 확인하세요.';}};
    box.append(btn);
   }
  }catch(e){}
