@@ -98,6 +98,20 @@ $('openingBegin').onclick=openingStart;
 const v5OpeningClick=openingClick;
 openingClick=async function(square){v5ArrowClear();await v5OpeningClick(square)};
 
+// Labels describe recorded assistance, not an inferred quality judgement.
+function reviewAssistanceLabels(row){
+ if(v5Review&&row.side!==(v5Review.color==='black'?'흑':'백'))return ['AI 착수'];
+ const a=row.assistance;
+ if(!a?.known)return ['도움 기록 없음'];
+ const labels=[];
+ if(a.hint_viewed)labels.push(a.hint_adopted?'힌트 채택':'힌트 제공 · 다른 수');
+ if(a.undo_replayed)labels.push('무르기 후 재착수');
+ if(a.hint_viewed===null||a.undo_replayed===null)labels.push('이전 도움 기록 불명');
+ return labels.length?labels:['도움 제공 기록 없음'];
+}
+const assistanceGuide=document.createElement('p');assistanceGuide.className='lead';assistanceGuide.id='reviewAssistanceGuide';
+assistanceGuide.textContent='힌트 채택: 이 위치에서 제공된 추천 수와 실제 착수가 일치합니다. 힌트 제공 · 다른 수: 추천을 제공했지만 다른 수를 뒀습니다. 무르기 후 재착수: 되돌린 위치에서 다시 둔 수입니다. 두 도움은 함께 표시합니다. 같은 대국의 같은 위치에서 앞서 받은 도움도 포함합니다. 과거 기록 없음은 도움을 안 썼다는 뜻이 아닙니다. 서버가 힌트를 제공한 기록이며 실제 화면 열람 여부는 확정하지 않습니다.';
+$('reviewStatus').before(assistanceGuide);
 // Completed games: selectable ply-by-ply, preserving both players' moves and evidence.
 function v5RenderReview(){
  if(!v5Review)return;
@@ -107,7 +121,7 @@ function v5RenderReview(){
  $('reviewStep').textContent=`${i} / ${rows.length} 반수`;
  document.querySelectorAll('.review-move').forEach((e,n)=>e.classList.toggle('active',n===i-1));
  const step=i?rows[i-1]:null;
- if(step){$('reviewStatus').textContent=`${step.side} ${step.san} · ${step.category} · 손실 ${step.centipawn_loss}cp\n${step.comment}\n${step.best_move?'엔진 추천 수: '+step.best_move:''}\n분석: ${step.source}`;$('reviewStatus').style.whiteSpace='pre-line'}
+ if(step){$('reviewStatus').textContent=`${step.side} ${step.san} · ${step.category} · 손실 ${step.centipawn_loss}cp\n${step.comment}\n도움: ${reviewAssistanceLabels(step).join(' · ')}\n${step.best_move?'엔진 추천 수: '+step.best_move:''}\n분석: ${step.source}`;$('reviewStatus').style.whiteSpace='pre-line'}
  else $('reviewStatus').textContent='시작 포지션입니다. 착수를 눌러 하나씩 복기하세요.';
 }
 async function v5HistoryList(){
@@ -120,10 +134,10 @@ async function v5HistoryList(){
 async function v5ReviewLoad(){if(!ready())return;const index=$('reviewGameSelect').value;if(index==='')return;
  $('reviewLoad').disabled=true;$('reviewStatus').textContent='Stockfish가 각 수를 분석 중입니다. 긴 대국은 시간이 걸릴 수 있습니다.';
  try{v5Review=await api('/games/review/'+index);v5ReviewIndex=0;$('reviewMoves').replaceChildren();
-  v5Review.moves.forEach((m,i)=>{const b=document.createElement('button');b.className='review-move';if((v5Review.hint_plies||[]).includes(i+1)){b.classList.add('hint-assisted');b.title='힌트를 사용한 착수';}
+  v5Review.moves.forEach((m,i)=>{const b=document.createElement('button');b.className='review-move';if(m.assistance?.hint_viewed)b.classList.add('hint-assisted');if(m.assistance?.undo_replayed)b.classList.add('undo-assisted');
    const name=document.createElement('b');name.textContent=`${Math.ceil((i+1)/2)}${i%2?'...':'.'} ${m.san}`;
-   const meta=document.createElement('small');meta.textContent=`${(v5Review.hint_plies||[]).includes(i+1)?'💡 힌트 사용 · ':''}${m.category} · ${m.centipawn_loss}cp`;
-   b.append(name,meta);b.onclick=()=>{v5ReviewIndex=i+1;v5RenderReview()};$('reviewMoves').appendChild(b)
+   const meta=document.createElement('small');meta.textContent=`${m.category} · ${m.centipawn_loss}cp`;
+   b.append(name,meta);const labels=document.createElement('span');labels.className='review-assistance-labels';reviewAssistanceLabels(m).forEach(text=>{const tag=document.createElement('span');tag.className='review-assistance-label';tag.textContent=text;labels.append(tag)});b.append(labels);b.onclick=()=>{v5ReviewIndex=i+1;v5RenderReview()};$('reviewMoves').appendChild(b)
   });v5RenderReview();
  }catch(e){$('reviewStatus').textContent=e.message}finally{$('reviewLoad').disabled=false}
 }
