@@ -1101,3 +1101,7 @@ attach_mate3(app,globals())
 # V9 theme-based CC0 puzzle and curriculum API
 from v9_server import attach_v9
 attach_v9(app,globals())
+
+# Independent, transactional learning records; legacy state remains untouched.
+from learning_server import attach_learning
+attach_learning(app, globals())
