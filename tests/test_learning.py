@@ -207,3 +207,140 @@ def test_situation_six_turn_completion_and_assisted_undo(setup):
     assert s['done'] and s['outcome']['mode']=='situation_practice'
     assert s['outcome']['helped']
     if s['outcome']['success']:assert s['outcome']['status']=='hinted_success'
+
+@pytest.mark.parametrize('help_kind,expected',[('reveal','revealed_success'),('hint','hinted_success'),('wrong','retry_success')])
+def test_restart_cannot_erase_card_exposure(setup,help_kind,expected):
+    c,_,_,_=setup
+    s=post(c,'start',{'fresh':True})
+    if help_kind=='wrong':
+        b=chess.Board(s['fen']);wrong=next(m.uci() for m in b.legal_moves if m.uci()!=solution(s) and not after_mate(b,m))
+        action(c,s,'move',wrong)
+    else:action(c,s,help_kind)
+    # No completed attempt before restarting: the card itself must retain exposure.
+    assert c.get('/api/learning/dashboard').json()['attempts']==[]
+    s=post(c,'start',{'card_id':s['card_id']})
+    result=action(c,s,'move',solution(s))
+    assert result['outcome']['status']==expected
+    assert result['outcome']['independent_kind'] is None
+    assert c.get('/api/learning/dashboard').json()['cards'][0]['successes']==0
+
+
+def test_delayed_credit_once_daily_and_distinct_evidence(setup,monkeypatch):
+    c,_,_,_=setup
+    s=post(c,'start',{'fresh':True})
+    action(c,s,'move',solution(s))
+    tomorrow=learning.now()+timedelta(days=2)
+    monkeypatch.setattr(learning,'now',lambda:tomorrow)
+    s=post(c,'start',{'card_id':s['card_id'],'mode':'verify'})
+    first=action(c,s,'move',solution(s))
+    assert first['outcome']['status']=='later_unaided_success'
+    d=c.get('/api/learning/dashboard').json();due=d['cards'][0]['due']
+    for _ in range(5):
+        s=post(c,'start',{'card_id':s['card_id'],'mode':'verify'})
+        repeated=action(c,s,'move',solution(s))
+        assert repeated['outcome']['status']=='unaided_repeat_success'
+    d=c.get('/api/learning/dashboard').json()
+    assert d['cards'][0]['due']==due and d['cards'][0]['successes']==2
+    skill=next(k for k in d['skills'] if k['count'])
+    assert skill['independent']==2 and skill['distinct']==1 and skill['insufficient']
+    assert skill['novel']==1 and skill['delayed']==1
+
+
+def test_shared_tag_selection_and_no_unrelated_fallback(setup,monkeypatch):
+    c,_,_,_=setup
+    bases=copy.deepcopy(list(learning.LIB.values())[:3])
+    source={**bases[0],'id':'source','themes':['fork']}
+    related={**bases[1],'id':'related','themes':['fork','pin']}
+    unrelated={**bases[2],'id':'unrelated','themes':['skewer']}
+    monkeypatch.setattr(learning,'LIB',{'source':source})
+    s=post(c,'start',{'fresh':True})
+    monkeypatch.setattr(learning,'LIB',{'related':related,'unrelated':unrelated})
+    new=post(c,'start',{'similar_to':s['card_id'],'mode':'verify'})
+    assert new['card_id']=='puzzle-related' and new['selection'] is None
+    result=action(c,new,'move',related['moves'][1])
+    evidence=result['outcome']['selection']
+    assert evidence['overlap']==['fork'] and evidence['source_card']==s['card_id']
+    assert sum(k['transfer'] for k in c.get('/api/learning/dashboard').json()['skills'])==1
+    assert c.post('/api/learning/start',json={'similar_to':s['card_id'],'mode':'verify'}).status_code==409
+    # Independent selection can still use unrelated data, but must never count as transfer.
+    other=post(c,'start',{'fresh':True,'mode':'verify'})
+    action(c,other,'move',unrelated['moves'][1])
+    assert sum(k['transfer'] for k in c.get('/api/learning/dashboard').json()['skills'])==1
+
+
+def path_request(c,d=None,kind='continue'):
+    return post(c,'path',{'action':kind,**({'path_id':d['id'],'revision':d['revision']} if d else {})})
+
+
+def test_daily_route_keeps_source_and_resumes_after_free_practice(setup,monkeypatch):
+    c,ns,_,_=setup
+    s=post(c,'start',{'fresh':True})
+    source=s['card_id']
+    route=path_request(c);path=route['path'];review=route['active']
+    assert path['source_card']==source and path['current']==0
+    review=action(c,review,'hint')
+    # Other freely selected learning must not destroy the route's in-progress session.
+    post(c,'start',{'fresh':True})
+    app=FastAPI();learning.attach_learning(app,ns);c=TestClient(app,headers={'Authorization':'A'})
+    restored=path_request(c)
+    assert restored['active']['session_id']==review['session_id']
+    assert restored['active']['hint_level']==1
+    action(c,restored['active'],'move',solution(review))
+    d=c.get('/api/learning/dashboard').json()
+    assert source not in [card['id'] for card in d['due']]
+    concept=path_request(c,d['path']);assert concept['path']['current']==1
+    acknowledged=path_request(c,concept['path'],'acknowledge')
+    assert acknowledged['path']['current']==2
+    assert c.post('/api/learning/path',json={'action':'acknowledge','path_id':concept['path']['id'],'revision':concept['path']['revision']}).status_code==409
+    transfer=path_request(c,acknowledged['path'])
+    assert transfer['active']['mode']=='verify'
+    result=action(c,transfer['active'],'move',solution(transfer['active']))
+    assert result['outcome']['path_id']==path['id'] and result['outcome']['selection']['overlap']
+    finished=path_request(c)
+    assert finished['path']['done'] and finished['path']['source_card']==source
+    assert finished['path']['steps'][3]['status']=='skipped'
+    assert 'Stockfish' in finished['path']['steps'][3]['reason']
+    d=c.get('/api/learning/dashboard').json()
+    assert d['path']==finished['path']
+    assert [a['mode'] for a in d['attempts']]==['verify','practice']
+    assert sum(k['transfer'] for k in d['skills'])==1
+
+
+def test_empty_route_records_skips_without_fake_completion(setup):
+    c,_,_,_=setup
+    result=path_request(c)
+    assert result['path']['done']
+    assert all(s['status']=='skipped' and s['reason'] for s in result['path']['steps'])
+    assert c.get('/api/learning/dashboard').json()['attempts']==[]
+
+
+def test_next_route_prioritizes_failed_verification(setup,monkeypatch):
+    c,_,_,path=setup
+    first=post(c,'start',{'fresh':True})
+    second=post(c,'start',{'fresh':True})
+    with sqlite3.connect(path) as conn:
+        state=json.loads(conn.execute('SELECT state FROM learning_progress').fetchone()[0])
+        state['attempts'].append({'card_id':second['card_id'],'mode':'verify','success':False})
+        conn.execute('UPDATE learning_progress SET state=?',(json.dumps(state),))
+    route=path_request(c)
+    assert route['path']['source_card']==second['card_id']
+
+@pytest.mark.skipif(not Path(ENGINE).exists(),reason='local real Stockfish unavailable')
+def test_route_missing_transfer_skips_but_original_situation_still_starts(setup,monkeypatch):
+    c,ns,_,_=setup;ns['STOCKFISH_PATH']=ENGINE
+    original=post(c,'start',{'fresh':True,'category':'endgame'})
+    puzzle=learning.LIB[original['card_id'].removeprefix('puzzle-')]
+    monkeypatch.setattr(learning,'LIB',{puzzle['id']:puzzle})
+    review=path_request(c)['active']
+    action(c,review,'move',puzzle['moves'][1])
+    concept=path_request(c)
+    path_request(c,concept['path'],'acknowledge')
+    situation=path_request(c)
+    assert situation['path']['current']==3
+    assert situation['path']['steps'][2]['status']=='skipped'
+    assert '미노출' in situation['path']['steps'][2]['reason']
+    assert situation['active']['mode']=='situation_practice'
+    assert situation['active']['card_id']==original['card_id']
+    d=c.get('/api/learning/dashboard').json()
+    assert original['card_id'] not in [row['id'] for row in d['due']]
+    assert d['path']['source_card']==original['card_id']

@@ -2,6 +2,7 @@
 New records use one locked row per account (SQLite BEGIN IMMEDIATE / PostgreSQL
 FOR UPDATE). No accounts, old records, or corpus entries are rewritten.
 """
+import copy
 import hashlib
 import json
 import secrets
@@ -14,7 +15,7 @@ import chess
 import chess.engine
 from fastapi import Header, HTTPException
 from pydantic import BaseModel, Field
-from v9_server import LIB
+from v9_server import LIB, THEMES
 
 CATEGORIES = {'calculation': '수읽기', 'endgame': '엔드게임', 'promotion': '승격',
               'mate': '메이트', 'capture': '포획·교환', 'defense': '위협 방어'}
@@ -71,6 +72,7 @@ class Start(BaseModel):
     mode: Literal['practice', 'verify', 'situation_practice', 'situation_verify'] = 'practice'
     fresh: bool = False
     category: str | None = None
+    similar_to: str | None = None
 
 
 class Action(BaseModel):
@@ -78,6 +80,12 @@ class Action(BaseModel):
     revision: int
     action: Literal['move', 'hint', 'reveal', 'refutation', 'undo']
     move: str | None = None
+
+
+class PathAction(BaseModel):
+    action: Literal['continue', 'acknowledge', 'new'] = 'continue'
+    path_id: str | None = None
+    revision: int | None = None
 
 
 class Settings(BaseModel):
@@ -98,6 +106,11 @@ def attach_learning(app, ns):
             suffix = ' FOR UPDATE' if ns['DATABASE_URL'] else ''
             row = execute(conn, 'SELECT state FROM learning_progress WHERE code=?' + suffix, (code,)).fetchone()
             state = json.loads(row['state'])
+            for card in state['cards'].values():
+                if 'tags' not in card:
+                    puzzle = LIB.get(card['id'].removeprefix('puzzle-')) if card['id'].startswith('puzzle-') else None
+                    card['tags'] = sorted(set(puzzle['themes']) & set(THEMES)) if puzzle else proven_tags(card)
+                    card['tag_evidence'] = 'Lichess 원본 학습 태그' if puzzle else 'python-chess 규칙으로 확인된 특징'
             yield state
             execute(conn, 'UPDATE learning_progress SET state=? WHERE code=?', (json.dumps(state, ensure_ascii=False), code))
 
@@ -123,8 +136,20 @@ def attach_learning(app, ns):
         pv = [m.uci() for m in info.get('pv', [])][:8]
         return info['score'].pov(side).score(mate_score=10000), pv
 
+    def proven_tags(card):
+        b = chess.Board(card['fen']); m = chess.Move.from_uci(card['line'][0])
+        tags = []
+        if m not in b.legal_moves: return tags
+        if b.is_check(): tags.append('defensiveMove')
+        if m.promotion:
+            tags.append('promotion')
+            if m.promotion != chess.QUEEN: tags.append('underPromotion')
+        b.push(m)
+        if b.is_checkmate(): tags.append('mateIn1')
+        return tags
+
     def public_card(card):
-        return {k: card[k] for k in ('id', 'title', 'category', 'source', 'due', 'successes')}
+        return {k: card[k] for k in ('id', 'title', 'category', 'source', 'due', 'successes', 'tags', 'tag_evidence')}
 
     def payload(state):
         s = state['active']
@@ -141,23 +166,43 @@ def attach_learning(app, ns):
                 'opponent_last_move': s.get('opponent_last_move'), 'hint_level': s['hints'],
                 'context': card.get('context', '직전 위치 기록이 없어 변화의 의미를 추측하지 않습니다.'),
                 'explanation': s.get('explanation'), 'playback': s.get('playback', []),
-                'outcome': s.get('outcome'), 'premove': False}
+                'outcome': s.get('outcome'), 'selection': None if verify and not s['done'] else s.get('selection'), 'path_id': s.get('path_id'), 'premove': False}
 
     def finish(state, s, success):
         if s['done']: return
         card = state['cards'][s['card_id']]
         stamp = now()
-        delayed = any(a['card_id'] == card['id'] and a['at'][:10] < stamp.date().isoformat() for a in state['attempts'])
-        seen_before = any(a['card_id'] == card['id'] for a in state['attempts'])
-        status = ('revealed_success' if s['revealed'] else 'hinted_success' if s['hints'] or s['undone']
-                  else 'later_unaided_success' if delayed and not s['wrong'] else 'unaided_repeat_success' if seen_before and not s['wrong'] else 'unaided_first_success' if not s['wrong'] else 'retry_success') if success else 'unverified_alternative' if success is None else 'not_yet'
+        day = stamp.date().isoformat()
+        exposure = card.setdefault('exposure', {}).setdefault(day, {'hints': 0, 'revealed': False, 'wrong': 0})
+        delayed = any(date < day for date in card.get('exposure', {})) or any(a['card_id'] == card['id'] and a['at'][:10] < day for a in state['attempts'])
+        completed_today = any(a['card_id'] == card['id'] and a['at'][:10] == day and a['success'] for a in state['attempts'])
+        revealed = s['revealed'] or exposure['revealed']
+        helped = bool(s['hints'] or s['undone'] or exposure['hints'])
+        wrong = max(s['wrong'], exposure['wrong'])
+        status = ('revealed_success' if revealed else 'hinted_success' if helped
+                  else 'unaided_repeat_success' if completed_today else 'retry_success' if wrong
+                  else 'later_unaided_success' if delayed else 'unaided_first_success' if s.get('first_exposure', s['fresh']) else 'unaided_repeat_success') if success else 'unverified_alternative' if success is None else 'not_yet'
         attempt = {'card_id': card['id'], 'at': stamp.isoformat(), 'category': card['category'],
                    'mode': s['mode'], 'success': success, 'status': status,
-                   'hint_level': s['hints'], 'helped': bool(s['hints'] or s['revealed'] or s['undone']), 'wrong': s['wrong'], 'fresh': s['fresh']}
+                   'position': ' '.join(card['fen'].split()[:4]),
+                   'selection': s.get('selection'), 'path_id': s.get('path_id'),
+                   'hint_level': max(s['hints'], exposure['hints']), 'helped': bool(helped or revealed), 'wrong': wrong, 'fresh': s['fresh']}
+        eligible_result = status in ('unaided_first_success', 'later_unaided_success') or success is False
+        prior = [a for a in state['attempts'] if a['card_id'] == card['id']]
+        independent_kind = None
+        if eligible_result and not helped and not revealed and wrong <= (0 if success else 1):
+            if s['fresh'] and not prior: independent_kind = 'novel'
+            elif delayed and not any(a['at'][:10] == day for a in prior): independent_kind = 'delayed'
+        attempt['independent_kind'] = independent_kind
         state['attempts'].append(attempt)
-        card['successes'] += int(bool(success) and status in ('unaided_first_success', 'later_unaided_success'))
+        credited_today = card.get('credited_date') == day
+        eligible = bool(success) and status in ('unaided_first_success', 'later_unaided_success') and not credited_today
+        if eligible:
+            card['successes'] += 1
+            card['credited_date'] = day
         days = state['intervals'][min(max(card['successes'] - 1, 0), len(state['intervals']) - 1)] if success else 1
-        card['due'] = (stamp + timedelta(days=days)).isoformat()
+        if not credited_today:
+            card['due'] = (stamp + timedelta(days=days)).isoformat()
         s.update(done=True, outcome=attempt, message='학습 기록을 저장했습니다.' if success else '아직 목표에 도달하지 못했습니다. 기록을 저장했습니다.')
 
     @app.get('/api/learning/dashboard')
@@ -168,16 +213,21 @@ def attach_learning(app, ns):
             skills = []
             for key, label in CATEGORIES.items():
                 rows = [a for a in state['attempts'] if a['category'] == key]
-                independent = [a for a in rows if not a.get('helped', a['hint_level']) and a['status'] != 'unverified_alternative' and a['status'] not in ('revealed_success', 'hinted_success', 'retry_success')]
+                independent = [a for a in rows if a.get('independent_kind') in ('novel', 'delayed')]
+                distinct = len({a.get('position', a['card_id']) for a in independent})
                 rates = lambda r: round(100 * sum(a['success'] for a in r) / len(r)) if r else None
                 skills.append({'id': key, 'name': label, 'count': len(rows), 'independent': len(independent),
                                'recent': rates(independent[-5:]), 'previous': rates(independent[-10:-5]),
-                               'insufficient': len(independent) < 5,
-                               'transfer': sum(a['fresh'] and a['mode'] == 'verify' and a['status'] == 'unaided_first_success' for a in rows)})
+                               'insufficient': distinct < 5, 'distinct': distinct,
+                               'novel': sum(a['independent_kind'] == 'novel' for a in independent),
+                               'delayed': sum(a['independent_kind'] == 'delayed' for a in independent),
+                               'practice_count': sum(a['mode'] in ('practice', 'situation_practice') for a in rows),
+                               'verification_count': sum(a['mode'] in ('verify', 'situation_verify') for a in rows),
+                               'transfer': sum(bool((a.get('selection') or {}).get('overlap')) and a['fresh'] and a['mode'] == 'verify' and a['status'] == 'unaided_first_success' for a in rows)})
             weakest = min(skills, key=lambda x: (x['recent'] if x['recent'] is not None else 101, x['count']))
             return {'due': due, 'cards': [public_card(c) for c in state['cards'].values()],
                     'attempts': state['attempts'][-50:][::-1], 'skills': skills, 'intervals': state['intervals'],
-                    'active': payload(state), 'recommended': weakest['id'],
+                    'active': payload(state), 'path': public_path(state), 'recommended': weakest['id'],
                     'reason': '최근 무도움 시도에서 성공 비율이 낮은 영역' if weakest['recent'] is not None else '아직 학습 근거가 없어 기초부터 시작',
                     'engine': bool(ns['STOCKFISH_PATH'] and Path(ns['STOCKFISH_PATH']).is_file()),
                     'notice': '새 학습 경로의 기록만 집계합니다. 미출제는 저장된 문제 ID 기준이며 ID 없는 과거 진단까지 보장하지 않습니다. 기존 진단·대국 통계는 기록 메뉴에 보존됩니다. 실제 레이팅이 아닙니다.'}
@@ -223,10 +273,17 @@ def attach_learning(app, ns):
                     'score': score, 'loss': round(score - after), 'due': now().isoformat(), 'successes': 0})
                 if len(candidates) == 3: break
         with store(code) as state:
-            for c in candidates: state['cards'].setdefault(c['id'], c)
+            for c in candidates:
+                c['tags'] = proven_tags(c)
+                c['tag_evidence'] = 'python-chess 규칙으로 확인된 특징'
+                state['cards'].setdefault(c['id'], c)
         return {'count': len(candidates), 'message': f'{len(candidates)}개 실수 위치를 오답노트에 준비했습니다.' if candidates else '분석 기준에 맞는 내 실수를 찾지 못했습니다. 임의로 만들지 않습니다.'}
 
-    def new_puzzle(state, wanted, legacy):
+    def new_puzzle(state, wanted, legacy, similar_to=None):
+        source = state['cards'].get(similar_to) if similar_to else None
+        if similar_to and not source: raise HTTPException(404, '비교할 학습 항목이 없습니다.')
+        tags = set(source.get('tags', [])) if source else set()
+        if source and not tags: raise HTTPException(409, '원본에서 확인된 학습 태그가 없어 유사 문제를 선택할 수 없습니다.')
         seen = set(state['seen'])
         seen.update(str(r.get('id', r.get('puzzle_id', ''))) for r in legacy.get('puzzle_results', []))
         # Also exclude questions already served by the current legacy course/diagnostic.
@@ -238,19 +295,32 @@ def attach_learning(app, ns):
         if current and 'seed' in current:
             from assessment_v8 import questions
             seen.update(q['puzzle_id'] for q in questions(current['seed'])[:current.get('index', 0) + 1])
+        seen_positions = {' '.join(c['fen'].split()[:4]) for c in state['cards'].values()}
+        for pid in seen:
+            old = LIB.get(pid)
+            if old:
+                old_board = chess.Board(old['fen']); old_board.push_uci(old['moves'][0])
+                seen_positions.add(' '.join(old_board.fen().split()[:4]))
         choices = []
         for p in LIB.values():
             if p['id'] in seen: continue
             b = chess.Board(p['fen']); b.push_uci(p['moves'][0])
+            if ' '.join(b.fen().split()[:4]) in seen_positions: continue
             cat = category(b, chess.Move.from_uci(p['moves'][1]), p['themes'])
-            if wanted and cat != wanted: continue
-            choices.append((p, b, cat))
+            overlap = sorted(tags & set(p['themes']))
+            if source and not overlap: continue
+            if not source and wanted and cat != wanted: continue
+            choices.append((p, b, cat, overlap))
             if len(choices) >= 100: break
-        if not choices: raise HTTPException(409, '이 영역의 미출제 문제를 찾지 못했습니다. 다른 영역을 선택하세요.')
-        p, b, cat = secrets.choice(choices)
+        if not choices: raise HTTPException(409, '공통 학습 태그가 있는 미노출 문제가 없습니다.' if source else '이 영역의 미출제 문제를 찾지 못했습니다. 다른 영역을 선택하세요.')
+        best_overlap = max(len(choice[3]) for choice in choices)
+        p, b, cat, overlap = secrets.choice([choice for choice in choices if len(choice[3]) == best_overlap])
         key = 'puzzle-' + p['id']
         c = {'id': key, 'title': '새 실전 적용 문제', 'fen': b.fen(), 'line': p['moves'][1:],
              'context': '상대 직전 수: ' + explain(chess.Board(p['fen']), chess.Move.from_uci(p['moves'][0])),
+             'tags': sorted(set(p['themes']) & set(THEMES)), 'tag_evidence': 'Lichess 원본 학습 태그',
+             'selection': {'source_card': similar_to, 'overlap': overlap, 'method': 'shared_learning_tags' if source else 'independent',
+                           'evidence': source['tag_evidence'] + ' ↔ Lichess 원본 학습 태그' if source else '독립 새 문제 · 유사 문제 집계 제외'},
              'prior': p['moves'][0], 'category': cat, 'source': 'Lichess CC0 검증 수순 · 대안은 메이트 또는 엔진 확인',
              'due': now().isoformat(), 'successes': 0}
         state['cards'][key] = c; state['seen'].append(p['id'])
@@ -261,23 +331,125 @@ def attach_learning(app, ns):
         code = auth(authorization)
         legacy = ns['get_state'](code)
         with store(code) as state:
-            if body.fresh or not body.card_id: card = new_puzzle(state, body.category, legacy)
+            if body.fresh or body.similar_to or not body.card_id: card = new_puzzle(state, body.category, legacy, body.similar_to)
             else:
                 card = state['cards'].get(body.card_id)
                 if not card: raise HTTPException(404, '학습 항목을 찾을 수 없습니다.')
-            b = chess.Board(card['fen'])
-            if not b.is_valid() or b.is_game_over(): raise HTTPException(409, '이 위치에서 시작할 수 없습니다.')
-            baseline = None
-            if body.mode.startswith('situation'):
-                with engine() as eng: baseline, _ = analyse(eng, b, b.turn)
-            goal = ('6번의 내 착수 동안 시작 평가에서 100cp 이내를 유지하세요. 우세 유지·방어 연습이며 승리 보장이 아닙니다.'
-                    if baseline is not None else '상대 응수를 고려해 유효한 첫 수를 찾으세요. 첫 수 판단 훈련입니다.')
-            state['active'] = {'id': secrets.token_hex(16), 'revision': 0, 'card_id': card['id'],
-                'mode': body.mode, 'fen': b.fen(), 'side': 'white' if b.turn else 'black', 'done': False,
-                'turns': 0, 'hints': 0, 'revealed': False, 'wrong': 0, 'undone': False,
-                'fresh': body.fresh or not body.card_id, 'goal': goal, 'baseline': baseline,
-                'opponent_last_move': card.get('prior'), 'history': [], 'moves': []}
-            return payload(state)
+            return begin(state, card, body.mode, body.fresh or not body.card_id or bool(body.similar_to))
+
+    def begin(state, card, mode, fresh=False):
+        b = chess.Board(card['fen'])
+        if not b.is_valid() or b.is_game_over(): raise HTTPException(409, '이 위치에서 시작할 수 없습니다.')
+        baseline = None
+        if mode.startswith('situation'):
+            with engine() as eng: baseline, _ = analyse(eng, b, b.turn)
+        goal = ('6번의 내 착수 동안 시작 평가에서 100cp 이내를 유지하세요. 우세 유지·방어 연습이며 승리 보장이 아닙니다.'
+                if baseline is not None else '상대 응수를 고려해 유효한 첫 수를 찾으세요. 첫 수 판단 훈련입니다.')
+        first_exposure = not card.get('exposure') and not any(a['card_id'] == card['id'] for a in state['attempts'])
+        exposure = card.setdefault('exposure', {}).setdefault(now().date().isoformat(), {'hints': 0, 'revealed': False, 'wrong': 0})
+        exposure['starts'] = exposure.get('starts', 0) + 1
+        state['active'] = {'first_exposure': first_exposure, 'id': secrets.token_hex(16), 'revision': 0, 'card_id': card['id'],
+            'mode': mode, 'fen': b.fen(), 'side': 'white' if b.turn else 'black', 'done': False,
+            'turns': 0, 'hints': 0, 'revealed': False, 'wrong': 0, 'undone': False,
+            'selection': card.get('selection') if fresh else None, 'fresh': fresh, 'goal': goal, 'baseline': baseline,
+            'opponent_last_move': card.get('prior'), 'history': [], 'moves': []}
+        return payload(state)
+
+    def sync_path(state):
+        s = state['active']; path = state.get('path')
+        if not s or not path or s.get('path_id') != path['id']: return
+        step = path['steps'][s['path_step']]
+        step['session'] = copy.deepcopy(s)
+        if s['done']:
+            step.update(status='completed', outcome=copy.deepcopy(s['outcome']),
+                        reason='시도 결과 저장 완료 · 성공 여부는 별도 기록')
+            path['current'] = s['path_step'] + 1
+        path['revision'] += 1
+        path['done'] = path['current'] >= 4
+
+    def public_path(state):
+        path = state.get('path')
+        if not path: return None
+        result = {k: path[k] for k in ('id', 'date', 'revision', 'current', 'done', 'source_card', 'selection_reason')}
+        result['source_title'] = state['cards'][path['source_card']]['title'] if path['source_card'] else None
+        result['steps'] = [{k: v for k, v in step.items() if k != 'session'} for step in path['steps']]
+        # Keep the verification theme hidden until that step finishes.
+        if result['current'] == 2 and not result['done']:
+            result['steps'][2].pop('selection', None)
+        if path['source_card'] and (path['current'] != 2 or path['done']):
+            card = state['cards'][path['source_card']]
+            result['concept'] = CONCEPTS[card['category']]
+            result['tags'] = [THEMES[t] for t in card['tags'] if t in THEMES]
+        return result
+
+    def create_path(state):
+        previous = state.get('path')
+        if previous: state.setdefault('path_history', []).append(previous)
+        due = [c for c in state['cards'].values() if c['due'] <= now().isoformat()]
+        latest_verifications = {}
+        for attempt in state['attempts'][-30:]:
+            if attempt['mode'] in ('verify', 'situation_verify') and attempt['success'] is not None:
+                latest_verifications[attempt['card_id']] = attempt['success']
+        failed_verifications = {key for key, success in latest_verifications.items() if not success}
+        due.sort(key=lambda c: (c['id'] not in failed_verifications, c['due'], c['id']))
+        card = due[0] if due else None
+        state['path'] = {'id': secrets.token_hex(16), 'date': now().date().isoformat(), 'revision': 0,
+                         'current': 0, 'done': False, 'source_card': card['id'] if card else None,
+                         'selection_reason': '복습 예정 카드 중 최근 검증 미달성을 우선 선택' if card else '복습 예정 카드 없음 · 자유 훈련이나 복기에서 기록을 먼저 만드세요.',
+                         'steps': [{'id': key, 'status': 'pending', 'card_id': card['id'] if card else None,
+                                    'reason': '', 'mode': mode} for key, mode in
+                                   [('review', 'practice'), ('concept', None), ('transfer', 'verify'), ('situation', 'situation_practice')]]}
+
+    @app.post('/api/learning/path')
+    def path_action(body: PathAction, authorization: str | None = Header(default=None)):
+        code = auth(authorization); legacy = ns['get_state'](code)
+        with store(code) as state:
+            path = state.get('path')
+            if body.path_id is not None and (not path or body.path_id != path['id'] or body.revision != path['revision']):
+                raise HTTPException(409, '학습 경로가 변경되었습니다. 새로고침 후 이어가세요.')
+            if body.action == 'new':
+                if path and not path['done']: raise HTTPException(409, '진행 중인 경로를 먼저 완료하세요.')
+                create_path(state)
+            elif not path: create_path(state)
+            elif path['done'] and path['date'] < now().date().isoformat(): create_path(state)
+            path = state['path']
+            if body.action == 'acknowledge':
+                if path['current'] != 1 or path['steps'][1]['status'] != 'active':
+                    raise HTTPException(409, '개념 단계를 먼저 열어 주세요.')
+                path['steps'][1].update(status='completed', reason='개념 읽기 확인 완료')
+                path['current'] = 2; path['revision'] += 1
+                return {'path': public_path(state), 'active': None}
+            while path['current'] < 4:
+                index = path['current']; step = path['steps'][index]
+                card = state['cards'].get(path['source_card'])
+                reason = None
+                if not card: reason = '선택할 복습 카드가 없습니다.'
+                elif index == 3 and not (ns['STOCKFISH_PATH'] and Path(ns['STOCKFISH_PATH']).is_file()):
+                    reason = 'Stockfish 미연결로 상황 대국을 시작할 수 없습니다.'
+                if reason:
+                    step.update(status='skipped', reason=reason); path['current'] += 1; path['revision'] += 1
+                    continue
+                if index == 1:
+                    step.update(status='active', reason='개념을 읽고 확인 버튼을 눌러 완료하세요.')
+                    path['revision'] += 1
+                    return {'path': public_path(state), 'active': None}
+                if step.get('session'):
+                    state['active'] = copy.deepcopy(step['session'])
+                    return {'path': public_path(state), 'active': payload(state)}
+                if index == 2:
+                    try: card = new_puzzle(state, None, legacy, path['source_card'])
+                    except HTTPException as exc:
+                        if exc.status_code != 409: raise
+                        step.update(status='skipped', reason=exc.detail); path['current'] += 1; path['revision'] += 1
+                        continue
+                    step['selection'] = card['selection']
+                begin(state, card, step['mode'], fresh=index == 2)
+                state['active'].update(path_id=path['id'], path_step=index)
+                step.update(status='active', card_id=card['id'], reason='착수 시도 결과를 저장하면 완료됩니다. 성공률과는 별도입니다.')
+                sync_path(state)
+                return {'path': public_path(state), 'active': payload(state)}
+            path['done'] = True
+            return {'path': public_path(state), 'active': None}
 
     @app.post('/api/learning/action')
     def action(body: Action, authorization: str | None = Header(default=None)):
@@ -292,11 +464,13 @@ def attach_learning(app, ns):
             verify = 'verify' in s['mode']; situation = s['mode'].startswith('situation')
             if s['done']: raise HTTPException(409, '완료된 학습입니다. 새 시도를 시작하세요.')
             if verify and body.action != 'move': raise HTTPException(403, '검증 모드에서는 도움을 사용할 수 없습니다.')
+            exposure = card.setdefault('exposure', {}).setdefault(now().date().isoformat(), {'hints': 0, 'revealed': False, 'wrong': 0})
             s['revision'] += 1
             s.pop('playback', None)
             if body.action == 'undo':
                 if not situation or not s['history']: raise HTTPException(409, '무를 수 있는 상황 대국 착수가 없습니다.')
                 previous = s['history'].pop(); s.update(previous); s['undone'] = True
+                exposure['hints'] = max(1, exposure['hints'])
                 s['message'] = '연습 착수를 무릅니다. 도움을 사용한 기록으로 남습니다.'
             elif body.action in ('hint', 'reveal', 'refutation'):
                 line = card['line']
@@ -306,9 +480,11 @@ def attach_learning(app, ns):
                 best = chess.Move.from_uci(line[0])
                 if body.action == 'hint':
                     s['hints'] = min(3, s['hints'] + 1)
+                    exposure['hints'] = max(exposure['hints'], s['hints'])
                     s['message'] = [CONCEPTS[card['category']], f'{chess.square_name(best.from_square)}의 기물을 살펴보세요.', f'후보 수: {b.san(best)} · {explain(b, best)}'][s['hints'] - 1]
                 else:
                     s['revealed'] = True
+                    exposure['revealed'] = True
                     if body.action == 'refutation' and card.get('played') and not situation:
                         s['playback'] = frames(b, [card['played']] + card['refutation'])
                         s['message'] = '실제 실수 뒤 엔진의 응수입니다. 짧은 탐색의 후보 수순이며 강제 수순 보장은 아닙니다.'
@@ -347,9 +523,11 @@ def attach_learning(app, ns):
                     s['playback'] = frames(chess.Board(card['fen']), card['line'])
                 else:
                     s['wrong'] += 1
+                    exposure['wrong'] += 1
                     s['message'] = '이 수는 검증된 답안에 포함되지 않습니다.' + (' 엔진 미연결로 동등한 대안 여부는 확인하지 못했습니다.' if loss is None else ' 상대의 강한 응수를 다시 고려하세요.')
                     if verify:
                         message = s['message']
                         finish(state, s, False if loss is not None else None)
                         if loss is None: s['message'] = message + ' 미검증 대안으로 기록하며 능력 성공률 계산에서 제외합니다.'
+            sync_path(state)
             return payload(state)
