@@ -279,7 +279,7 @@ def attach_learning(app, ns):
                 state['cards'].setdefault(c['id'], c)
         return {'count': len(candidates), 'message': f'{len(candidates)}개 실수 위치를 오답노트에 준비했습니다.' if candidates else '분석 기준에 맞는 내 실수를 찾지 못했습니다. 임의로 만들지 않습니다.'}
 
-    def new_puzzle(state, wanted, legacy, similar_to=None):
+    def new_puzzle(state, wanted, legacy, similar_to=None, beginner=False):
         source = state['cards'].get(similar_to) if similar_to else None
         if similar_to and not source: raise HTTPException(404, '비교할 학습 항목이 없습니다.')
         tags = set(source.get('tags', [])) if source else set()
@@ -304,6 +304,7 @@ def attach_learning(app, ns):
         choices = []
         for p in LIB.values():
             if p['id'] in seen: continue
+            if beginner and not (600 <= p['rating'] <= 1200 and 'mateIn1' in p['themes']): continue
             b = chess.Board(p['fen']); b.push_uci(p['moves'][0])
             if ' '.join(b.fen().split()[:4]) in seen_positions: continue
             cat = category(b, chess.Move.from_uci(p['moves'][1]), p['themes'])
@@ -371,6 +372,7 @@ def attach_learning(app, ns):
         path = state.get('path')
         if not path: return None
         result = {k: path[k] for k in ('id', 'date', 'revision', 'current', 'done', 'source_card', 'selection_reason')}
+        result['fresh'] = path.get('fresh', False)
         result['source_title'] = state['cards'][path['source_card']]['title'] if path['source_card'] else None
         result['steps'] = [{k: v for k, v in step.items() if k != 'session'} for step in path['steps']]
         # Keep the verification theme hidden until that step finishes.
@@ -382,7 +384,7 @@ def attach_learning(app, ns):
             result['tags'] = [THEMES[t] for t in card['tags'] if t in THEMES]
         return result
 
-    def create_path(state):
+    def create_path(state, legacy):
         previous = state.get('path')
         if previous: state.setdefault('path_history', []).append(previous)
         due = [c for c in state['cards'].values() if c['due'] <= now().isoformat()]
@@ -393,9 +395,16 @@ def attach_learning(app, ns):
         failed_verifications = {key for key, success in latest_verifications.items() if not success}
         due.sort(key=lambda c: (c['id'] not in failed_verifications, c['due'], c['id']))
         card = due[0] if due else None
+        fresh = False
+        if card is None:
+            try:
+                card = new_puzzle(state, None, legacy, beginner=True); fresh = True
+                card['title'] = '입문 · 한 수 메이트'
+            except HTTPException as exc:
+                if exc.status_code != 409: raise
         state['path'] = {'id': secrets.token_hex(16), 'date': now().date().isoformat(), 'revision': 0,
-                         'current': 0, 'done': False, 'source_card': card['id'] if card else None,
-                         'selection_reason': '복습 예정 카드 중 최근 검증 미달성을 우선 선택' if card else '복습 예정 카드 없음 · 자유 훈련이나 복기에서 기록을 먼저 만드세요.',
+                         'current': 0, 'done': False, 'fresh': fresh, 'source_card': card['id'] if card else None,
+                         'selection_reason': '복습 예정 카드가 없어 입문 새 문제로 시작합니다.' if fresh else ('복습 예정 카드 중 최근 검증 미달성을 우선 선택' if card else '준비된 입문 문제가 없습니다. 자료 확인 후 다시 시도하세요. 학습을 완료한 상태가 아닙니다.'),
                          'steps': [{'id': key, 'status': 'pending', 'card_id': card['id'] if card else None,
                                     'reason': '', 'mode': mode} for key, mode in
                                    [('review', 'practice'), ('concept', None), ('transfer', 'verify'), ('situation', 'situation_practice')]]}
@@ -409,10 +418,13 @@ def attach_learning(app, ns):
                 raise HTTPException(409, '학습 경로가 변경되었습니다. 새로고침 후 이어가세요.')
             if body.action == 'new':
                 if path and not path['done']: raise HTTPException(409, '진행 중인 경로를 먼저 완료하세요.')
-                create_path(state)
-            elif not path: create_path(state)
-            elif path['done'] and path['date'] < now().date().isoformat(): create_path(state)
+                create_path(state, legacy)
+            elif not path: create_path(state, legacy)
+            elif path['done'] and path['date'] < now().date().isoformat(): create_path(state, legacy)
             path = state['path']
+            if not path['source_card']:
+                create_path(state, legacy); path = state['path']
+                if not path['source_card']: return {'path': public_path(state), 'active': None}
             if body.action == 'acknowledge':
                 if path['current'] != 1 or path['steps'][1]['status'] != 'active':
                     raise HTTPException(409, '개념 단계를 먼저 열어 주세요.')
@@ -443,7 +455,7 @@ def attach_learning(app, ns):
                         step.update(status='skipped', reason=exc.detail); path['current'] += 1; path['revision'] += 1
                         continue
                     step['selection'] = card['selection']
-                begin(state, card, step['mode'], fresh=index == 2)
+                begin(state, card, step['mode'], fresh=index == 2 or (index == 0 and path.get('fresh', False)))
                 state['active'].update(path_id=path['id'], path_step=index)
                 step.update(status='active', card_id=card['id'], reason='착수 시도 결과를 저장하면 완료됩니다. 성공률과는 별도입니다.')
                 sync_path(state)

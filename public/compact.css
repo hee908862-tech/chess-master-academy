@@ -1,0 +1,29 @@
+/* Keep the board legible while secondary instructions remain available on demand. */
+.board .sq:disabled{opacity:1}
+.board-tools details{font-size:12px;flex-basis:100%;color:var(--muted)}
+.board-tools details summary{cursor:pointer;padding:4px 0}
+.board-tools details small{display:block;line-height:1.5}
+.board-tools{margin:4px 0!important;gap:4px 10px!important}
+@media(min-width:851px) and (max-height:820px){
+ .app{padding:12px;gap:14px;grid-template-columns:205px minmax(0,1fr)}
+ .sidebar{top:12px;height:calc(100dvh - 24px);padding:12px;gap:8px}
+ .nav{gap:3px}.nav button{padding:10px}.brand{padding-bottom:4px}.side-foot{padding:10px;font-size:11px}
+ .topbar{padding:8px 14px}.main,.view{gap:10px}.card{padding:14px}.heading{font-size:22px;margin-bottom:6px}
+ #play>.row{gap:8px}#assessment>.two{align-items:start}#assessment>.view>.lead{margin:6px 0}
+ #gameBoard,#testBoard{max-width:min(100%,calc(100dvh - 390px));margin-left:auto;margin-right:auto}
+ #assessment>div:first-child .lead{margin:4px 0;font-size:12px}
+ #testBoard{margin-top:6px!important}#testStatus{margin-top:8px!important}
+}
+@media(max-width:850px){
+ #play>.row,#assessment>div:first-child{margin-bottom:0}
+ #assessment>div:first-child .lead{font-size:12px;margin:4px 0}
+ .board-tools label{min-height:36px!important;font-size:12px}
+ .board-tools details summary{padding:2px 0}
+ .board-panel{padding:12px}
+}
+@media(max-width:850px) and (max-height:500px){
+ .mobile-nav{position:static!important;border-radius:0}
+ .app{padding:8px!important}.topbar{padding:6px}.main,.view{gap:8px}
+ .two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ #gameBoard,#testBoard{max-width:280px;margin-left:auto;margin-right:auto}
+}

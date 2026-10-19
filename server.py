@@ -1,3 +1,4 @@
+import copy
 import os, json, secrets, hashlib, hmac, sqlite3, random, threading, time
 from datetime import datetime, timezone
 from contextlib import contextmanager
@@ -80,16 +81,36 @@ def hash_pin(pin,salt):return hashlib.scrypt(pin.encode(),salt=bytes.fromhex(sal
 
 def blank_state():return {'games':[],'active_game':None,'puzzle_results':[],'completed_lessons':[],'assessment':None,'exercise_history':{},'practice':None,'test':None,'lesson_attempts':[]}
 
+class ProgressState(dict):
+ def __init__(self, value):
+  super().__init__(value)
+  self.base = copy.deepcopy(value)
+
 def get_state(code):
  with db() as c:
   r=execute(c,'SELECT state FROM progress WHERE code=?',(code,)).fetchone()
- return json.loads(r['state']) if r else blank_state()
+ return ProgressState(json.loads(r['state']) if r else blank_state())
 
 def save_state(code,state):
- serialized=json.dumps(state,ensure_ascii=False)
+ # Merge only fields changed by this request; reject concurrent edits of the same field.
+ # The comparison and update share one database transaction on SQLite and PostgreSQL.
  with db() as c:
-  execute(c,'DELETE FROM progress WHERE code=?',(code,))
-  execute(c,'INSERT INTO progress(code,state) VALUES(?,?)',(code,serialized))
+  if not DATABASE_URL:c.execute('BEGIN IMMEDIATE')
+  execute(c,'INSERT INTO progress(code,state) VALUES(?,?) ON CONFLICT(code) DO NOTHING',(code,'{}'))
+  row=execute(c,'SELECT state FROM progress WHERE code=?'+(' FOR UPDATE' if DATABASE_URL else ''),(code,)).fetchone()
+  current=json.loads(row['state'])
+  if isinstance(state,ProgressState):
+   missing=object()
+   changed=[key for key in set(state.base)|set(state) if state.base.get(key,missing)!=state.get(key,missing)]
+   for key in changed:
+    if current.get(key,missing)!=state.base.get(key,missing) and current.get(key,missing)!=state.get(key,missing):
+     raise HTTPException(409,'다른 요청에서 기록이 변경되었습니다. 현재 상태를 다시 불러와 주세요.')
+   for key in changed:
+    if key in state:current[key]=state[key]
+    else:current.pop(key,None)
+  else:current=dict(state)  # Explicit initialization/reset retains its existing semantics.
+  execute(c,'UPDATE progress SET state=? WHERE code=?',(json.dumps(current,ensure_ascii=False),code))
+  if isinstance(state,ProgressState):state.base=copy.deepcopy(dict(state))
 
 def auth(authorization):
  token=authorization.removeprefix('Bearer ').strip() if authorization else ''
@@ -901,8 +922,11 @@ def review_annotation(board,move,engine=None):
  return {'centipawn_loss':loss,'category':grade,'comment':comment,'best_move':bestmove.uci() if bestmove else None,'source':source}
 
 @app.get('/api/games/review/{index}')
-def game_review(index:int,authorization:str|None=Header(default=None)):
- code=auth(authorization);games=get_state(code).get('games',[])
+def game_review(index:str,authorization:str|None=Header(default=None)):
+ code=auth(authorization)
+ try:index=int(index)
+ except (ValueError,TypeError):raise HTTPException(400,'분석할 대국을 목록에서 선택하세요.')
+ games=get_state(code).get('games',[])
  if index<0 or index>=len(games):raise HTTPException(404,'대국을 찾을 수 없습니다.')
  game=games[index];board=chess.Board();rows=[]
  # Cap synchronous analysis per request for free-instance performance.

@@ -192,16 +192,15 @@ def test_assessment_failed_optimistic_move_waits_for_restore(page,site):
     expect(page.locator('#testBoard button')).to_have_count(0)
 
 
-def test_stale_assessment_status_cannot_replace_results(page,site):
+def test_assessment_status_single_flight_keeps_results(page,site):
     open_page(page,site)
     pending=[]
     page.route('**/api/v8/assessment/status',lambda r:pending.append(r))
     page.evaluate("tab('assessment')");page.wait_for_timeout(100)
     page.evaluate("tab('home');tab('assessment')");page.wait_for_timeout(100)
-    assert len(pending)==2
-    pending[1].fulfill(json={'active':False,'recent':RESULT})
+    assert len(pending)==1  # Navigation shares the pending status read.
+    pending[0].fulfill(json={'active':False,'recent':RESULT})
     expect(page.locator('#testProgress')).to_have_text('50단계 종합 평가 완료')
-    board=page.evaluate("() => ({squares:fromFen(chessStart),turn:'white',legal:[{from:'e2',to:'e4'}]})")
-    pending[0].fulfill(json={'active':True,'phase':'game','board':board})
     page.wait_for_timeout(100)
+    assert len(pending)==1
     expect(page.locator('#testBoard button')).to_have_count(0)

@@ -125,7 +125,7 @@ openLesson=function(id){oldOpenLesson(id);activeQuiz=null;$('lessonQuizBox').tex
 const originalRefresh=refresh;
 refresh=async function(){await originalRefresh();if(user?.state?.assessment){const a=user.state.assessment;$('testResult').textContent=`최근 예비 진단: ${a.stage}, ${a.correct}/${a.total} 정답. 보완 분야: ${(a.weaknesses||[]).join(', ')||'없음'}.`; $('homeGrade').textContent=a.stage;}};
 // New random practice on entry to puzzle page.
-document.querySelectorAll('[data-tab="puzzle"],[data-go="puzzle"]').forEach(btn=>btn.addEventListener('click',()=>{if(!activePractice||practicePending)freshPractice()}));
+document.querySelectorAll('[data-tab="puzzle"],[data-go="puzzle"]').forEach(btn=>btn.addEventListener('click',()=>{if(!document.body.classList.contains('v9-active')&&(!activePractice||practicePending))freshPractice()}));
 
 /* V3: lesson board practice & 25-question + AI assessment */
 let guided=null,guidedSelected=null,guidedBusy=false,guidedDone=false;
@@ -209,7 +209,7 @@ $('inviteLater').onclick=()=>{sessionStorage.setItem('cma_diagnosis_dismissed','
 // Preserve unfinished assessment if a learner reconnects from another device.
 async function v3Restore(){if(!token)return;try{const r=await api('/assessment-v3/status');if(!r.active)return;if(r.phase==='game')v3StartGame(r);else v3QuestionShown(r)}catch(e){}}
 const priorAuthV3=auth;
-auth=async function(mode){await priorAuthV3(mode);if(token){await v3Restore();if(user&&!user.state?.assessment?.skills){tab('home');$('diagnosisInvite').style.display='flex';}}};
+auth=async function(mode){await priorAuthV3(mode);if(token){await v3Restore();if(user&&!user.state?.assessment?.skills){$('diagnosisInvite').style.display='flex';}}};
 const prevTabV3=tab;
-tab=function(id){prevTabV3(id);if(id==='learn'&&token&&!guided&&!guidedDone)beginGuided()};
+tab=function(id){prevTabV3(id);if(id==='learn'&&token&&!document.body.classList.contains('v9-active')&&!guided&&!guidedDone)beginGuided()};
 v3Restore();

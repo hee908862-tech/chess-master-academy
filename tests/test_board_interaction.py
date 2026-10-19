@@ -83,7 +83,7 @@ def test_premove_cancellation(page,site,action,mode):
     play_initial(page,name)
     square(page,name,'g1').click();square(page,name,'f3' if action!='illegal' else 'g5').click()
     if action=='off':toggle.uncheck()
-    if action=='cancel':page.locator('#'+name).locator('xpath=preceding-sibling::div[contains(@class,"board-tools")]').get_by_role('button',name='예약 취소').click()
+    if action=='cancel':page.get_by_label('프리무브 '+name,exact=True).locator('..').locator('..').get_by_role('button',name='예약 취소').click()
     if action=='menu':page.evaluate("tab('home')")
     if action in ['off','cancel','menu']:expect(page.locator('#'+name+' .premove-arrow')).to_have_count(0)
     b=chess.Board();b.push_uci('e2e4');b.push_uci('e7e5')
