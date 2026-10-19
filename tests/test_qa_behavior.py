@@ -134,3 +134,16 @@ def test_real_corpus_course_completes_once(api):
     assert state['v9_course_history'][0]['first_try']==15
     assert client.post('/api/v9/course/next').json()['done']
     assert len(state['v9_course_history'])==1
+
+
+@pytest.mark.parametrize('color,moves',[('white',[]),('black',['e2e4'])])
+def test_timeout_response_retains_player_color(game_api,color,moves):
+    client,state,_=game_api
+    state['active_game']={'moves':moves,'color':color,'engine':'fallback','difficulty':1,
+        'time_mode':'bullet','white_ms':1,'black_ms':1,'turn_started_at':time.time()-2,
+        'hint_used':False,'hint_plies':[]}
+    response=client.get('/api/game')
+    assert response.status_code==200,response.text
+    assert response.json()['timeout']
+    assert response.json()['player_color']==color
+    assert state['games'][-1]['color']==color

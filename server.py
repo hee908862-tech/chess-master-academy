@@ -269,7 +269,7 @@ def game(authorization:str|None=Header(default=None)):
   if c[side]<=0:
    loser='white' if b.turn else 'black'
    outcome=finish_by_clock(state,loser);save_state(code,state)
-   return {'active':False,'timeout':True,'result':outcome,'termination':'timeout','loser':loser,'clock':{'mode':mode,**{k:(0 if k==side else c[k]) for k in ('white_ms','black_ms')}},'board':serialize_board(b,active.get('color','white'))}
+   return {'active':False,'timeout':True,'result':outcome,'player_color':active.get('color','white'),'termination':'timeout','loser':loser,'clock':{'mode':mode,**{k:(0 if k==side else c[k]) for k in ('white_ms','black_ms')}},'board':serialize_board(b,active.get('color','white'))}
  return {'active':True,'board':serialize_board(reconstruct(state['active_game']),state['active_game'].get('color','white')),'clock':clock_payload(state['active_game']),'player_color':state['active_game'].get('color','white')}
 
 @app.post('/api/game/move')

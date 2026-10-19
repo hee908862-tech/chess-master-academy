@@ -2,8 +2,13 @@
 (function(){
 'use strict';
 const $$=id=>document.getElementById(id);
-let current=null,chosen=null,busy=false,showing=false,selectedBase=null,lastAnswer=null,evalClock=null,evalClockAt=0,revision=0;
+let current=null,chosen=null,busy=false,showing=false,selectedBase=null,lastAnswer=null,evalClock=null,evalClockAt=0,revision=0,recommendationRevision=0;
 const dom=$$('v8DomainList'),info=$$('v8ScoreSummary'),board=$$('testBoard'),progress=$$('testProgress'),status=$$('testStatus');
+function assessmentActive(){return ['questions','feedback','game'].includes(current?.phase)}
+function clearPreviousResult(){
+ recommendationRevision++;info.replaceChildren();$$('v8RecommendationList').replaceChildren();
+ $$('v8Outcome').textContent='새 진단 진행 중입니다. 완료 후 이번 진단 결과가 표시됩니다.';
+}
 function evalClockSet(c){evalClock=c||null;evalClockAt=Date.now();evalClockDraw()}
 function evalClockDraw(){const el=$$('v8Outcome');if(!el||!evalClock||current?.phase!=='game')return;
  const w=Math.max(0,(evalClock.white_ms||0)-(Date.now()-evalClockAt)),b=evalClock.black_ms||0;
@@ -14,6 +19,7 @@ setInterval(evalClockDraw,1000);
 function display(msg,klass=''){status.textContent=msg;status.className='notice '+klass;}
 function hideOverlay(){const o=$$('v8Overlay');o.hidden=true;}
 function feedbackOverlay(data){
+ clearPreviousResult();
  const o=$$('v8Overlay');o.hidden=false;const fb=data.feedback;
  $$('v8Verdict').textContent=fb.correct?'✓ 정답입니다':'✕ 오답입니다';
  $$('v8Verdict').style.color=fb.correct?'#74e2c2':'#ffabb1';
@@ -26,7 +32,7 @@ function feedbackOverlay(data){
 }
 function nameMove(fen,uci){const p=fromFen(fen)[uci.slice(0,2)];const sym=({P:'',N:'N',B:'B',R:'R',Q:'Q',K:'K'})[(p||'P').toUpperCase()]||'';return sym+uci.slice(0,2)+' → '+sym+uci.slice(2,4)}
 function showQuestion(r){
- current={phase:'questions',q:r.question};chosen=null;hideOverlay();lastAnswer=null;
+ current={phase:'questions',q:r.question};clearPreviousResult();chosen=null;hideOverlay();lastAnswer=null;
  progress.textContent=`문항 ${r.index+1} / 49 · ${r.domain} · 난이도 ${r.question.difficulty}/7`;
  display(r.question.description);
  $$('v8Outcome').textContent='문제마다 정답과 걸린 시간을 함께 기록합니다.';
@@ -73,7 +79,7 @@ async function click(sq){
   }
  }catch(err){if(request===revision){display(err.message,'err');await restore();}}finally{if(request===revision)busy=false;}
 }
-function startGame(r){hideOverlay();chosen=null;current={phase:'game',game:r.board};evalClockSet(r.clock);
+function startGame(r){hideOverlay();chosen=null;current={phase:'game',game:r.board};clearPreviousResult();evalClockSet(r.clock);
  progress.textContent=`50번째 평가 · AI 대국 (10+5)`;
  $$('v8Outcome').textContent='힌트와 무르기 없는 별도 평가 대국입니다. 백으로 착수해 주세요.';
  display('중급 AI와 실제 종료까지 대국합니다. 제한시간: 10분 + 착수당 5초.');draw();}
@@ -118,9 +124,10 @@ function renderProfile(data){if(!data)return;
  }
 }
 async function loadRecommendations(){
- if(!token)return;
+ if(!token||assessmentActive())return;const request=++recommendationRevision;
  try{
   const [d,catalog]=await Promise.all([api('/v8/recommendations'),api('/v9/catalog')]), box=$$('v8RecommendationList');
+  if(request!==recommendationRevision||assessmentActive())return;
   box.replaceChildren();if(!d.ready)return;
   const title=document.createElement('h3');title.textContent='진단 기반 보완 과목 추천';box.append(title);
   const seen=new Set();
