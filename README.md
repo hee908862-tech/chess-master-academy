@@ -1,3 +1,5 @@
+> 기능 탐색·오프닝 55강·선택형 퍼즐 도전: [개편 및 검증 안내](README_NAVIGATION_CHALLENGES.md).
+
 > PR #8 이후 진단·복기·오프닝 수정: [대화형 학습 및 검증 안내](README_INTERACTIVE_STUDY.md).
 
 > PR #8 독립 검토 후속: [내부 베타 레이팅과 회귀 수정](README_REVIEW_BETA_RATING.md).

@@ -1,0 +1,22 @@
+[
+  {
+    "width": 390,
+    "help_screens": 10,
+    "help_post_requests": 0,
+    "escape_focus": "PASS",
+    "menu_outside_click_focus": "PASS",
+    "menu_tab_focus_loop": "PASS",
+    "actual_training_board_and_explanation": "PASS",
+    "page_errors": []
+  },
+  {
+    "width": 1280,
+    "help_screens": 10,
+    "help_post_requests": 0,
+    "escape_focus": "PASS",
+    "menu_outside_click_focus": "PASS",
+    "menu_tab_focus_loop": "PASS",
+    "actual_training_board_and_explanation": "PASS",
+    "page_errors": []
+  }
+]

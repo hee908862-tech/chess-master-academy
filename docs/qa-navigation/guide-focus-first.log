@@ -1,0 +1,25 @@
+Traceback (most recent call last):
+  File "/workspace/chess-master-academy/docs/qa-navigation/manual-guide-probe.py", line 32, in <module>
+    nav.click();expect(page.locator('#academyNavigationDialog')).to_be_visible();page.keyboard.press('Shift+Tab');expect(page.locator('#academyNavigationDialog button').last).to_be_focused();page.keyboard.press('Tab');expect(page.locator('#academyNavigationDialog button').first).to_be_focused();page.mouse.click(2,2);expect(page.locator('#academyNavigationDialog')).not_to_be_visible();expect(nav).to_be_focused()
+                                                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/chess-venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py", line 14703, in to_be_focused
+    self._sync(self._impl_obj.to_be_focused(timeout=to_milliseconds(timeout)))
+  File "/tmp/chess-venv/lib/python3.12/site-packages/playwright/_impl/_sync_base.py", line 111, in _sync
+    return task.result()
+           ^^^^^^^^^^^^^
+  File "/tmp/chess-venv/lib/python3.12/site-packages/playwright/_impl/_assertions.py", line 873, in to_be_focused
+    await self._expect_impl(
+  File "/tmp/chess-venv/lib/python3.12/site-packages/playwright/_impl/_assertions.py", line 128, in _expect_impl
+    _record_soft_or_raise(
+  File "/tmp/chess-venv/lib/python3.12/site-packages/playwright/_impl/_assertions.py", line 60, in _record_soft_or_raise
+    raise error
+AssertionError: Locator expected to be focused
+Actual value: inactive 
+Call log:
+  - Expect "to_be_focused" locator("#academyNavigationDialog button").last with timeout 5000ms
+  - waiting for locator("#academyNavigationDialog button").last
+    14 × locator resolved to <button class="btn" data-academy="resume">복습·이어하기 · 저장된 과정과 진단·훈련으로 복귀</button>
+       - unexpected value "inactive"
+
+Aria snapshot:
+- button "복습·이어하기 · 저장된 과정과 진단·훈련으로 복귀"
