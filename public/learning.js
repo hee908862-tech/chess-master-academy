@@ -51,7 +51,7 @@
   async function load(force=false){
     if(busy&&!force){pendingLoad=true;return;}
     if(!token){clear();$('learningRouteStatus').textContent='로그인 후 경로를 시작할 수 있습니다. 아직 수행한 학습은 없습니다.';$('learningRouteActions').replaceChildren(button('로그인 후 경로 준비',()=>ready('training')));$('learningCards').textContent='로그인하면 저장된 위치가 표시됩니다.';$('learningSkills').textContent='학습 기록을 확인하려면 로그인하세요.';$('learningNotice').textContent='로그인하면 나에게 맞는 학습 경로와 기록을 볼 수 있습니다. 시작 버튼에서 로그인한 뒤 이 화면으로 돌아옵니다.';return;}const identity=token, rev=++generation;
-    try{const d=await api('/learning/dashboard');if(identity!==token||rev!==generation)return;dashboard=d;task=d.active;selected=null;playbackIndex=-1;renderDashboard();render();}
+    try{const d=await api('/learning/dashboard');if(identity!==token||rev!==generation)return;dashboard=d;task=d.active;selected=null;playbackIndex=-1;renderDashboard();render();if(task&&$('training').classList.contains('active')){await api('/learning/exposure','POST',{session_id:task.session_id,active_revision:task.revision});}}
     catch(e){if(identity===token&&rev===generation)$('learningMessage').textContent=e.message;}
   }
   async function continuePath(action='continue'){

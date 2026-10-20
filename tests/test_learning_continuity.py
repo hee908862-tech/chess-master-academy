@@ -43,7 +43,11 @@ def test_same_card_start_is_resume_without_exposure_or_help_reset(setup):
             return json.loads(db.execute("SELECT state FROM learning_progress WHERE code='A'").fetchone()[0])
     before = raw()
     assert post(c, 'start', {'card_id': a['card_id']}) == a
-    assert raw() == before
+    after=raw()
+    exposure=after['cards'][a['card_id']]['exposure']
+    prior=before['cards'][a['card_id']]['exposure']
+    for day in exposure:exposure[day]['last_at']=prior[day]['last_at']
+    assert after == before
 
 
 def test_starting_level_persists_rules_retries_and_preserves_history(api):
@@ -157,3 +161,20 @@ def test_unknown_or_skipped_level_never_defaults_to_medium(setup,choice):
     assert response.status_code==200,response.text
     assert response.json()['version']=='journey-entry-v1'
     assert all(600<=i['rating']<1000 for i in saved(path)['active']['items'])
+
+
+def test_latest_gentle_is_separate_from_prior_standard_cycle(setup):
+    from test_growth_cycle import finish_diagnosis
+    from test_journey import post as jp
+    c,ns,legacy,path=attach(setup)
+    standard=finish_diagnosis(c,jp(c,'start',{'mode':'balanced'}),path)
+    # Existing earned completion ledger, scoped to this isolated test DB.
+    with sqlite3.connect(path) as db:
+        state=json.loads(db.execute('SELECT state FROM learning_progress').fetchone()[0]) if db.execute('SELECT count(*) FROM learning_progress').fetchone()[0] else {'cards':{},'attempts':[],'seen':[],'intervals':[1,3,7],'active':None}
+        state['cycles']={standard['id']:{'cards':{},'completed':{t['id']:{'position':t['id']} for t in standard['training_plan']}}}
+        db.execute('INSERT OR REPLACE INTO learning_progress(code,state) VALUES(?,?)',('A',json.dumps(state)))
+    latest=finish_diagnosis(c,jp(c,'start',{'mode':'gentle'}),path)
+    status=c.get('/api/journey').json()
+    assert status['latest']==latest and status['cycle_report']==standard
+    assert status['cycle']['report_id']==standard['id'] and status['cycle']['completed']==5
+    assert 'snapshot' not in latest

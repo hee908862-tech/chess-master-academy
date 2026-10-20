@@ -7,9 +7,9 @@ window.cmaEvidenceLabel=e=>({engine_unavailable:'엔진을 사용할 수 없어 
 window.cmaLearningCycle=d=>{
  home.replaceChildren();training.replaceChildren();
  make(home,'h3','진단과 추천 훈련 활동');make(home,'p',d?.activity?`완료한 진단 ${d.activity.diagnoses}회 · 직접 응답한 문항 ${d.activity.answered}개 · 누적 완료한 추천 훈련 ${d.activity.recommended_completed}개`:'로그인하면 진단과 추천 훈련 기록을 확인할 수 있어요.');make(home,'small','아래 대국·퍼즐·과정 집계와 별도로 기록합니다. 반복 클릭은 완료 수를 늘리지 않습니다.');
- make(training,'h3','나의 다음 추천 훈련');const c=d?.cycle;
- make(training,'p',d?.active?'진행 중인 진단을 먼저 이어서 마쳐 주세요.':c?`현재 추천 주기 ${c.completed}/5 완료 · ${c.message}`:'진단을 마치면 나에게 맞는 추천 훈련 5개를 준비해요.');
- const b=make(training,'button',d?.active?'진단 이어하기':c?'추천 훈련 목록 보기':'진단 시작','btn primary');b.onclick=()=>tab('diagnosis');
+ make(training,'h3','나의 다음 추천 훈련');const c=d?.cycle;const entry=d?.latest?.mode==='gentle';
+ make(training,'p',d?.active?'진행 중인 진단을 먼저 이어서 마쳐 주세요.':c?`현재 추천 주기 ${c.completed}/5 완료 · ${c.message}`:entry?'입문 결과에서 미완성·비교할 수순을 골라 연습하고, 준비되면 표준 진단으로 이동하세요. 입문 연습은 5개 주기와 별도입니다.':'입문 확인 뒤에는 문항별 연습을, 표준 진단 뒤에는 추천 훈련 5개를 제공해요.');
+ const b=make(training,'button',d?.active?'진단 이어하기':c?'추천 훈련 목록 보기':entry?'입문 결과 · 연습과 표준 진단 선택':'진단 시작','btn primary');b.onclick=()=>tab('diagnosis');
  if(c&&!d?.active){const t=c.tasks.find(t=>!t.completion);if(t){const next=make(training,'button',`다음 과제 · ${t.label}`,'btn');next.onclick=()=>window.learningCycle(c.report_id,t.id);}}
 };window.cmaLearningCycle(null);
 const activity=document.getElementById('skillBars')?.parentElement;if(activity){activity.querySelector('h2').textContent='대국·퍼즐·과정 활동';activity.querySelector('p').textContent='자유 대국, 퍼즐, 아카데미 완료만 집계합니다. 진단·추천 훈련은 별도 집계를 확인하세요.';}

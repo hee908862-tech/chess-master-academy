@@ -248,6 +248,7 @@ def attach_learning(app, ns):
                         state['active'].update(path_id=path['id'],path_step=0)
                         path['steps'][0]['status']='active'
                         sync_path(state)
+                    if state.get('active'):record_exposure(state['cards'][state['active']['card_id']])
                     return {'path': public_path(state), 'active': payload(state), 'diagnosis': existing}
                 raise HTTPException(409, {'code':'active_learning_path','path_id':path['id'],'message':'진행 중인 경로를 보존했습니다. 이어서 완료한 뒤 선택한 진단 훈련을 시작하세요.'})
             if state.get('active') and not state['active']['done']:
@@ -276,7 +277,9 @@ def attach_learning(app, ns):
             paused=next((v for v in state.get('paused',{}).values() if v.get('growth_task')==reference),None)
             if paused:raise HTTPException(409,'보존된 추천 훈련이 있습니다. 훈련실의 저장된 훈련 이어하기를 선택하세요.')
             if active and not active['done']:
-                if active.get('growth_task')==reference:return payload(state)
+                if active.get('growth_task')==reference:
+                    record_exposure(state['cards'][active['card_id']])
+                    return payload(state)
                 raise HTTPException(409,'진행 중인 훈련을 먼저 마쳐 주세요. 착수는 저장되어 있습니다.')
             if task['id'] in cycle['completed']:raise HTTPException(409,'이미 마친 추천 과제예요. 다음 과제를 선택해 주세요.')
             card=state['cards'].get(cycle['cards'].get(task['id']))
@@ -574,13 +577,29 @@ def attach_learning(app, ns):
         state['cards'][key] = c; state['seen'].append(p['id'])
         return c
 
+    def record_exposure(card):
+        exposure=card.setdefault('exposure',{}).setdefault(now().date().isoformat(),{'hints':0,'revealed':False,'wrong':0})
+        exposure['last_at']=now().isoformat()
+        return exposure
+
+    @app.post('/api/learning/exposure')
+    def expose(body: Resume, authorization: str | None = Header(default=None)):
+        with store(auth(authorization)) as state:
+            active=state.get('active')
+            if not active or active['id']!=body.session_id or active['revision']!=body.active_revision:
+                raise HTTPException(409,'훈련 위치가 바뀌었습니다. 저장 상태를 확인하세요.')
+            record_exposure(state['cards'][active['card_id']])
+            return {'recorded':True}
+
     @app.post('/api/learning/start')
     def start(body: Start, authorization: str | None = Header(default=None)):
         code = auth(authorization)
         with store(code) as state:
             active=state.get('active')
             if active and not active['done']:
-                if body.card_id==active['card_id'] and body.mode==active['mode'] and not body.fresh and not body.similar_to:return payload(state)
+                if body.card_id==active['card_id'] and body.mode==active['mode'] and not body.fresh and not body.similar_to:
+                    record_exposure(state['cards'][active['card_id']])
+                    return payload(state)
                 if body.pause_session_id!=active['id'] or body.pause_revision!=active['revision']:
                     raise HTTPException(409,'진행 중인 훈련을 보존했습니다. 이어서 완료하거나 저장 후 전환을 확인하세요.')
                 state.setdefault('paused',{})[active['id']]={**copy.deepcopy(active),'revision':active['revision']+1}
@@ -596,7 +615,9 @@ def attach_learning(app, ns):
     def resume(body: Resume, authorization: str | None = Header(default=None)):
         with store(auth(authorization)) as state:
             active=state.get('active')
-            if active and active['id']==body.session_id:return payload(state)
+            if active and active['id']==body.session_id:
+                record_exposure(state['cards'][active['card_id']])
+                return payload(state)
             if (active and (active['id']!=body.active_id or active['revision']!=body.active_revision)) or (not active and body.active_id):
                 raise HTTPException(409,'현재 훈련이 변경되었습니다. 저장 상태를 확인하세요.')
             saved=state.get('paused',{}).get(body.session_id)
@@ -605,6 +626,7 @@ def attach_learning(app, ns):
             state['active']=state['paused'].pop(body.session_id)
             state['active']['revision']+=1
             sync_path(state)
+            record_exposure(state['cards'][state['active']['card_id']])
             return payload(state)
 
     def begin(state, card, mode, fresh=False):
@@ -744,6 +766,7 @@ def attach_learning(app, ns):
                     state['active'] = copy.deepcopy(stored or step['session'])
                     state['active']['revision']+=1
                     sync_path(state)
+                    record_exposure(state['cards'][state['active']['card_id']])
                     return {'path': public_path(state), 'active': payload(state)}
                 if index == 2:
                     try: card = new_puzzle(state, None, legacy, path['source_card'])

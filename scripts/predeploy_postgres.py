@@ -323,4 +323,11 @@ def test_starting_choice_cas_and_learning_switch_preserve_pg_records():
     assert restored['revision']>a['revision']
     assert c.post('/api/learning/action',json={'session_id':a['session_id'],'revision':a['revision'],'action':'hint'}).status_code==409
     assert len(state('learning_progress',code)['paused'])==1
+    before=state('learning_progress',code)
+    c.get('/api/learning/dashboard')
+    assert state('learning_progress',code)==before
+    post(c,'learning/exposure',{'session_id':restored['session_id'],'active_revision':restored['revision']})
+    after=state('learning_progress',code)
+    assert after['active']==before['active']
+    assert after['cards'][restored['card_id']]['exposure']!=before['cards'][restored['card_id']]['exposure']
     assert c.get('/api/starting-level').json()['revision']==1

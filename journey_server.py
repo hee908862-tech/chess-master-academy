@@ -208,7 +208,7 @@ def attach_journey(app, ns):
                 'additional':{c:additional_plan(state['results'],c,CUED) for c,v in COMPETENCIES.items() if v['measured']},
                 'schema':'journey-v2','competencies':[{'id':k,**v} for k,v in COMPETENCIES.items()],
                 'active':payload(state['active']) if state['active'] else None,
-                'latest':latest_cycle_report(state['results']) or (state['results'][-1] if state['results'] else None),'results':state['results'],
+                'latest':state['results'][-1] if state['results'] else None,'cycle_report':latest_cycle_report(state['results']),'results':state['results'],
                 'legacy_notice':'이전 버전 진단 기록은 보존됩니다. 점수는 버전 간 비교하지 않습니다.'}
 
     @app.post('/api/journey/start')
