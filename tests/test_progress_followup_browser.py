@@ -41,3 +41,24 @@ def test_equivalent_observation_is_not_unanswered(page,site):
     page.route('**/api/journey',lambda r:r.fulfill(json={'active':None,'latest':report,'results':[report]}))
     open_page(page,site);page.evaluate("tab('diagnosis')")
     expect(page.locator('.ability-card').first).to_contain_text('추가 확인 필요')
+
+
+def test_past_lazy_evidence_is_read_only_during_active_diagnosis(page,site):
+    report=report_fixture(number=1)
+    report['areas'][0]['items']=[{'id':'past-item','fen':'8/8/8/8/8/8/K7/7k w - - 0 1','expected':['a2a3']}]
+    data={'active':question(),'latest':report,'results':[report]}
+    page.route('**/api/journey',lambda r:r.fulfill(json=data))
+    mutations=[]
+    page.on('request',lambda r:mutations.append(r.url) if r.method=='POST' and '/api/learning/' in r.url else None)
+    open_page(page,site);page.evaluate("tab('diagnosis')")
+    expect(page.locator('#journeyProgress')).to_contain_text('1 / 2')
+    before=page.evaluate("api('/learning/dashboard')")
+    page.locator('#journeyPast > summary').click()
+    page.locator('#journeyPastReport').get_by_text('문항별 풀이와 자세한 근거',exact=True).click()
+    page.locator('#journeyPastReport').get_by_text('문항별 근거 확인',exact=True).first.click()
+    expect(page.locator('#journeyPastReport .journey-item')).to_have_count(1)
+    expect(page.locator('#journeyPastReport button:enabled')).to_have_count(0)
+    expect(page.locator('#journeyPastReport button:not(.sq)')).to_have_count(0)
+    assert not mutations
+    assert page.evaluate("api('/learning/dashboard')")==before
+    expect(page.locator('#journeyProgress')).to_contain_text('1 / 2')

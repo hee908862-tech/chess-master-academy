@@ -8,4 +8,4 @@
 - `latest-image-http.json`: 최종 로컬 이미지의 실제 HTTP/Stockfish/PostgreSQL 결과. 1CPU·512MiB, OOM 없음. 운영 당시 판정 보류의 원인을 소급 증명하는 자료는 아니다.
 - `image-source-hashes.json`: 검증 이미지의 애플리케이션 Python·JS/CSS/정적 자료·오프닝 원본·requirements 81개 파일 SHA256. 작업 트리와 일치함을 확인했다.
 
-이미지: `cma-interactive:review`, SHA256 `dcc3263b939fa486e447ed9f655f44afcd107bf12ce730387c8cfd99877d6577`.
+이미지: `cma-interactive:review`, SHA256 `0d9d333ebba91a37f0fd77e5f10b340e4d74ce2f2ae036d06a99de4f492a2f3c`.

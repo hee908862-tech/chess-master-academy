@@ -89,3 +89,25 @@ def test_opening_bookmark_cas_separate_from_game_progress(runtime):
     saved=c.get('/api/study/openings').json()['saved'];assert saved['moves']==data['moves'] and saved['revision']==1
     server.initdb();assert c.get('/api/study/openings').json()['saved']==saved
     after=dict(server.get_state('RUNTIME-A'));after.pop('opening_study');assert before==after
+
+
+def test_commentary_matches_position_and_does_not_follow_free_moves():
+    for c in courses().values():
+        end=opening_position(OpeningPosition(course_id=c['id'],moves=c['moves']))
+        b=replay(chess.STARTING_FEN,c['moves'])
+        expected=' · '.join(label+' 폰: '+', '.join(chess.square_name(s) for s in b.pieces(chess.PAWN,color)) for color,label in [(chess.WHITE,'백'),(chess.BLACK,'흑')])
+        assert end['structure']==expected and end['plans']==c['ending'] and end['family_overview'] is None
+        free=opening_position(OpeningPosition(course_id=c['id'],moves=['a2a3']))
+        assert free['structure'] is None and free['plans'] is None and free['family_overview'] is None
+    for name in ['ruy-berlin','ruy-exchange']:
+        c=courses()[name];b=replay(chess.STARTING_FEN,c['moves'])
+        assert not b.pawns & b.occupied_co[chess.WHITE] & chess.BB_FILE_D
+        end=opening_position(OpeningPosition(course_id=name,moves=c['moves']))
+        assert 'c3-d4' not in end['plans']
+    dragon=courses()['sicilian-dragon'];b=replay(chess.STARTING_FEN,dragon['moves'])
+    assert b.piece_at(chess.C2)==chess.Piece(chess.PAWN,chess.WHITE)
+    assert not b.pawns & b.occupied_co[chess.BLACK] & chess.BB_FILE_C
+    assert '반열린 c파일' in dragon['notes'][20]
+    najdorf=courses()['sicilian-najdorf'];b=replay(chess.STARTING_FEN,najdorf['moves'][:19])
+    assert b.king(chess.WHITE)==chess.C1 and b.king(chess.BLACK)==chess.E8
+    assert '아직 e8' in najdorf['notes'][19]

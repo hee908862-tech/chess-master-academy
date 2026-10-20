@@ -91,3 +91,23 @@ def test_late_opening_bookmark_cannot_replace_new_course(page,site):
     click_move(page,'studyOpeningBoard','d2d4');expect(page.locator('#studyMessage')).to_contain_text('다른 등록 변형')
     page.get_by_role('button',name='해설 전환 · 디클라인드 · 정통 전개',exact=True).click()
     expect(page.locator('#studyCourse')).to_have_value('queens-declined')
+
+
+def test_first_visit_auto_board_and_late_resume_does_not_replace_move(page,site):
+    login(page,site);page.evaluate("tab('opening')")
+    expect(page.locator('#studyOpeningBoard .sq:enabled')).to_have_count(64)
+    expect(page.locator('#studyCourse')).to_have_value('italian-pianissimo')
+    page.locator('#studyCourse').select_option('french-advance')
+    expect(page.locator('#studyMessage')).to_contain_text('등록된')
+    click_move(page,'studyOpeningBoard','e2e4');expect(page.locator('#studyMessage')).to_contain_text('등록된')
+    page.get_by_role('button',name='학습 위치 저장',exact=True).click()
+    expect(page.locator('#studySaveStatus')).to_contain_text('저장했어요')
+    saved=page.evaluate("api('/study/openings')")
+    click_move(page,'studyOpeningBoard','e7e6');expect(page.locator('#studyMessage')).to_contain_text('등록된')
+    page.evaluate("""() => {const original=api;window.holdOpening=true;api=function(p,...a){if(p==='/study/openings'&&window.holdOpening){window.holdOpening=false;return new Promise(resolve=>window.releaseOpening=resolve);}return original(p,...a);};}""")
+    page.get_by_role('button',name='저장 위치 이어하기',exact=True).click()
+    click_move(page,'studyOpeningBoard','d2d4');expect(page.locator('#studyMessage')).to_contain_text('등록된')
+    before=page.locator('#studyOpeningBoard').inner_html()
+    page.evaluate('d=>window.releaseOpening(d)',saved);page.wait_for_timeout(150)
+    assert page.locator('#studyOpeningBoard').inner_html()==before
+    click_move(page,'studyOpeningBoard','d7d5');expect(page.locator('#studyMessage')).to_contain_text('등록된')

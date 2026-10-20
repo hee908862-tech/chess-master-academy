@@ -31,5 +31,5 @@
   "bookmark_restart_restore": "PASS",
   "game_state_unchanged": "PASS",
   "oom_killed": false,
-  "memory_peak_bytes": 398925824
+  "memory_peak_bytes": 399601664
 }

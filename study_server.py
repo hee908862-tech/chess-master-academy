@@ -104,8 +104,9 @@ def opening_position(req):
           'transposed':idx is not None and req.moves!=c['moves'][:idx],
           'options':list(options.values()) if req.mode=='explore' else [],'note':last_note,
           'next_note':note(c,idx) if req.mode=='explore' and idx is not None and not own_end else None,
-          'plans':c['ending'] if own_end or req.mode=='explore' else None,
-          'structure':FAMILIES[c['family']][2] if own_end or req.mode=='explore' else None}
+          'plans':c['ending'] if own_end else None,
+          'structure':' · '.join(label+' 폰: '+', '.join(chess.square_name(s) for s in b.pieces(chess.PAWN,color)) for color,label in [(chess.WHITE,'백'),(chess.BLACK,'흑')]) if own_end else None,
+          'family_overview':FAMILIES[c['family']][1] if idx is not None and not own_end and req.mode=='explore' else None}
     if req.mode=='recall':data.update(note=None,matches=[{k:v for k,v in m.items() if k!='index'} for m in matches] if own_end else [])
     return data
 
