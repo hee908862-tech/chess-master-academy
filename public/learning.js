@@ -14,7 +14,7 @@
   }
   const modeNames={practice:'연습',verify:'검증',situation_practice:'상황 연습',situation_verify:'상황 검증'};
   const home=el('div',null,'card learning-home');
-  home.innerHTML='<span class="tag">TODAY · 나의 학습 경로</span><h2>기억한 수를, 새로운 상황에서도.</h2><p class="lead" id="learningReason">로그인하면 나의 복습과 오늘의 적용 문제를 안내합니다.</p><div class="learning-path" id="learningPath"></div><div class="btn-row" id="learningHomeActions"></div>';
+  home.innerHTML='<span class="tag">TODAY · 나의 학습 경로</span><h2>배운 수를 새로운 상황에 적용해 보세요.</h2><p class="lead" id="learningReason">로그인하면 나의 복습과 오늘의 적용 문제를 안내합니다.</p><div class="learning-path" id="learningPath"></div><div class="btn-row" id="learningHomeActions"></div>';
   $('home').prepend(home);
   const view=el('section',null,'view');view.id='training';
   view.innerHTML=`<div class="card"><div class="row"><div><span class="tag">LEARNING STUDIO</span><h2 class="heading">나의 훈련실</h2></div><button class="btn" id="learningRefresh">기록 새로고침</button></div><details><summary>기록 범위와 측정 기준</summary><p id="learningNotice" class="lead">기존 기록은 그대로 유지됩니다.</p></details><div class="btn-row"><button class="btn primary" id="learningFresh">새 적용 문제</button><button class="btn" id="learningVerify">미출제 검증</button><button class="btn" id="learningReview">내 대국 복기</button></div></div>
@@ -98,7 +98,8 @@
     $('learningIntervals').value=dashboard.intervals.join(',');
     $('learningPath').replaceChildren();
     const route=dashboard.path;
-    const labels=[route?.fresh?'01 · 입문 새 문제':'01 · 복습','02 · 개념','03 · 공통 태그 새 문제','04 · 상황 대국'];
+    home.classList.toggle('has-saved-path',!!route||!!dashboard.active||(dashboard.due_count??dashboard.due.length)>0);
+    const labels=[route?.fresh?'01 · 입문 새 문제':'01 · 복습','02 · 개념','03 · 같은 원리의 새 문제','04 · 상황 대국'];
     const states={pending:'대기',active:'진행 중',completed:'완료',skipped:'건너뜀'};
     labels.forEach((label,i)=>{const step=route?.steps[i];const b=button('',()=>continuePath());b.classList.add('learning-step');b.append(el('strong',label),el('span',step?`${states[step.status]} · ${step.reason}`:'경로 시작 시 항목 선택'));b.disabled=busy||!!route&&(route.done||route.current!==i);b.title=b.disabled?(busy?'기록 저장 중입니다.':route.done?'경로의 모든 시도를 마쳤습니다. 새 경로를 선택하세요.':'현재 단계를 마친 뒤 이어갈 수 있습니다.'):'현재 단계 열기';$('learningPath').append(b);});
     $('learningRouteStatus').textContent=route?`${route.date} · ${route.done?'경로 처리 완료 (성공 여부는 별도)' :`${route.current+1}/4 단계`} · ${route.selection_reason}`:'복습할 카드를 선택해 경로를 저장하고 시작합니다.';
@@ -113,7 +114,7 @@
     if(!dashboard.cards.length)$('learningCards').append(el('p','아직 저장한 위치가 없습니다. 새 문제 또는 내 대국 복기로 시작하세요.','lead'));
     for(const c of [...dashboard.cards].reverse()){
       const item=el('div',null,'learning-item');item.append(el('strong',c.title),el('small',`다음 복습 ${c.due.slice(0,10)} · 무도움 성공 ${c.successes}회`));
-      const actions=el('div',null,'btn-row');actions.append(button('다시 연습',()=>start({card_id:c.id})),button('검증',()=>start({card_id:c.id,mode:'verify'})),button('공통 태그 새 문제',()=>start({similar_to:c.id,mode:'verify'})));
+      const actions=el('div',null,'btn-row');actions.append(button('다시 연습',()=>start({card_id:c.id})),button('검증',()=>start({card_id:c.id,mode:'verify'})),button('같은 원리의 새 문제',()=>start({similar_to:c.id,mode:'verify'})));
       for(const [mode,label] of [['situation_practice','상황 연습'],['situation_verify','상황 검증']]){const b=button(label,()=>start({card_id:c.id,mode}));b.disabled=!dashboard.engine;b.title=dashboard.engine?'':'엔진을 사용할 수 없어 상황 대국을 시작할 수 없습니다.';actions.append(b);}item.append(actions);$('learningCards').append(item);
     }
     if(dashboard.cards_next!=null){const more=button(cardsRequest?'이전 카드 불러오는 중…':'이전 훈련 카드 더 보기',loadMoreCards);more.disabled=!!cardsRequest;$('learningCards').append(more);}
@@ -130,7 +131,7 @@
   }
   function render(){
     const route=dashboard?.path;
-    const concept=route?.current===1 && route.steps[1].status==='active' && !route.done ? route : null;
+    const concept=!task?.growth_task && route?.current===1 && route.steps[1].status==='active' && !route.done ? route : null;
     const t=concept?null:task;
     $('learningTitle').textContent=t?(t.category||'주제 비공개 · 독립 판단'):concept?'개념 확인 · 진단과 같은 원리':'시작할 문제를 선택하세요';
     $('learningMode').textContent=t?`${modeNames[t.mode]}${t.done?' 완료':''}`:concept?'읽기 전용 · 개념':'준비';
@@ -148,7 +149,8 @@
     renderControls();lockControls();
   }
   function renderControls(){
-    const area=$('learningControls');area.replaceChildren();if(dashboard?.path?.current===1&&dashboard.path.steps[1].status==='active'){area.append(el('span','설명을 읽은 뒤 옆 또는 아래 경로의 개념 읽기 확인을 눌러 주세요.','subtle'));return;}if(!task)return;
+    const area=$('learningControls');area.replaceChildren();if(!task?.growth_task&&dashboard?.path?.current===1&&dashboard.path.steps[1].status==='active'){area.append(el('span','설명을 읽은 뒤 옆 또는 아래 경로의 개념 읽기 확인을 눌러 주세요.','subtle'));return;}if(!task)return;
+    if(task.done&&task.growth_task){area.append(el('p',outcomeLabel(task.outcome),'tag'),button('추천 훈련과 진행률 보기',()=>tab('diagnosis')));return;}
     if(task.done){area.append(el('p',outcomeLabel(task.outcome)||'완료','tag'));if(task.path_id){area.append(button('경로 다음 단계',()=>continuePath()));return;}area.append(button('같은 위치 다시',()=>start({card_id:task.card_id,mode:task.mode})),button('다음 새 문제',()=>start({fresh:true,mode:'verify',category:task.outcome.category})));return;}
     if(!task.mode.includes('verify')){
       for(const [a,label] of [['hint',`힌트 ${Math.min(task.hint_level+1,3)}단계`],['reveal','답안 수순'],['refutation','상대 응수'],['undo','한 수 무르기']]){if(a==='undo'&&!task.mode.startsWith('situation'))continue;const b=button(label,()=>act(a));b.disabled=busy;area.append(b);}
@@ -167,6 +169,7 @@
   $('learningReview').onclick=()=>tab('review');
   $('learningRefresh').onclick=load;
   $('learningSaveIntervals').onclick=()=>run(async()=>{const intervals=$('learningIntervals').value.split(',').map(Number);await api('/learning/settings','POST',{intervals});$('learningMessage').textContent='다음 완료부터 사용할 복습 간격을 저장했습니다.';});
+  window.learningCycle=async(report_id,item_id)=>{if(!ready('training')||busy)return;tab('training');generation++;await run(async()=>{const identity=token,rev=generation;const result=await api('/learning/cycle/start','POST',{report_id,item_id});if(identity!==token||rev!==generation)return;task=result;selected=null;playbackIndex=-1;await updateStats();render();},'추천 훈련을 준비하고 있어요…');};
   window.learningFromDiagnosis=async(report_id,item_id)=>{
     if(!ready('training')||busy)return;
     tab('training');generation++;

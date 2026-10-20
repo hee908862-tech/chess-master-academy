@@ -1,8 +1,10 @@
+from engine_budget import open_engine, EngineBusy
 """Evidence-based learning, isolated from legacy progress JSON writes.
 New records use one locked row per account (SQLite BEGIN IMMEDIATE / PostgreSQL
 FOR UPDATE). No accounts, old records, or corpus entries are rewritten.
 """
 import copy
+from growth_model import credit_cycle, latest_cycle_report, cycle_status
 import hashlib
 import json
 import secrets
@@ -225,6 +227,34 @@ def attach_learning(app, ns):
             sync_path(state)
             return {'path': public_path(state), 'active': payload(state), 'diagnosis': card['diagnosis']}
 
+    @app.post('/api/learning/cycle/start')
+    def cycle_start(body: DiagnosisSource, authorization: str | None = Header(default=None)):
+        code=auth(authorization)
+        with store(code) as state:
+            report=ns.get('journey_report',lambda *_:None)(code,body.report_id)
+            latest=ns.get('journey_cycle_report',lambda *_:None)(code)
+            if not report or not latest or latest['id']!=report['id']:
+                raise HTTPException(409,'현재 진단의 추천 훈련을 선택해 주세요.')
+            task=next((t for t in report.get('training_plan',[]) if t['id']==body.item_id),None)
+            if not task:raise HTTPException(404,'추천 과제를 찾을 수 없습니다.')
+            cycle=state.setdefault('cycles',{}).setdefault(report['id'],{'cards':{},'completed':{}})
+            active=state.get('active')
+            reference={'report_id':report['id'],'task_id':task['id']}
+            if active and not active['done']:
+                if active.get('growth_task')==reference:return payload(state)
+                raise HTTPException(409,'진행 중인 훈련을 먼저 마쳐 주세요. 착수는 저장되어 있습니다.')
+            if task['id'] in cycle['completed']:raise HTTPException(409,'이미 마친 추천 과제예요. 다음 과제를 선택해 주세요.')
+            card=state['cards'].get(cycle['cards'].get(task['id']))
+            if not card:
+                item=next(i for i in report['items'] if i['id']==task['item_id'])
+                source=diagnosis_card(state,report,item)
+                card=source if task['kind']=='original' else new_puzzle(state,task['competency'],context(code),source['id'])
+                card['full_line']=True
+                cycle['cards'][task['id']]=card['id']
+            begin(state,card,'practice',fresh=task['kind']=='application')
+            state['active']['growth_task']=reference
+            return payload(state)
+
     @contextmanager
     def engine():
         path = ns['STOCKFISH_PATH']
@@ -232,7 +262,7 @@ def attach_learning(app, ns):
             raise HTTPException(503, 'Stockfish가 연결되지 않았습니다. 실전 실수 분석·대안 수 평가·상황 대국은 사용할 수 없습니다. 원본 수순 퍼즐은 이용할 수 있습니다.')
         eng = None
         try:
-            eng = chess.engine.SimpleEngine.popen_uci(path, timeout=5)
+            eng = open_engine(path, timeout=5)
             eng.configure({'Threads': 1, 'Hash': 16})
             yield eng
         except (chess.engine.EngineError, TimeoutError, OSError) as exc:
@@ -277,7 +307,7 @@ def attach_learning(app, ns):
                 'opponent_last_move': s.get('opponent_last_move'), 'hint_level': s['hints'],
                 'context': card.get('context', '직전 위치 기록이 없어 변화의 의미를 추측하지 않습니다.'),
                 'explanation': s.get('explanation'), 'playback': s.get('playback', []),
-                'outcome': s.get('outcome'), 'selection': None if verify and not s['done'] else s.get('selection'), 'path_id': s.get('path_id'), 'premove': False}
+                'growth_task':s.get('growth_task'), 'outcome': s.get('outcome'), 'selection': None if verify and not s['done'] else s.get('selection'), 'path_id': s.get('path_id'), 'premove': False}
 
     def finish(state, s, success):
         if s['done']: return
@@ -321,6 +351,7 @@ def attach_learning(app, ns):
         days = state['intervals'][min(max(card['successes'] - 1, 0), len(state['intervals']) - 1)] if success else 1
         if not credited_today:
             card['due'] = (stamp + timedelta(days=days)).isoformat()
+        credit_cycle(state,s,attempt)
         s.update(done=True, outcome=attempt, message='학습 기록을 저장했습니다.' if success else '아직 목표에 도달하지 못했습니다. 기록을 저장했습니다.')
 
     @app.get('/api/learning/dashboard')
@@ -355,7 +386,7 @@ def attach_learning(app, ns):
                 'cards_total':len(state['cards']), 'cards_next':offset+50 if offset+50<len(state['cards']) else None,
                 'attempts': state['attempts'][-50:][::-1], 'skills': skills, 'intervals': state['intervals'],
                 'active': payload(state), 'path': public_path(state), 'recommended': weakest['id'] if weakest else None,
-                'reason': '같은 버전·전체 수순의 최근 독립 국면에서 미완료 근거가 있는 영역' if weakest else '비교 가능한 전체 수순 근거가 부족하거나 동률입니다. 보완 순위를 정하지 않습니다.',
+                'reason': '최근 풀이에서 끝까지 잇지 못한 수순을 먼저 연습해요.' if weakest else '아직 뚜렷한 차이가 없어요. 새로운 문제로 여러 분야를 고르게 연습해 보세요.',
                 'engine': bool(ns['STOCKFISH_PATH'] and Path(ns['STOCKFISH_PATH']).is_file()),
                 'notice': '공통 역량 이름을 사용하지만 이 지도는 훈련 기록입니다. 성공률과 추천은 같은 버전·같은 측정 범위 안에서만 계산합니다. 구형·미기록 버전과 첫 수 판단은 별도 참고이며 전체 수순 근거로 합산하지 않습니다. 각 비교 구간에 독립 국면 5개가 없으면 추세를 표시하지 않습니다. 미출제는 기록된 문제 ID와 전체 원본 수순의 국면 기준이며, 식별 기록이 없는 과거·외부 노출까지 보장하지 않습니다. 기존 진단·대국 통계는 기록 메뉴에 보존됩니다. 실제 레이팅이 아닙니다.'}
 

@@ -1,0 +1,19 @@
+/* Reading widths and content hierarchy, shared across the learning journey. */
+.hero-title,.journey-home h1,.learning-home h2{max-width:none!important;font-size:clamp(24px,2.6vw,36px)!important;line-height:1.4;letter-spacing:-.025em}
+h1,h2,h3,h4,p,button,summary{word-break:keep-all;overflow-wrap:break-word;text-wrap:pretty}
+#home .learning-home:not(.has-saved-path){display:none}#home .learning-home.has-saved-path h2{font-size:22px!important}.hero-grid{grid-template-columns:minmax(0,1.4fr) minmax(240px,1fr)}
+.growth-intro h2,.growth-profile h2{font-size:clamp(23px,2.2vw,30px);line-height:1.4}
+.growth-insights,.ability-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.growth-insights>div,.ability-card{min-width:0;background:#142330;border:1px solid #3c5266;border-radius:14px;padding:18px}
+.ability-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}.ability-card h4{margin:0 0 10px}.ability-score{font-size:24px;color:#9ee9ce}.ability-card small{display:block;line-height:1.6;margin:10px 0;color:#c2cede}.ability-meter{height:10px;background:#374557;border-radius:8px;margin:12px 0;overflow:hidden}.ability-meter span{height:100%;display:block;background:#8fe5c8}
+.growth-task{padding:16px 0;border-top:1px solid #3c5266}.growth-task h3,.growth-task h4{margin:6px 0}.growth-plan progress{width:100%;height:20px;accent-color:#8fe5c8}.growth-chart{width:100%;max-height:260px;display:block;margin:18px 0}.growth-records{padding-left:22px;line-height:1.8}.growth-profile,.growth-plan,#gamePerformance{min-width:0}.activity-total{padding:12px;border-bottom:1px solid #3c5266}
+#journeyResults>details{background:#142330;padding:18px;border-radius:14px}#journeyResults>details>summary{font-weight:700}
+#learningPath{grid-template-columns:repeat(2,minmax(0,1fr))}.learning-step strong,.learning-step span{word-break:keep-all;overflow-wrap:break-word}.learning-step strong{line-height:1.5}
+@media(max-width:1050px){.hero-grid,.hero-main .feature{grid-template-columns:minmax(0,1fr)}.hero-main .mini-board{display:none}.journey-layout{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.growth-insights{grid-template-columns:minmax(0,1fr)}.growth-intro,.growth-profile,.growth-plan,#gamePerformance{padding:16px}.growth-task .btn{width:100%}#learningPath{grid-template-columns:minmax(0,1fr)}.journey-home h1{font-size:26px!important}.growth-records li{margin:10px 0}.ability-card{padding:14px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+.metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.metric small{display:block;line-height:1.5;white-space:normal}
+@media(max-width:430px){.metrics{grid-template-columns:minmax(0,1fr)}.metric{display:flex;align-items:center;justify-content:space-between;gap:12px}}
+
+.journey-profile-link{display:none}.ability-score{display:inline-flex;align-items:center;justify-content:center;border:2px solid #8fe5c8;border-radius:50%;width:94px;height:94px;font-size:20px}.ability-card summary{font-size:13px;color:#bac9db;min-height:32px!important}.ability-card details small{margin-top:0}
+#profile .two{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))!important}
+#profile .setting-grid,#profile .auth-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))!important}

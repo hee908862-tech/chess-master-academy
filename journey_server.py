@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Literal
 import chess
+from growth_model import decorate, latest_cycle_report, cycle_status, MODES, verify_loss
 from fastapi import Header, HTTPException
 from pydantic import BaseModel
 from competencies import VERSION, COMPETENCIES, position_key, line_positions
@@ -88,7 +89,7 @@ def inventory():
 
 
 class Start(BaseModel):
-    mode: Literal['basic','targeted','recheck'] = 'basic'
+    mode: Literal['basic','targeted','recheck','balanced','quick'] = 'basic'
     competency: str | None = None
 
 
@@ -125,6 +126,7 @@ def attach_journey(app, ns):
         reports = read(code)['results']
         return next((r for r in reversed(reports) if report_id is None or r['id']==report_id),None)
     ns['journey_report'] = report
+    ns['journey_cycle_report'] = lambda code: latest_cycle_report(read(code)['results'])
     ns['journey_seen'] = lambda code: {x['puzzle_id'] for x in read(code)['reserved']}
     ns['journey_positions'] = lambda code: {key(x['fen']) for x in read(code)['reserved']}
     ns['journey_active'] = lambda code: bool(read(code)['active'])
@@ -197,23 +199,31 @@ def attach_journey(app, ns):
         _,learning=external_snapshot(code)
         path=learning.get('path');active_training=learning.get('active')
         return {'preparing':_inventory_lock.locked(),'training':{'path_id':path['id'] if path else None,'path_done':path.get('done',False) if path else False,'active':bool(active_training and not active_training.get('done')),'has_path':bool(path)},
+                'cycle':cycle_status(latest_cycle_report(state['results']),learning),
+                'growth':[{'id':r.get('id'),'at':r.get('at'),'snapshot':r.get('snapshot'),'version':r.get('version')} for r in state['results']],
                 'rechecks':{c:recheck_gate(learning,c,now()) for c,v in COMPETENCIES.items() if v['measured']},
                 'additional':{c:additional_plan(state['results'],c,CUED) for c,v in COMPETENCIES.items() if v['measured']},
                 'schema':'journey-v2','competencies':[{'id':k,**v} for k,v in COMPETENCIES.items()],
                 'active':payload(state['active']) if state['active'] else None,
-                'latest':state['results'][-1] if state['results'] else None,'results':state['results'],
+                'latest':latest_cycle_report(state['results']) or (state['results'][-1] if state['results'] else None),'results':state['results'],
                 'legacy_notice':'이전 버전 진단 기록은 보존됩니다. 점수는 버전 간 비교하지 않습니다.'}
 
     @app.post('/api/journey/start')
     def start(body:Start, authorization: str | None = Header(default=None)):
         code=auth(authorization)
         if read(code)['active']:raise HTTPException(409,'저장된 진단을 먼저 이어서 완료하세요.')
+        # Preserve existing legacy sessions, but new requests cannot reuse a spent cycle.
+        if body.mode=='basic' and latest_cycle_report(read(code)['results']):
+            raise HTTPException(409,'이후 진단은 균형 또는 간이 진단으로 시작해 주세요.')
         pools=inventory() # Always outside a user transaction, including cold fallback.
         snapshot=external_snapshot(code)
         ids,positions,uncertain,learning=external(code,snapshot)
         state=read(code)
         before=copy.deepcopy(state)
-        if body.mode!='basic' and (body.competency not in COMPETENCIES or not COMPETENCIES[body.competency]['measured']):
+        cycle=cycle_status(latest_cycle_report(state['results']),learning)
+        if body.mode in ('basic',*MODES) and cycle and not cycle['unlocked']:
+            raise HTTPException(409,cycle['message'])
+        if body.mode not in ('basic',*MODES) and (body.competency not in COMPETENCIES or not COMPETENCIES[body.competency]['measured']):
             raise HTTPException(409,'검증된 자료가 없는 영역은 측정하지 않습니다.')
         if body.mode=='recheck':
             gate=recheck_gate(learning,body.competency,now())
@@ -221,9 +231,14 @@ def attach_journey(app, ns):
         if state['active']: raise HTTPException(409,'저장된 진단을 먼저 이어서 완료하세요.')
         for x in state['reserved']: ids.add(x['puzzle_id']); positions.add(key(x['fen']))
         items=[]
-        measurement_scope=UNCUED if body.mode=='recheck' else CUED
-        for c in ([body.competency] if body.mode!='basic' else list(pools)):
-            for lo,hi in ([(600,1200),(1200,1800)] if body.mode=='basic' else [additional_plan(state['results'],c,measurement_scope)['band']]*3):
+        measurement_scope=UNCUED if body.mode in ('recheck',*MODES) else CUED
+        focused_band=None
+        if body.mode=='targeted' and cycle:
+            previous=latest_cycle_report(state['results'])
+            area=next((a for a in previous['areas'] if a['id']==body.competency),{})
+            focused_band=(1800,2400) if area.get('full_success',0)>=2 else (900,1500) if area.get('first_success',0) else (600,1200)
+        for c in (list(pools) if body.mode in ('basic',*MODES) else [body.competency]):
+            for lo,hi in ([(600,1200),(1200,1800)]*(2 if body.mode=='balanced' else 1) if body.mode in ('basic',*MODES) else [focused_band or additional_plan(state['results'],c,measurement_scope)['band']]*3):
                 choices=[p for p in pools[c] if p['puzzle_id'] not in ids and lo<=p['rating']<hi and not positions.intersection(footprint(p))]
                 if not choices: continue
                 p=copy.deepcopy(secrets.choice(choices)); p.update(id=secrets.token_hex(8),competency=c,band=[lo,hi],independent=not uncertain,app_new=True,prior_exposure_unknown=True,legacy_exposure_unknown=uncertain,helped=False,first_attempt=True)
@@ -231,8 +246,12 @@ def attach_journey(app, ns):
                 board=chess.Board(p['fen'])
                 for uci in p['line']:
                     board.push_uci(uci); positions.add(key(board.fen()))
+        if body.mode in MODES and len(items)!=(24 if body.mode=='balanced' else 12):
+            raise HTTPException(409,'균형 있게 확인할 새 문제가 부족합니다. 저장된 결과와 훈련은 유지되며 분야별 추가 확인을 이용할 수 있어요.')
         if not items: raise HTTPException(409,'조건에 맞는 미노출 국면이 없습니다. 기존 훈련을 이용하세요.')
-        s={'session_id':secrets.token_hex(16),'revision':0,'version':JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':measurement_scope,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
+        if body.mode in MODES:secrets.SystemRandom().shuffle(items)
+        s={'session_id':secrets.token_hex(16),'revision':0,'version':'journey-v4' if body.mode in MODES else JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':measurement_scope,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
+        if body.mode in MODES:s['corpus_sha256']=hashlib.sha256(DATA_FILE.read_bytes()).hexdigest()
         begin_item(s); state['active']=s
         for item in items:
             board=chess.Board(item['fen'])
@@ -260,12 +279,20 @@ def attach_journey(app, ns):
         s['phase']='feedback'
 
     def finish(s, previous):
-        return build_report(s,previous,now())
+        result=build_report(s,previous,now())
+        if s.get('corpus_sha256'):result['corpus_sha256']=s['corpus_sha256']
+        return decorate(result)
 
     @app.post('/api/journey/action')
     def action(body:Action, authorization: str | None = Header(default=None)):
         code=auth(authorization)
-        external_ids,external_positions,uncertain,_=external(code)
+        engine_evidence=None
+        initial=read(code).get('active')
+        if initial and initial.get('mode') in MODES and initial['revision']==body.revision and initial['session_id']==body.session_id and initial['phase']=='question' and body.action=='move':
+            row=initial['items'][initial['index']]
+            if body.move!=row['line'][initial['offset']]:
+                engine_evidence=verify_loss(initial['fen'],body.move,ns.get('STOCKFISH_PATH',''))
+        external_ids,external_positions,uncertain,learning_snapshot=external(code)
         with store(code) as state:
             s=state['active']
             if not s or s['session_id']!=body.session_id or s['revision']!=body.revision: raise HTTPException(409,'진단 상태가 변경되었습니다. 저장 상태를 다시 확인하세요.')
@@ -278,7 +305,11 @@ def attach_journey(app, ns):
                 if s['phase']!='feedback': raise HTTPException(409,'문항 풀이를 먼저 마치세요.')
                 s['index']+=1
                 if s['index']==s['total']:
-                    r=finish(s,state['results']); state['results'].append(r); state['active']=None
+                    r=finish(s,state['results']);
+                    if r.get('snapshot'):
+                        r['training_since_previous']=cycle_status(latest_cycle_report(state['results']),learning_snapshot)
+                        r['snapshot']['training_completed']=r['training_since_previous']['completed'] if r['training_since_previous'] else None
+                    state['results'].append(r); state['active']=None
                     s.update(phase='complete',report=r)
                 else: begin_item(s)
             else:
@@ -295,7 +326,10 @@ def attach_journey(app, ns):
                     b.push(m); s['played'].append(body.move); s['fen']=b.fen()
                     state['reserved'].append({'puzzle_id':item['puzzle_id'],'fen':b.fen()})
                     if body.move!=expected and not b.is_checkmate():
-                        if item['competency']=='mate' and b.is_stalemate():
+                        if engine_evidence and engine_evidence['loss_cp']>=200:
+                            item['engine_evidence']=engine_evidence
+                            finish_item(s,False,'이 수에서 유리함을 놓친 것으로 분석됐어요. 상대의 위협과 후보 수를 비교해 보세요.',outcome='verified_error')
+                        elif item['competency']=='mate' and b.is_stalemate():
                             finish_item(s,False,'스테일메이트로 끝났습니다. 체크메이트 목표와 다른 결과임을 규칙으로 확인했습니다.',outcome='verified_non_mate')
                         else:finish_item(s,False,'기준 수순과 다른 합법 수입니다. 미검증 대안으로 판단을 보류하며 실패나 약점 근거에 넣지 않습니다.',outcome='unverified_alternative')
                     else:

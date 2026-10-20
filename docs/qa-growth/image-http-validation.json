@@ -1,0 +1,77 @@
+{
+  "conditions": "Docker app 1 CPU/512MiB, PG 1 CPU/512MiB, loopback HTTP, unique temporary accounts, single sample",
+  "memory_before": {
+    "VmHWM": "149296 kB",
+    "VmRSS": "149296 kB"
+  },
+  "cold": {
+    "path": "journey/start",
+    "seconds": 0.6103
+  },
+  "concurrent": [
+    {
+      "path": "me",
+      "seconds": 0.0717
+    },
+    {
+      "path": "onboarding",
+      "seconds": 0.0858
+    },
+    {
+      "path": "game/new",
+      "seconds": 0.0835
+    }
+  ],
+  "warm": {
+    "path": "journey/start",
+    "seconds": 0.1156
+  },
+  "memory_after": {
+    "VmHWM": "251080 kB",
+    "VmRSS": "250304 kB"
+  },
+  "lost_response_recovery": "PASS: actual TCP disconnect after commit; GET restores same session; repeat POST 409",
+  "restart_command_seconds": 1.0627,
+  "process_restart_resume": "PASS: same saved diagnostic session/revision after actual image process restart",
+  "training_restart_resume": "PASS: saved hint/session/revision retained; repeated cycle assignment returns same task; growth snapshot and gate preserved",
+  "analysis_http": {
+    "result": "PASS: real black AI game, analysis, rating hold, short-game exclusion with warm inventory",
+    "state": {
+      "index": 0,
+      "game_key": "df3a5588b3cdefdf724a2c765c979d55",
+      "at": "2026-10-20T01:32:08.890915+00:00",
+      "color": "black",
+      "status": "complete",
+      "job_id": "b9235fc416c52cfb7409abca",
+      "requested_at": 1792459928.9582562,
+      "score_version": "move-quality-v1",
+      "quality": 65.4,
+      "user_moves": 2,
+      "expected_moves": 2,
+      "flags": [
+        "짧은 대국",
+        "중도 종료"
+      ],
+      "representative": false,
+      "engine": "Stockfish 17.1",
+      "settings": {
+        "threads": 1,
+        "hash_mb": 16,
+        "seconds_per_position": 0.08,
+        "max_depth": 14,
+        "minimum_depth": 8,
+        "max_user_moves": 80
+      },
+      "rating": null,
+      "rating_reason": "레이팅은 산출을 보류합니다. 실제 사람의 레이팅으로 검증한 환산 모델이 없어요.",
+      "method": "내 수 품질: 내 관점의 엔진 평가 손실에 100×exp(-손실cp/200)를 적용한 평균. 공식 정확도·Elo가 아닙니다.",
+      "finished_at": "2026-10-20T01:32:09.560230+00:00"
+    }
+  },
+  "memory_with_analysis": {
+    "VmHWM": "232260 kB",
+    "VmRSS": "231636 kB"
+  },
+  "container_memory_peak_bytes": 397066240,
+  "analysis_restart_resume": "PASS: completed analysis unchanged after process restart"
+}
