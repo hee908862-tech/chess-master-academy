@@ -5,7 +5,7 @@ for(const b of document.querySelectorAll('.nav [data-tab="profile"]'))b.textCont
 const side=document.querySelector('.nav');for(const id of ['home','learn','diagnosis','training','profile','play','puzzle','opening','review','help']){const item=side?.querySelector(`[data-tab="${id}"]`);if(item)side.append(item);}
 const nav=document.querySelector('.mobile-nav');nav.setAttribute('aria-label','주요 메뉴');nav.replaceChildren();
 for(const [id,label] of [['home','홈'],['learn','배우기'],['diagnosis','실력 진단'],['play','대국'],['profile','내 기록']]){const b=make('button',label);b.dataset.tab=id;b.onclick=()=>tab(id);nav.append(b);}
-const more=make('button','더보기');more.id='moreNavigation';more.setAttribute('aria-haspopup','dialog');document.getElementById('profile').prepend(more);
+const more=make('button','더보기');more.id='moreNavigation';more.className='btn';more.setAttribute('aria-haspopup','dialog');document.getElementById('profile').prepend(more);
 const dialog=document.createElement('dialog');dialog.id='moreNavigationDialog';dialog.setAttribute('aria-labelledby','moreNavigationTitle');const title=make('h2','더보기');title.id='moreNavigationTitle';dialog.append(title);
 const close=make('button','닫기');close.className='btn';close.onclick=()=>dialog.close();dialog.append(close);
 for(const [id,label] of [['profile','기록'],['play','AI 대국'],['puzzle','퍼즐'],['opening','오프닝 연구실'],['review','대국 복기'],['help','도움말']]){const b=make('button',label);b.className='btn';b.onclick=()=>{dialog.close();tab(id);};dialog.append(b);}
