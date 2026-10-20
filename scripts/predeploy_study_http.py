@@ -27,7 +27,7 @@ token=api('register',{'code':'STUDYIMAGE-'+secrets.token_hex(4),'pin':'temporary
 before=api('me',token=token)['state']
 branch=api('study/position',{'moves':['e2e4'],'engine':True},token);assert branch['reply']
 assert api('me',token=token)['state']==before
-catalog=api('study/openings',token=token);assert len(catalog['courses'])==27 and catalog['reference_count']==3865
+catalog=api('study/openings',token=token);assert len(catalog['courses'])==55 and catalog['reference_count']==3865
 moves=['e2e4','e7e6','d2d4','d7d5','e4e5','c7c5']
 explore=api('study/openings/position',{'course_id':'french-advance','moves':moves},token)
 assert 'd4' in explore['note']['comment']
@@ -57,4 +57,4 @@ judged=api('journey/action',{'session_id':active['session_id'],'revision':active
 assert judged['outcome']=='verified_error',judged
 inspect=json.loads(subprocess.check_output(['docker','inspect',CONTAINER],text=True))[0]
 peak=subprocess.check_output(['docker','exec',CONTAINER,'cat','/sys/fs/cgroup/memory.peak'],text=True).strip()
-print(json.dumps({'conditions':'local image 1CPU/512MiB, PostgreSQL17 loopback, temporary account','ozelq_balanced_512m':judged['engine_evidence'],'courses':27,'references':3865,'actual_engine_reply':branch['reply'],'read_only_branch':'PASS','recall_no_answers':'PASS','bookmark_restart_restore':'PASS','game_state_unchanged':'PASS','oom_killed':inspect['State']['OOMKilled'],'memory_peak_bytes':int(peak)},indent=2))
+print(json.dumps({'conditions':'local image 1CPU/512MiB, PostgreSQL17 loopback, temporary account','ozelq_balanced_512m':judged['engine_evidence'],'courses':55,'references':3865,'actual_engine_reply':branch['reply'],'read_only_branch':'PASS','recall_no_answers':'PASS','bookmark_restart_restore':'PASS','game_state_unchanged':'PASS','oom_killed':inspect['State']['OOMKilled'],'memory_peak_bytes':int(peak)},indent=2))

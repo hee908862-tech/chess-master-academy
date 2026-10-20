@@ -348,3 +348,17 @@ def test_foundations_pg_cas_restore_and_record_isolation():
     assert c.get('/api/foundations').json()==s
     after=state('progress',code);after.pop('foundation_v1');assert after==before
     other,_=account();assert other.get('/api/foundations').json()['completed']==0
+
+
+def test_challenge_pg_atomic_score_isolation_restore():
+    c,code=account();before=state('progress',code)
+    s=c.get('/api/challenge').json()
+    s=post(c,'challenge/action',{'action':'start','revision':s['revision']})
+    body={'action':'next','revision':s['revision'],'session_id':s['active']['id']}
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results=list(pool.map(lambda _:c.post('/api/challenge/action',json=body).status_code,range(2)))
+    assert sorted(results)==[200,409]
+    s=c.get('/api/challenge').json();assert s['active']['lives']==2 and s['active']['score']==0
+    server.initdb();assert c.get('/api/challenge').json()==s
+    after=state('progress',code);after.pop('puzzle_challenge_v1');assert after==before
+    other,_=account();assert other.get('/api/challenge').json()['active'] is None

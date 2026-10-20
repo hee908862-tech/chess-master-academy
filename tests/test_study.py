@@ -29,8 +29,8 @@ def test_every_authored_and_reference_line_is_legal_and_source_hashes_match():
     import hashlib
     manifest=json.loads((DATA/'SOURCE.json').read_text())
     for name,digest in manifest['sha256'].items():assert hashlib.sha256((DATA/name).read_bytes()).hexdigest()==digest
-    assert len(courses())==27 and len({c['family'] for c in courses().values()})==6
-    assert sum(len(c['notes']) for c in courses().values())==107
+    assert len(courses())==55 and len({c['family'] for c in courses().values()})==11
+    assert sum(len(c['notes']) for c in courses().values())==192
     for c in courses().values():
         b=replay(chess.STARTING_FEN,c['moves']);assert key(b)==c['positions'][-1]
         result=opening_position(OpeningPosition(course_id=c['id'],moves=c['moves']))
@@ -126,3 +126,24 @@ def test_commentary_matches_position_and_does_not_follow_free_moves():
     najdorf=courses()['sicilian-najdorf'];b=replay(chess.STARTING_FEN,najdorf['moves'][:19])
     assert b.king(chess.WHITE)==chess.C1 and b.king(chess.BLACK)==chess.E8
     assert '아직 e8' in najdorf['notes'][19]
+
+def test_new_systems_exact_positions_note_scope_and_transposition():
+    cs=courses()
+    assert len([c for c in cs.values() if c['family']=='london'])==7
+    for c in cs.values():
+        assert all(0<k<=len(c['moves']) for k in c['notes'])
+    # Torre has a relative queen pin after e6; Veresov/Trompowsky still have e7.
+    for id,ply,square in [('torre',5,'e6'),('veresov',5,'e7'),('trompowsky',3,'e7')]:
+        b=replay(chess.STARTING_FEN,cs[id]['moves'][:ply])
+        assert b.piece_at(chess.parse_square(square))==chess.Piece(chess.PAWN,chess.BLACK)
+    b=replay(chess.STARTING_FEN,cs['grunfeld']['moves'])
+    assert len(b.pieces(chess.PAWN,chess.WHITE)&chess.BB_FILE_C)==1
+    assert b.piece_at(chess.D4)==chess.Piece(chess.PAWN,chess.WHITE)
+    b=chess.Board()
+    for san in 'd4 Nf6 Nc3 d5 Bf4'.split():b.push_san(san)
+    r=opening_position(OpeningPosition(course_id='jobava-exchange',moves=[m.uci() for m in b.move_stack]))
+    assert r['on_course'] and r['transposed']
+    # End plans must not leak into an arbitrary legal branch.
+    for id in ['london-core','jobava-exchange','catalan','grunfeld']:
+        r=opening_position(OpeningPosition(course_id=id,moves=['a2a3']))
+        assert r['unregistered'] and not r['plans']

@@ -11,6 +11,14 @@ const close=make('button','닫기');close.className='btn';close.onclick=()=>dial
 for(const [id,label] of [['profile','기록'],['play','AI 대국'],['puzzle','퍼즐'],['opening','오프닝 연구실'],['review','대국 복기'],['help','도움말']]){const b=make('button',label);b.className='btn';b.onclick=()=>{dialog.close();tab(id);document.querySelector('#'+id+' h2')?.scrollIntoView({block:'start'});};dialog.append(b);}
 dialog.addEventListener('keydown',event=>{if(event.key!=='Tab')return;const buttons=[...dialog.querySelectorAll('button:not(:disabled)')];if(!event.shiftKey&&document.activeElement===buttons.at(-1)){event.preventDefault();buttons[0].focus();}else if(event.shiftKey&&document.activeElement===buttons[0]){event.preventDefault();buttons.at(-1).focus();}});
 document.body.append(dialog);more.onclick=()=>dialog.showModal();dialog.addEventListener('close',()=>more.focus());
+// Academy uses one click/keyboard dialog shared by desktop and mobile navigation.
+const academy=document.createElement('dialog');academy.id='academyNavigationDialog';academy.setAttribute('aria-labelledby','academyNavigationTitle');const ah=make('h2','아카데미에서 할 일 선택');ah.id='academyNavigationTitle';academy.append(ah);let opener=null;
+const ac=make('button','닫기');ac.className='btn';ac.onclick=()=>academy.close();academy.append(ac);
+for(const [id,label,description] of [['basics','기초 배우기','말의 움직임과 규칙을 보드에서 연습'],['tactics','전술 훈련','주제와 난도를 직접 골라 수순 연습'],['resume','복습·이어하기','저장된 과정과 진단·훈련으로 복귀']]){const b=make('button',label+' · '+description);b.className='btn';b.dataset.academy=id;b.onclick=()=>{opener?.setAttribute('aria-expanded','false');opener=null;academy.close();window.cmaAcademyNavigate(id);};academy.append(b);}
+document.body.append(academy);
+for(const b of document.querySelectorAll('[data-tab="learn"]')){b.setAttribute('aria-haspopup','dialog');b.setAttribute('aria-expanded','false');b.onclick=()=>{opener=b;b.setAttribute('aria-expanded','true');academy.showModal();};}
+academy.addEventListener('close',()=>{opener?.setAttribute('aria-expanded','false');opener?.focus();});
+for(const d of [academy,dialog])d.addEventListener('click',e=>{const r=d.getBoundingClientRect();if(e.target===d&&(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom))d.close();});
 const resume=make('button','현재 학습 이어하기');resume.className='btn';resume.id='homeResumeLearning';resume.onclick=()=>tab('training');document.getElementById('journeyHome').append(resume);
 const performance=document.getElementById('gamePerformance');if(performance){const details=document.createElement('details');details.className='card';details.append(make('summary','대국 지표 · 내 수 품질과 앱 내부 레이팅'));performance.before(details);details.append(performance);}
 const reason=make('p','새 대국을 시작하면 기권과 힌트를 사용할 수 있습니다.');reason.id='gameActionReason';reason.className='subtle';document.getElementById('gameStatus').after(reason);

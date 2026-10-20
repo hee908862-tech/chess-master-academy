@@ -108,11 +108,15 @@ async function choosePromotion(sqFrom,sqTo,piece,moves){
       modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');
       document.body.appendChild(modal);
     }
-    promotionCancel=()=>{modal.hidden=true;resolve(null)};
+    const origin=document.activeElement;
+    const finish=value=>{promotionCancel=null;modal.hidden=true;if(origin?.isConnected&&!origin.disabled)origin.focus();resolve(value);};
+    promotionCancel=()=>finish(null);
+    modal.onclick=e=>{if(e.target===modal)cancelPromotion();};
+    modal.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();cancelPromotion();}if(e.key==='Tab'){const list=[...modal.querySelectorAll('button')];if(e.shiftKey&&document.activeElement===list[0]){e.preventDefault();list.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===list.at(-1)){e.preventDefault();list[0].focus();}}};
     const turn=piece===piece.toUpperCase()?'w':'b';
     modal.replaceChildren();
     const panel=document.createElement('div');panel.className='cma-promotion-panel';
-    const title=document.createElement('h3');title.textContent='어떤 기물로 승격할까요?';panel.appendChild(title);
+    const title=document.createElement('h3');title.textContent='어떤 기물로 승격할까요?';title.id='cmaPromotionTitle';modal.setAttribute('aria-labelledby',title.id);panel.appendChild(title);
     const caption=document.createElement('p');caption.textContent='퀸 · 룩 · 비숍 · 나이트 중 선택하세요.';panel.appendChild(caption);
     const buttons=document.createElement('div');buttons.className='cma-promotion-choices';
     for(const [code,name,notation] of [['q','퀸','Q'],['r','룩','R'],['b','비숍','B'],['n','나이트','N']]){
@@ -120,9 +124,9 @@ async function choosePromotion(sqFrom,sqTo,piece,moves){
       const btn=document.createElement('button');btn.type='button';btn.className='btn';
       const icon=document.createElement('span');icon.className='cma-promotion-glyph';icon.textContent=(typeof PIECES!=='undefined'?PIECES[turn==='w'?notation:notation.toLowerCase()]:notation)||notation;
       btn.append(icon,document.createTextNode(name));
-      btn.onclick=()=>{promotionCancel=null;modal.hidden=true;resolve(code)};buttons.append(btn);
+      btn.onclick=()=>finish(code);buttons.append(btn);
     }
-    panel.append(buttons);modal.append(panel);modal.hidden=false;
+    panel.append(buttons);const close=document.createElement('button');close.className='btn';close.textContent='승격 선택 취소';close.onclick=()=>cancelPromotion();panel.append(close);modal.append(panel);modal.hidden=false;buttons.querySelector('button')?.focus();
   });
 }
 
