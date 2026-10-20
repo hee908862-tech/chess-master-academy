@@ -12,6 +12,10 @@ def test_actual_game_geometry_hint_undo_and_navigation(page,site):
     open_page(page,site)
     # site owns a disposable SQLite account; its init token also survives reload.
     page.evaluate("tab('play')")
+    for w,h in [(1280,720),(1366,768),(1165,747)]:
+        page.set_viewport_size(dict(width=w,height=h))
+        box=page.locator('#gameBoard').bounding_box()
+        assert box['y']+box['height']<=h
     page.locator('#aiLevel').select_option('1')
     page.locator('#newGame').click()
     page.wait_for_function('game&&!gameBusy')

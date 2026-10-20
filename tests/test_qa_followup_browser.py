@@ -79,18 +79,19 @@ def test_s4_matchup_uses_actual_game_color(page,site,color,label,entry):
         if entry=='timeout':response.update(active=False,timeout=True,result='loss',clock={'mode':'bullet','white_ms':60000,'black_ms':0})
         page.route('**/api/game',lambda r:r.fulfill(json=response))
         page.evaluate('() => resumeGame()')
-    expect(page.locator('#play .board-panel .row > span.tag').last).to_have_text(label)
+    expect(page.locator('#gameMatchup')).to_have_text(label)
     # Selecting the next game's color must not relabel the existing game.
+    if not page.locator('#gameSettings').evaluate('(e)=>e.open'):page.locator('#gameSettings > summary').click()
     page.locator('#playerColor').select_option('black' if color=='white' else 'white')
-    expect(page.locator('#play .board-panel .row > span.tag').last).to_have_text(label)
+    expect(page.locator('#gameMatchup')).to_have_text(label)
     if entry=='new':
         page.route('**/api/game/new',lambda r:r.fulfill(status=503,json={'detail':'시작 실패'}))
         page.locator('#newGame').click()
         expect(page.locator('#gameStatus')).to_contain_text('시작 실패')
-        expect(page.locator('#play .board-panel .row > span.tag').last).to_have_text(label)
+        expect(page.locator('#gameMatchup')).to_have_text(label)
 
         other='black' if color=='white' else 'white'
         page.route('**/api/game/new',lambda r:r.fulfill(json={'board':game_board_data,'player_color':other,'message':'색상 전환'}))
         game_board_data=game_board(page,other)
         page.locator('#newGame').click()
-        expect(page.locator('#play .board-panel .row > span.tag').last).to_have_text('흑 ♚ vs AI ♔' if other=='black' else '백 ♔ vs AI ♚')
+        expect(page.locator('#gameMatchup')).to_have_text('흑 ♚ vs AI ♔' if other=='black' else '백 ♔ vs AI ♚')

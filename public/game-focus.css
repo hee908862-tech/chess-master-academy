@@ -38,3 +38,6 @@ body.game-focus-active .cma-promotion-panel{max-height:calc(100dvh - 24px);overf
 /* Available column width also matters when text/page scaling narrows the main area. */
 body.game-focus-active .main{container-type:inline-size}
 @container(max-width:700px){#play .game-focus-stage{grid-template-columns:minmax(0,1fr);gap:8px}}
+@media(min-width:851px) and (min-height:601px){
+ #gameSettings[open]+.game-focus-stage #gameBoard{max-width:min(100%,max(360px,calc(100dvh - 340px)))!important}
+}
