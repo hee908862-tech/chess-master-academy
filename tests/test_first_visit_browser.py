@@ -125,3 +125,18 @@ def test_delayed_foundations_after_signup_does_not_start_after_leaving(guest,sit
     assert not posts
     assert p.evaluate("document.querySelector('.view.active').id")==('learn' if return_to_learn else 'play')
     assert p.evaluate("api('/foundations')")['active'] is None
+
+
+def test_returning_action_precedes_optional_guides_and_group_location(guest,site):
+    p=guest;trial(p);p.locator('#trialContinue').click()
+    p.locator('#codeField').fill('HOME-'+secrets.token_hex(4));p.locator('#pinField').fill('trial-test-pin42');p.locator('#signup').click()
+    expect(p.locator('#foundationWorkspace')).to_be_visible(timeout=20000)
+    p.evaluate("tab('home')")
+    expect(p.locator('#journeyHomeOpen')).to_contain_text('기초 아카데미 이어하기')
+    expect(p.locator('#onboardingInvitation')).to_be_hidden();expect(p.locator('#startingLevelInvitation')).to_be_hidden()
+    r=p.locator('#journeyHomeOpen').bounding_box();assert r['y']>=0 and r['y']+r['height']<p.locator('.mobile-nav').bounding_box()['y']
+    p.locator('#homeExplore > summary').click();expect(p.locator('#startingLevelInvitation')).to_be_visible()
+    for view,group in [('training','learn'),('puzzle','learn'),('opening','learn'),('review','profile'),('diagnosis','diagnosis')]:
+        p.evaluate('id=>tab(id)',view)
+        expect(p.locator(f'.mobile-nav [data-tab={group}]')).to_have_attribute('aria-current','page')
+    p.evaluate("tab('home')");p.screenshot(path='/tmp/cma-first-visit-captures/returning-home-final.png',full_page=True)

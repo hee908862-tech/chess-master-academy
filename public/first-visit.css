@@ -20,3 +20,5 @@ body.entry-login #profile>:not(.entry-auth-layout){display:none!important}
 body.entry-login .entry-auth-layout{display:block!important;max-width:640px}
 body.entry-login .entry-auth-layout>:not(.entry-auth-card){display:none!important}
 #entrySavedBasics[hidden]{display:none}
+body.entry-home #onboardingInvitation,body.entry-guest #signout{display:none!important}
+#journeyHome h1{font-size:26px}
