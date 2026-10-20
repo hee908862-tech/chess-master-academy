@@ -1,0 +1,10 @@
+{
+  "opening_courses.py": "2d6b9cc7d2bc66cef4202b10e6f4b681e6de894b8690219d32f5a6f4e0fae3f7",
+  "public/app.js": "c83e13392a5e8f559620bc4525630353baa337aa26a436488842b7d8f2f4ae08",
+  "public/feature-guide.js": "7db2d9575bbae0e03c8e9885eded6b0ad6ebfc514844c9c7a0ac769659151929",
+  "public/foundations.js": "37787fb6e8f5f30cbaa2dad796a5599974781af0dd131d29de5efdebf0061e52",
+  "public/puzzle-challenge.js": "ecb32c7665d406926e31b10951fad8d996a0d85b6439d591e3a89ed4013014c4",
+  "puzzle_challenge.py": "297d23cff361248b6692e796d80244bef47b63baade9a0c90e0a231b90812170",
+  "tests/test_feature_navigation_browser.py": "c0df0d86825caac8aed5394df8f30e78ae56531f610c10a1e1a25d50020238e3",
+  "tests/test_study.py": "e260708e876995ea46851081847ad5d43fd6e795c744397d952db53cd5862dfd"
+}

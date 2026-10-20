@@ -147,3 +147,23 @@ def test_new_systems_exact_positions_note_scope_and_transposition():
     for id in ['london-core','jobava-exchange','catalan','grunfeld']:
         r=opening_position(OpeningPosition(course_id=id,moves=['a2a3']))
         assert r['unregistered'] and not r['plans']
+
+
+def test_fianchetto_ray_and_trompowsky_retreat_notes_match_positions():
+    cs=courses()
+    for id in ['queens-indian','catalan']:
+        b=replay(chess.STARTING_FEN,cs[id]['moves'][:9])
+        assert b.piece_at(chess.F3)==chess.Piece(chess.KNIGHT,chess.WHITE)
+        assert chess.F3 in b.attacks(chess.G2) and chess.D5 not in b.attacks(chess.G2)
+        assert chess.D4 not in chess.SquareSet(chess.BB_DIAG_ATTACKS[chess.G2][0])
+        assert 'f3 나이트' in cs[id]['notes'][9]
+    b=replay(chess.STARTING_FEN,cs['english-symmetrical']['moves'][:7])
+    assert not b.piece_at(chess.F3) and not b.piece_at(chess.E4)
+    assert chess.D5 in b.attacks(chess.G2)
+    b=replay(chess.STARTING_FEN,cs['trompowsky']['moves'][:4])
+    assert chess.E4 not in b.attacks(chess.G5)
+    assert chess.Move.from_uci('g5e4') not in b.legal_moves
+    assert any(m.from_square==chess.G5 and not b.is_capture(m) for m in b.legal_moves)
+    assert '어느 칸으로 피할지' in cs['trompowsky']['notes'][4]
+    b=replay(chess.STARTING_FEN,cs['colle-zukertort']['moves'][:11])
+    assert chess.D4 in b.attacks(chess.B2) and b.piece_at(chess.D4)==chess.Piece(chess.PAWN,chess.WHITE)

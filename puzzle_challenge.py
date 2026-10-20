@@ -30,7 +30,7 @@ def attach_challenge(app,ns):
             p=run['puzzles'][run['index']];b=board(run)
             task={k:copy.deepcopy(run[k]) for k in ['id','level','index','phase','score','lives','feedback','hinted','hint','started_at']}
             task.update(total=len(run['puzzles']),fen=run.get('display_fen',b.fen()),side='white' if chess.Board(p['fen']).turn==chess.BLACK else 'black',legal=[m.uci() for m in b.legal_moves] if run['phase']=='playing' else [],rating=p['rating'],themes=[THEMES[t] for t in p['themes'] if t in THEMES],puzzle_id=p['id'])
-        return {'revision':saved.get('revision',0),'active':task,'history':[{k:r[k] for k in ['id','score','ended_at','solved','hinted_solved','reason']} for r in reversed(saved.get('history',[]))], 'policy':'시간제한 없는 10문제·목숨3개. 기준 수순 완주 10점, 힌트 사용 후 완주 5점. 기준과 다른 수/건너뛰기는 목숨1개. 대안 메이트는 규칙으로 확인한 경우 인정합니다. 다른 합법 수의 우열은 판정하지 않습니다. 게임 점수는 진단·Elo·추천 훈련과 별도입니다.'}
+        return {'revision':saved.get('revision',0),'active':task,'history':[{k:r[k] for k in ['id','score','ended_at','solved','hinted_solved','reason']} for r in reversed(saved.get('history',[]))], 'policy':'시간제한 없는 10문제·목숨3개. 기준 수순 완주 10점, 힌트 사용 후 완주 5점. 기준과 다른 수/건너뛰기는 목숨1개. 대안 메이트는 규칙으로 확인한 경우 인정합니다. 다른 합법 수의 우열은 판정하지 않습니다. 새 도전에는 이전 문제가 반복 출제될 수 있습니다. 게임 점수는 독립 실력 측정이 아니며 진단·Elo·추천 훈련과 별도입니다.'}
     def end(saved,reason):
         r=saved['active']
         if r['phase']=='ended':return

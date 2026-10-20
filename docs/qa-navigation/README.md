@@ -49,7 +49,7 @@ CMA_TEST_PG_URL=postgresql://cma:temporary-local-only@127.0.0.1:55432/cma_predep
 
 화면의 계정 코드는 격리 QA 계정이며 운영 사용자가 아니다. 수동 검사 스크립트 `manual-guide-probe.py`도 지정된 loopback 전용이다. 이전 PR의 화면은 전체 회귀가 다시 생성하더라도 이번 변경에 포함하지 않는다.
 
-## 최종 검증
+## 최초 제출 검증 · head 46bd957
 
 기능·회귀 검사 소스 커밋: `60ae56a66a252d5e4b3e547e3ce62570318927b1`. 이후 커밋은 검증 문서·로그·화면만 포함한다. [파일별 SHA-256](source-sha256.json)으로 실제 검사 소스를 확인한다.
 
@@ -66,3 +66,18 @@ CMA_TEST_PG_URL=postgresql://cma:temporary-local-only@127.0.0.1:55432/cma_predep
 최종 Docker 이미지: `sha256:13e59528f290e7e0d28fb7821f8dea343947d6c0b7cdc8e83c2612677b83396e`. 1CPU/512MiB에서 실제 Stockfish17.1 응수 및 OZElq 대안 판정 깊이16/16을 확인했다. HTTP 검사 중 관측한 최대 메모리400,478,208바이트, OOM 없음. 검사 종료 후 임시 앱·PG 컨테이너를 중지했다. 운영 배포가 아니다.
 
 [PG 로그](postgres.log), [퍼즐 HTTP](http-challenge.json), [오프닝/엔진 HTTP](http-study.json), [연속 학습 HTTP](http-continuity.json), [기초 HTTP](http-foundations.json), [수동 도움말 결과](manual-guides.json), [최종 상호작용 로그](interactions-final.log). 최초 전체 실패 및 중단 로그는 별도로 보존한다.
+
+
+## 독립 검토 후속
+
+위 전체386/PG16/Docker 결과는 최초 제출 head `46bd957ef7dfc2eada2d0871ede2ff56c52a70e3`에 대한 결과다. 다음 변경 뒤 전체 회귀·PG·Docker를 다시 실행했다고 주장하지 않는다. 후속 검사는 관련 6개 모듈 **50통과/0실패, 130.41초**다. [후속 로그](review-followup.log), [변경 파일 해시](review-followup-sha256.json)를 별도로 보존한다. 이전 화면 증거는 덮어쓰지 않았다.
+
+- PC의 기존 addEventListener와 새 onclick이 함께 실행돼 아카데미 메뉴를 열기만 해도 이동하던 결함: 초기 탭 이벤트도 단일 onclick 경로로 바꿨다. PC/모바일의 진행 중 복기 분기에서 메뉴 열기→Escape/바깥 클릭 후 화면·분기·원본 불변, 대기 중 엔진 응답의 정상 반영, 실제 항목 선택 때의 이동을 검사했다.
+- rules-first 계정의 늦은 foundations 응답이 선택한 전술 영역을 닫던 결함: 기존 버튼·새 메뉴·허브가 공통 openTactics()를 사용해 명시 선택 플래그를 함께 설정한다. 계정 변경 때 플래그는 초기화한다. 메뉴/허브 각각 지연 GET 응답 후에도 전술 영역 유지 검사 통과.
+- 퍼즐 복습 A→B 선택 시 늦은 A 응답이 B를 덮던 결함: 결과 요청별 단조 증가 순번을 추가하고 모드 이동/계정 변경에서도 무효화한다. B→A 역순 응답 후 결과 B·사용자 포커스·스크롤 유지 검사 통과.
+- Queen's Indian/Catalan의 g2 비숍 대각선은 f3-e4-d5이며 d4 폰은 그 선에 없다. 해당 ply9의 방해 기물 Nf3, English ply7의 빈 f3/e4와 d5 직접 제어를 python-chess로 대조해 해설 및 관련 종료 계획을 수정했다. Colle-Zukertort의 b2-d4 차단 설명은 유지한다. Trompowsky ...Ne4 뒤 Bg5가 Ne4를 잡을 수 없다는 실제 합법 수를 확인해 비숍 피할 칸 선택으로 고쳤다.
+- 퍼즐 반복 출제 가능성과 같은 게임 점수 부여, 독립 실력 측정이 아니라는 문구를 시작 규칙·결과·서버 정책에 추가했다. 문제 선택/채점 정책은 변경하지 않았다.
+
+기존27강 객체는 main c4f7d3f의 내용과 비교해 모두 불변임을 확인했다. 총55강/신규28강/주요해설192개 유지. 초기 후속 검사는49통과/1실패였으며 새 검사에서 Bg5의 모든 잡기가 불가능하다고 과도하게 가정한 오류였다(Bxe7 같은 다른 잡기는 합법). 검사 범위를 g5e4 불가와 실제 피할 수 존재로 바로잡은 뒤 관련50개 전체를 재실행해 통과했다.
+
+Python90개 AST/JavaScript22개 Node 구문 및 diff 검사 통과. 전용 타입/린트는 설정이 없어 별도 미실행. TestClient/httpx 경고1건은 남아 있다. 운영 병합·배포·실계정 변경은 하지 않았다.

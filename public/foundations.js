@@ -17,7 +17,7 @@ const introDetails=document.createElement('details');make(introDetails,'summary'
 const home=document.createElement('section');home.id='foundationHome';home.className='card';home.innerHTML='<h3>어디서 이어갈까요?</h3><p id="foundationHomeText">규칙을 처음 배우면 아카데미 기초부터 시작하세요. 경험이 있다면 진단과 훈련을 선택할 수 있어요.</p><div class="btn-row"><button class="btn primary" id="foundationHomeOpen">기초 아카데미 보기</button><button class="btn" id="foundationHomeDiagnosis">진단 · 이어하기</button></div>';$('home').prepend(home);
 let data=null,owner=null,generation=0,busy=false,selected=null,failed=false,loading=null,tacticsChosen=false;
 const notice=s=>$('foundationStatus').textContent=s;
-function reset(){generation++;loading=null;data=null;owner=token;selected=null;busy=false;failed=false;$('foundationWorkspace').hidden=true;$('foundationCards').replaceChildren();$('foundationPrimary').replaceChildren();$('foundationBoard').replaceChildren();$('foundationHomeText').textContent='기초 진행은 로그인한 계정별로 저장됩니다. 진단과 훈련은 별도로 이어갑니다.';}
+function reset(){tacticsChosen=false;generation++;loading=null;data=null;owner=token;selected=null;busy=false;failed=false;$('foundationWorkspace').hidden=true;$('foundationCards').replaceChildren();$('foundationPrimary').replaceChildren();$('foundationBoard').replaceChildren();$('foundationHomeText').textContent='기초 진행은 로그인한 계정별로 저장됩니다. 진단과 훈련은 별도로 이어갑니다.';}
 function controls(){foundation.setAttribute('aria-busy',String(busy));for(const b of foundation.querySelectorAll('button:not(.sq),select'))b.disabled=busy||failed;for(const id of ['foundationReload','foundationToTactics','foundationReturnDiagnosis','foundationReturnTraining'])$(id).disabled=busy;}
 async function loadCore(){if(owner!==token)reset();if(busy)return;if(!token){$('foundationPrimary').replaceChildren();notice('로그인 후 기초 진행을 저장하고 이어갈 수 있습니다.');button($('foundationPrimary'),'계정 연결 후 시작',()=>ready('learn'));return;}const id=token,rev=++generation;busy=true;failed=false;notice('기초 학습의 저장 상태를 불러오는 중입니다…');controls();try{const d=await api('/foundations');if(id!==token||rev!==generation)return;data=d;render();notice(d.scope);}catch(e){if(id===token&&rev===generation){failed=true;notice('기초 진행을 불러오지 못했습니다. 기존 기록은 그대로입니다. 다시 불러오세요. '+e.message);}}finally{if(id===token&&rev===generation){busy=false;controls();paint();}}}
 function load(){if(owner!==token)reset();if(loading)return loading;const job=loadCore();loading=job;job.finally(()=>{if(loading===job)loading=null;});return job;}
@@ -36,11 +36,12 @@ function render(){if(!data)return;if(data.rules_first&&!tacticsChosen)tactics.op
  const nextBox=$('foundationNext');nextBox.replaceChildren();if(t.solved){if(t.step+1<t.total)button(nextBox,'다음 단계',()=>act('next',t.course_id));else if(data.recommended)button(nextBox,'다음 권장 과정',()=>act('start',data.recommended));else button(nextBox,'입문 관찰 선택',()=>window.cmaJourney.openEntry('gentle'));button(nextBox,'이 과정 다시 복습',()=>act('review',t.course_id));}paint();}
 $('foundationSubmit').onclick=()=>submit($('foundationFrom').value,$('foundationTo').value);$('foundationReload').onclick=load;
 summary.addEventListener('click',()=>{tacticsChosen=true;});
-$('foundationToTactics').onclick=()=>{tacticsChosen=true;tactics.open=true;summary.focus();tactics.scrollIntoView({block:'start'});};$('foundationReturnDiagnosis').onclick=()=>tab('diagnosis');$('foundationReturnTraining').onclick=()=>tab('training');$('foundationHomeDiagnosis').onclick=()=>tab('diagnosis');
+function openTactics(){tacticsChosen=true;tactics.open=true;summary.focus();tactics.scrollIntoView({block:'start'});}
+$('foundationToTactics').onclick=openTactics;$('foundationReturnDiagnosis').onclick=()=>tab('diagnosis');$('foundationReturnTraining').onclick=()=>tab('training');$('foundationHomeDiagnosis').onclick=()=>tab('diagnosis');
 async function openRecommended(){tab('learn');tactics.open=false;await load();const target=$('foundationRecommendedTitle')||$('foundationHeading');target.focus();target.scrollIntoView({block:'start'});}
 $('foundationHomeOpen').onclick=openRecommended;
 const oldTab=tab;tab=function(id){if(owner!==token)reset();oldTab(id);if(['learn','home'].includes(id))load();};
 const oldAuth=auth;auth=async function(...args){reset();await oldAuth(...args);await load();};$('signout')?.addEventListener('click',reset);
 const oldCourse=window.cmaOpenV9Course;window.cmaOpenV9Course=async(...args)=>{tacticsChosen=true;tactics.open=true;return oldCourse(...args);};
-window.cmaFoundations={load,openRecommended};load();
+window.cmaFoundations={load,openRecommended,openTactics};load();
 })();
