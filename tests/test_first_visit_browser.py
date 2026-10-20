@@ -143,3 +143,24 @@ def test_returning_action_precedes_optional_guides_and_group_location(guest,site
         p.evaluate('id=>tab(id)',view)
         expect(p.locator(f'.mobile-nav [data-tab={group}]')).to_have_attribute('aria-current','page')
     p.evaluate("tab('home')");p.screenshot(path='/tmp/cma-first-visit-captures/returning-home-final.png',full_page=True)
+
+
+def test_skip_prioritizes_activities_and_preserves_revisit_preference(guest,site):
+    p=guest
+    expect(p.locator('#firstTry')).to_have_class('btn primary')
+    p.locator('#firstSkip').click()
+    expect(p.locator('#firstSkip')).to_be_hidden()
+    expect(p.locator('#entryChoices h2')).to_be_focused()
+    expect(p.locator('#entry-diagnosis')).to_have_class('btn primary')
+    expect(p.locator('#firstTry')).to_have_class('btn')
+    assert p.evaluate("document.getElementById('firstEntry').firstElementChild.id")=='entryChoices'
+    for id in ['entry-diagnosis','entry-training','entry-play','entry-learn']:
+        assert p.locator('#'+id).bounding_box()['y']<p.locator('#firstTry').bounding_box()['y']
+    p.keyboard.press('Tab');expect(p.locator('#entry-diagnosis')).to_be_focused()
+    p.screenshot(path='/tmp/cma-first-visit-captures/skip-choices.png',full_page=True)
+    p.reload();expect(p.locator('#firstSkip')).to_be_hidden()
+    expect(p.locator('#entryChoices')).to_be_visible()
+    p.locator('#firstTry').click();expect(p.locator('#trialSkip')).to_be_visible()
+    p.locator('#trialSkip').click();expect(p.locator('#entryChoices h2')).to_be_focused()
+    expect(p.locator('#firstSkip')).to_be_hidden()
+    assert not p.evaluate('token')
