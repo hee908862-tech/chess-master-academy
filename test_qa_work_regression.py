@@ -18,7 +18,7 @@ checks={
  'QA-02 timeout state':'termination\':\'timeout\'' in server and 'resumeGame().finally' in app,
  'QA-03 v9 recommendation navigation':'window.cmaOpenV9Course' in ui and 'window.cmaOpenV9Course?.(course.id)' in v8,
  'QA-04 first attempt and hint':'first_try_correct' in v9 and 'hint_used' in v9 and 'first_try_total' in server,
- 'QA-05 course progress included':'courses_completed' in server and '학습 이수 세션' in app,
+ 'QA-05 course progress included':'courses_completed' in server and "['마친 과정',(user.stats.courses_completed||0)+'개']" in app,
  'QA-06 minimum evaluated moves':'len(game_losses)>=12' in a,
  'QA-07 zero content disabled':'btn.disabled=total===0' in ui and "el('v9CourseStart').disabled=!available.length" in ui,
  'QA-08 task state reset':'st.task=null;st.selected=null;st.solved=false' in ui,

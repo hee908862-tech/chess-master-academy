@@ -39,7 +39,7 @@ else:raise AssertionError('Initial image health timeout (60 seconds)')
 a,b,warm,lost=account(),account(),account(),account()
 output={'conditions':'Docker app 1 CPU/512MiB, PG 1 CPU/512MiB, loopback HTTP, unique temporary accounts, single sample','memory_before':memory()}
 with ThreadPoolExecutor(max_workers=4) as pool:
-    cold=pool.submit(timed,'journey/start',{},a)
+    cold=pool.submit(timed,'journey/start',{'mode':'balanced'},a)
     other=[pool.submit(timed,path,body,b) for path,body in [('me',None),('onboarding',None),('game/new',{'color':'white'})]]
     output['cold'],active=cold.result()
     output['concurrent']=[f.result()[0] for f in other]
@@ -86,9 +86,11 @@ s=saved
 while s['phase']!='complete':
     if s['phase']=='question':s=request('journey/action',{'session_id':s['session_id'],'revision':s['revision'],'action':'skip'},a)
     s=request('journey/action',{'session_id':s['session_id'],'revision':s['revision'],'action':'next'},a)
-report=s['report'];item=report['items'][0]
-linked=request('learning/from-diagnosis',{'report_id':report['id'],'item_id':item['id']},a)
-t=linked['active']
+report=s['report'];task=report['training_plan'][0]
+assert report['snapshot']['version']=='growth-v1'
+cycle=request('journey',token=a)['cycle']
+body={'report_id':report['id'],'item_id':task['id']}
+t=request('learning/cycle/start',body,a)
 training=request('learning/action',{'session_id':t['session_id'],'revision':t['revision'],'action':'hint'},a)
 subprocess.run(['docker','restart','cma-predeploy-app'],check=True,stdout=subprocess.DEVNULL)
 for _ in range(600):
@@ -96,7 +98,36 @@ for _ in range(600):
     except Exception:time.sleep(.1)
 else:raise AssertionError('Training restart health timeout')
 assert request('learning/dashboard',token=a)['active']==training
-again=request('learning/from-diagnosis',{'report_id':report['id'],'item_id':item['id']},a)
-assert again['active']==training and again['path']['id']==linked['path']['id']
-output['training_restart_resume']='PASS: saved hint/session/revision retained; repeated bridge returns same path/task'
+again=request('learning/cycle/start',body,a)
+assert again==training
+restored=request('journey',token=a)
+assert restored['latest']==report and restored['cycle']==cycle
+output['training_restart_resume']='PASS: saved hint/session/revision retained; repeated cycle assignment returns same task; growth snapshot and gate preserved'
+# Warm the diagnostic inventory, then exercise real AI play and background analysis
+# in the same 512MiB application container (without pytest in that container).
+request('journey/start',{'mode':'quick'},account())
+g=request('game/new',{'color':'black','difficulty':1},b)
+for _ in range(2):
+    move=g['board']['legal'][0]
+    g=request('game/move',{'from_sq':move['from'],'to_sq':move['to'],'promotion':move.get('promotion') or 'q','session_id':g['session_id'],'expected_fen':g['board']['fen']},b)
+request('game/resign',{},b)
+records=request('games/analysis',token=b);key=records['games'][-1]['game_key']
+request('games/analysis/'+key,{},b)
+for _ in range(400):
+    records=request('games/analysis',token=b);analysed=records['games'][-1]
+    if analysed['status'] not in ('queued','running'):break
+    time.sleep(.05)
+assert analysed['status'] in ('complete','partial'),analysed
+assert analysed['user_moves']==2 and analysed['rating'] is None and records['average'] is None
+assert analysed['engine'].startswith('Stockfish')
+output['analysis_http']={'result':'PASS: real black AI game, analysis, rating hold, short-game exclusion with warm inventory','state':analysed}
+output['memory_with_analysis']=memory()
+output['container_memory_peak_bytes']=int(subprocess.check_output(['docker','exec','cma-predeploy-app','cat','/sys/fs/cgroup/memory.peak'],text=True))
+subprocess.run(['docker','restart','cma-predeploy-app'],check=True,stdout=subprocess.DEVNULL)
+for _ in range(600):
+    try:request('health');break
+    except Exception:time.sleep(.1)
+else:raise AssertionError('Analysis restart health timeout')
+assert request('games/analysis',token=b)['games'][-1]==analysed
+output['analysis_restart_resume']='PASS: completed analysis unchanged after process restart'
 print(json.dumps(output,ensure_ascii=False,indent=2))

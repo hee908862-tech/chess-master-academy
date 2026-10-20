@@ -231,3 +231,42 @@ def test_reset_atomic_duplicate_and_inflight_generation(monkeypatch):
     assert state('journey_progress',code) is None and state('learning_progress',code) is None
     assert b.get('/api/me').json()['reset_revision']==0
     assert a.get('/api/me').json()['reset_revision']==1
+
+
+def test_growth_balanced_cycle_unlock_and_preserved_snapshots():
+    c,code=account()
+    s=post(c,'journey/start',{'mode':'balanced'})
+    assert s['total']==24 and 'competency' not in s['question']
+    while s['phase']!='complete':
+        s=post(c,'journey/action',{'session_id':s['session_id'],'revision':s['revision'],'action':'skip'})
+        s=post(c,'journey/action',{'session_id':s['session_id'],'revision':s['revision'],'action':'next'})
+    report=s['report'];assert report['snapshot']['version']=='growth-v1'
+    assert c.post('/api/journey/start',json={'mode':'balanced'}).status_code==409
+    for task in report['training_plan']:
+        body={'report_id':report['id'],'item_id':task['id']}
+        t=post(c,'learning/cycle/start',body)
+        card=state('learning_progress',code)['cards'][t['card_id']]
+        for move in card['line'][::2]:
+            t=post(c,'learning/action',{'session_id':t['session_id'],'revision':t['revision'],'action':'move','move':move})
+            if t['done']:break
+        assert t['done']
+        assert c.post('/api/learning/cycle/start',json=body).status_code==409
+    status=c.get('/api/journey').json();assert status['cycle']['unlocked'] and status['cycle']['completed']==5
+    post(c,'journey/start',{'mode':'balanced'})
+    assert c.get('/api/journey').json()['latest']==report
+
+
+def test_real_image_engine_analysis_persists_without_rating():
+    import game_analysis
+    c,code=account();legacy=server.get_state(code)
+    game={'moves':['e2e4','e7e5','g1f3','b8c6'],'color':'black','ended':'2026-10-20T12:00:00+00:00','assistance':{'version':1,'complete':True,'events':[]}}
+    legacy['games']=[game];server.save_state(code,legacy);key=game_analysis.game_key(game)
+    post(c,'games/analysis/'+key,{})
+    for _ in range(400):
+        result=c.get('/api/games/analysis').json()['games'][0]
+        if result['status'] not in ('queued','running'):break
+        time.sleep(.05)
+    assert result['status'] in ('complete','partial'),result
+    assert result['user_moves']==2 and result['rating'] is None and result['engine'].startswith('Stockfish')
+    assert c.get('/api/games/analysis').json()['average'] is None
+    assert server.get_state(code)['games']==[game]

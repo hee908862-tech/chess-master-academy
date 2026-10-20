@@ -94,6 +94,7 @@ def initdb():
   execute(c,'CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, code TEXT NOT NULL, created INTEGER NOT NULL)')
   execute(c,'CREATE TABLE IF NOT EXISTS account_generations (code TEXT PRIMARY KEY, generation INTEGER NOT NULL)')
   execute(c,'CREATE TABLE IF NOT EXISTS progress (code TEXT PRIMARY KEY, state TEXT NOT NULL)')
+  execute(c,'CREATE TABLE IF NOT EXISTS game_analysis (code TEXT NOT NULL, game_key TEXT NOT NULL, state TEXT NOT NULL, PRIMARY KEY(code,game_key))')
 
 initdb()
 app=FastAPI(title='Chess Master Academy')
@@ -947,7 +948,7 @@ def profile_reset(body:ResetProfile,authorization:str|None=Header(default=None))
   generation=row['generation'] if row else 0
   if generation!=body.revision:raise HTTPException(409,'이미 초기화했거나 다른 화면에서 기록 상태가 바뀌었습니다. 기록을 다시 확인하세요.')
   execute(c,'INSERT INTO account_generations(code,generation) VALUES(?,0) ON CONFLICT(code) DO NOTHING',(code,))
-  for table in ('progress','journey_progress','learning_progress'):
+  for table in ('progress','journey_progress','learning_progress','game_analysis'):
    execute(c,f'DELETE FROM {table} WHERE code=?',(code,))
   execute(c,'INSERT INTO progress(code,state) VALUES(?,?)',(code,json.dumps(blank_state(),ensure_ascii=False)))
   # Final write: subsequent requests use this new generation; earlier work is rejected.
@@ -1239,3 +1240,6 @@ from journey_server import attach_journey
 attach_journey(app, globals())
 from onboarding_server import attach_onboarding
 attach_onboarding(app, globals())
+
+from game_analysis import attach_analysis
+attach_analysis(app, globals())

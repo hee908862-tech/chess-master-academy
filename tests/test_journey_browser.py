@@ -149,13 +149,13 @@ def test_real_journey_complete_skipped_then_training(site,width,height,label):
         data=page.evaluate("api('/journey')")
         assert data['active'] is None
         assert not any(a['full_success'] for a in data['latest']['areas'])
-        page.locator('#journeyResults button',has_text='연결된 훈련 시작').first.click()
+        page.locator('#journeyResults button',has_text='설명과 함께 다시 익히기').first.click()
         expect(page.locator('#training')).to_have_class('view active')
-        expect(page.locator('#learningRouteStatus')).to_contain_text('왜 이 훈련인가')
         linked=page.evaluate("api('/learning/dashboard')")
-        assert linked['path']['diagnosis']['report_id']==data['latest']['id']
+        assert linked['active']['growth_task']=={'report_id':data['latest']['id'],'task_id':'1'}
         expect(page.locator('#learningBoard .sq')).to_have_count(64)
-        assert linked['active']['fen']==data['latest']['items'][0]['fen']
+        source_id=data['latest']['training_plan'][0]['item_id']
+        assert linked['active']['fen']==next(i['fen'] for i in data['latest']['items'] if i['id']==source_id)
         page.screenshot(path=str(captures/f'training-{label}.png'),full_page=True)
         browser.close()
 
