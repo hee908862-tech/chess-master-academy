@@ -51,7 +51,7 @@ function renderReport(report,target='journeyResults',readOnly=false){let host=by
  const recheck=button(card,'7일 뒤 기억 유지 확인',()=>start('recheck',area.id));recheck.dataset.ineligible=String(gate?.eligible===false);recheck.disabled=gate?.eligible===false;
  }}
  if(!readOnly&&(!session||session.phase==='complete')&&!report.snapshot&&report.mode!=='gentle'){const b=button(host,'새 진단 시작',()=>start());b.dataset.ineligible=String(state?.cycle&&!state.cycle.unlocked);}
- if(target==='journeyResults'&&!readOnly&&state?.cycle_report&&state.cycle_report.id!==report.id){const previous=text(host,'details','','card');previous.id='journeyPreviousCycle';text(previous,'summary','이전 표준 진단의 추천 주기 · 현재 입문/추가 결과와 별도');const box=text(previous,'div','');box.id='journeyCycleReport';renderReport(state.cycle_report,box.id);}
+ if(target==='journeyResults'&&!readOnly&&!report.snapshot&&state?.cycle_report&&state.cycle_report.id!==report.id){const previous=text(host,'details','','card');previous.id='journeyPreviousCycle';text(previous,'summary','이전 표준 진단의 추천 주기 · 현재 입문/추가 결과와 별도');const box=text(previous,'div','');box.id='journeyCycleReport';renderReport(state.cycle_report,box.id);}
  const audit=document.createElement('details');host.append(audit);text(audit,'summary','측정 범위와 비교 제한');if(report.comparison)text(audit,'p',lines(report.comparison));for(const limitation of report.limitations||[])text(audit,'p',limitation,'footnote');
 }
 function renderHome(){const primary=by('journeyHomeOpen');if(busy||state?.preparing){primary.textContent='준비 상태 확인';by('journeyHomeStatus').textContent=state?.preparing?'진단 자료를 준비 중입니다. 다른 기능을 이용할 수 있습니다.':'저장 상태를 확인 중입니다.';primary.onclick=open;return;}

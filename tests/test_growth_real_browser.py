@@ -101,5 +101,6 @@ def test_solved_partial_diagnosis_five_tasks_resume_and_concept_path(page,site,t
         page.locator('#journeySkip').click();expect(page.locator('#journeyFeedback')).to_contain_text('미응답');page.locator('#journeyNext').click()
         if index<23:expect(page.locator('#journeyProgress')).to_have_text(f'{index+2} / 24 문항')
     expect(page.locator('.growth-plan progress')).to_have_attribute('value','0')
+    expect(page.locator('#journeyPreviousCycle')).to_have_count(0)
     assert api('/journey')['latest']['id']!=report['id']
     expect(page.get_by_role('button',name='새 문제로 다시 진단하기',exact=True)).to_be_disabled()
