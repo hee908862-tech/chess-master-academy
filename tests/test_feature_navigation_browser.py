@@ -23,11 +23,11 @@ def test_navigation_help_no_mutations_and_opening_layout(page,site,width):
  button.click();page.locator('[data-academy="tactics"]').click()
  expect(page.locator('#learn')).to_have_class('view active')
  expect(page.locator('#academyTactics')).to_have_attribute('open','')
- expect(page.locator('#academyLocation')).to_contain_text('전술 훈련')
+ expect(page.locator('#learning-location')).to_contain_text('전술 과목')
  page.locator('#learn .feature-toolbar button').click();expect(page.locator('#featureHelpDialog')).to_be_visible()
  page.keyboard.press('Shift+Tab');expect(page.locator('#featureHelpDialog button')).to_be_focused()
  page.keyboard.press('Escape');expect(page.locator('#learn .feature-toolbar button')).to_be_focused()
- page.locator('[data-academy-choice="resume"]').click();expect(page.locator('#academyResume')).to_be_focused()
+ page.locator('#learn-hub-back').click();page.locator('#learn-saved').click();expect(page.locator('#academyResume')).to_be_focused()
  assert not posts,posts
  page.evaluate("tab('opening')");expect(page.locator('#studyCourse option')).to_have_count(55)
  page.locator('#studyCourse').select_option('london-core');expect(page.locator('#studyOpeningBoard .sq')).to_have_count(64)
@@ -154,12 +154,12 @@ def test_rules_first_explicit_tactics_survives_delayed_foundations(page,site,ent
  if entry=='menu':
   page.locator('.nav [data-tab="learn"]').click();page.locator('[data-academy="tactics"]').click()
  else:
-  page.evaluate("tab('learn')");page.locator('[data-academy-choice="tactics"]').click()
+  page.evaluate("tab('learn')");page.locator('#learn-choice-tactics').click()
  expect(page.locator('#academyTactics')).to_have_attribute('open','')
  page.evaluate('data=>window.releaseFoundations(data)',data)
  expect(page.locator('#foundationStatus')).to_have_text(data['scope'])
  expect(page.locator('#academyTactics')).to_have_attribute('open','')
- expect(page.locator('#academyLocation')).to_contain_text('전술 훈련')
+ expect(page.locator('#learning-location')).to_contain_text('전술 과목')
 
 
 def test_challenge_review_last_selected_result_wins_reverse_response(page,site):

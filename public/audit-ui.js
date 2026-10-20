@@ -18,6 +18,7 @@ for(const [id,label,description] of [['basics','기초 배우기','말의 움직
 document.body.append(academy);
 const mobile=matchMedia('(max-width:850px)');
 function closeAcademy(restore=true){const b=opener;opener=null;if(academy.open)academy.close();b?.setAttribute('aria-expanded','false');if(restore)b?.focus();}
+window.cmaCloseAcademy=closeAcademy;
 for(const b of document.querySelectorAll('[data-tab="learn"]')){b.setAttribute('aria-haspopup','dialog');b.setAttribute('aria-controls',academy.id);b.setAttribute('aria-expanded','false');b.onclick=()=>{if(academy.open&&opener===b){closeAcademy();return;}closeAcademy(false);opener=b;b.setAttribute('aria-expanded','true');if(mobile.matches){academy.style.removeProperty('left');academy.style.removeProperty('top');academy.showModal();}else{const r=b.getBoundingClientRect();academy.style.left=Math.min(r.right+12,innerWidth-370)+'px';academy.style.top=Math.max(12,Math.min(r.top,innerHeight-420))+'px';academy.show();academy.style.top=Math.max(12,Math.min(r.top,innerHeight-academy.getBoundingClientRect().height-12))+'px';ac.focus();}};}
 academy.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeAcademy();}});
 document.addEventListener('pointerdown',e=>{if(academy.open&&!mobile.matches&&!academy.contains(e.target)&&e.target!==opener){if(!e.target.closest('button,a,input,select,textarea,[tabindex]')){e.preventDefault();closeAcademy();}else closeAcademy(false);}});

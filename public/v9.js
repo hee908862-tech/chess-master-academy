@@ -113,7 +113,7 @@ async function history(){const identity=token;if(!identity)return;try{const d=aw
  }catch(e){if(identity===token)el('v9CourseHistory').textContent=e.message}}
 async function hint(kind){const st=modes[kind];if(!st.task||st.busy||st.solved)return;const revision=st.revision,identity=token;st.busy=true;try{const r=await api(`/v9/${kind}/hint?`+new URLSearchParams({session_id:st.task.session_id,expected_fen:st.task.fen}));if(revision!==st.revision||identity!==token)return;st.hint=[r.from,r.to];status(kind,`추천 이동: ${r.move_label} · ${r.explanation}`);paint(kind)}catch(e){if(revision===st.revision&&identity===token)await failed(kind,e)}finally{if(revision===st.revision)st.busy=false}}
 
-function selectCourse(theme){invalidate('course');courseTheme=theme;el('v9LearnMode').hidden=false;const st=modes.course;st.task=null;st.selected=null;st.solved=false;st.last=[];st.mistakes=0;el('v9CourseBoard').replaceChildren();el('v9CourseMeta').textContent='새 과목 대기 중';el('v9CourseNext').hidden=true;el('v9CourseHint').disabled=true;
+function selectCourse(theme){if(courseTheme===theme&&modes.course.task&&window.cmaNavigation){window.cmaNavigation.tacticSelected();return;}invalidate('course');courseTheme=theme;el('v9LearnMode').hidden=false;const st=modes.course;st.task=null;st.selected=null;st.solved=false;st.last=[];st.mistakes=0;el('v9CourseBoard').replaceChildren();el('v9CourseMeta').textContent='새 과목 대기 중';el('v9CourseNext').hidden=true;el('v9CourseHint').disabled=true;
  const m=catalog?.themes.find(x=>x.id===theme);
  el('v9CourseTitle').textContent=(m?.name||theme)+' · 난이도 선택';
  const concept=window.cmaAcademyConcept(theme);el('v9CourseMessage').textContent='학습 목표: '+concept.goal+' '+concept.example+' 이 설명은 개념 예시이며 현재 문제의 정답 해설이 아닙니다. 15문제에서 직접 확인해 보세요.';
@@ -143,7 +143,7 @@ el('v9PuzzleStart').onclick=()=>start('puzzle');el('v9PuzzleNext').onclick=()=>n
 el('v9CourseStart').textContent='새 15문제 과정 시작';
 el('v9CourseStart').onclick=()=>start('course');el('v9CourseNext').onclick=()=>next('course');
 el('v9CourseBack').onclick=()=>{if(window.cmaNavigation){window.cmaNavigation.go('learn/tactics');return;}invalidate('course');el('v9LearnMode').hidden=true;courseTheme=null};
-window.cmaTacticView={hasSelection:()=>!!courseTheme,loadSaved:async()=>{await catalogReady;await restore('course');}};
+window.cmaTacticView={hasSelection:()=>!!courseTheme,refreshSaved:()=>loadSavedCourse(),loadSaved:async()=>{await catalogReady;await restore('course');}};
 const catalogReady=init();
 window.cmaOpenV9Course=async(theme)=>{await catalogReady;if(!catalog)return false;const m=catalog.themes.find(t=>t.id===theme);if(!m)return false;selectCourse(theme);return true};
 })();
