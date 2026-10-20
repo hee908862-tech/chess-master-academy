@@ -17,3 +17,10 @@ h1,h2,h3,h4,p,button,summary{word-break:keep-all;overflow-wrap:break-word;text-w
 .journey-profile-link{display:none}.ability-score{display:inline-flex;align-items:center;justify-content:center;border:2px solid #8fe5c8;border-radius:50%;width:94px;height:94px;font-size:20px}.ability-card summary{font-size:13px;color:#bac9db;min-height:32px!important}.ability-card details small{margin-top:0}
 #profile .two{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))!important}
 #profile .setting-grid,#profile .auth-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))!important}
+#home .learning-home{display:block!important}#home .learning-home:not([open])>*:not(summary){display:none}
+#home .hero-grid .hero-main,#home>.three,#recommendText{display:none!important}
+#home .hero-grid{grid-template-columns:minmax(0,1fr)}
+#journeyPast{margin-top:20px}#journeyPastReport .growth-plan{display:none}
+.growth-task.completed{background:#193e37;border:1px solid #8fe5c8;padding:16px;border-radius:12px;color:#f1fff9;margin:8px 0}.growth-task.completed .tag{color:#d5ffed;background:#214c41}
+.ability-score{width:auto;min-width:94px;padding:8px;box-sizing:border-box}
+#trainingCycle .btn{margin:5px;white-space:normal}#learningRoute summary{font-weight:600;cursor:pointer}

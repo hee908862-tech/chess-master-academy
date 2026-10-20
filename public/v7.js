@@ -24,36 +24,6 @@
     try{const data=await api('/v7/game/undo','POST',{session_id:current?.session_id,expected_fen:current?.fen});if(token!==identity||gameRequest!==revision||game!==current)return;playerColor=data.player_color;showGame({...data.board,session_id:data.session_id},`이전 ${data.removed_plies}반수를 되돌렸습니다.`);}
     catch(e){if(token===identity&&gameRequest===revision)notice('gameStatus',e.message,'err')}finally{undo.disabled=false;if(gameRequest===revision)gameBusy=false}
   };
-  // For review, the user's selected ply is the branch point, not just the last move.
-  const status=document.getElementById('reviewStatus');
-  const reviewActions=document.createElement('div');reviewActions.className='v7-review-actions';
-  const note=ui('v7ReviewHeading','div','');note.textContent='선택한 포지션에서 다른 수를 직접 실험해 보세요.';note.className='subtle';
-  const moveInput=ui('v7MoveInput','input');moveInput.className='field';moveInput.placeholder='착수 입력 (예: e2e4 또는 g1f3)';moveInput.maxLength=5;
-  const doMove=ui('v7TryMove','button','다른 수로 진행');
-  const best=ui('v7TryBest','button','추천 수로 진행');
-  const branch=ui('v7Branch','div','');branch.className='notice';branch.textContent='원래 대국 기록은 변경되지 않습니다.';
-  reviewActions.append(note,moveInput,doMove,best,branch);status.parentElement.append(reviewActions);
-  async function evaluateVariation(move){
-    if(!ready()||!v5Review){branch.textContent='먼저 저장된 대국을 선택하고 분석하세요.';return;}
-    const index=Number(document.getElementById('reviewGameSelect').value);
-    branch.textContent='선택한 수의 후속 진행을 분석하고 있습니다...';
-    doMove.disabled=true;best.disabled=true;
-    try{
-      const r=await api('/v7/review/variation','POST',{index,ply:v5ReviewIndex,move,depth:4});
-      branch.replaceChildren();
-      const summary=document.createElement('div');summary.textContent=`엔진: ${r.engine} · ${r.note}`;branch.append(summary);
-      r.moves.forEach((m,i)=>{const b=document.createElement('button');b.className='btn tiny';b.style.margin='6px 6px 0 0';b.textContent=`${i+1}. ${m.side} ${m.san}`;b.onclick=()=>drawBoard('reviewBoard',fromFen(m.fen),{flip:v5Review.color==='black'});branch.append(b)});
-      if(r.moves.length)drawBoard('reviewBoard',fromFen(r.moves[r.moves.length-1].fen),{flip:v5Review.color==='black'});
-    }catch(e){branch.textContent=e.message}
-    finally{doMove.disabled=false;best.disabled=false}
-  }
-  doMove.onclick=()=>evaluateVariation(moveInput.value.trim().toLowerCase());
-  best.onclick=()=>{
-    if(!v5Review){branch.textContent='먼저 대국을 선택하세요.';return;}
-    const row=v5Review.moves[v5ReviewIndex];
-    if(!row?.best_move){branch.textContent='현재 위치에 검증된 추천 수가 없습니다. 임의의 수를 입력하여 분석할 수 있습니다.';return;}
-    moveInput.value=row.best_move;evaluateVariation(row.best_move);
-  };
   const openingView=document.getElementById('opening');
   const openingHeader=openingView?.querySelector('.row');
   const family=document.createElement('div');family.className='card';family.innerHTML='<h3 class="heading">오프닝 계보 탐색</h3><p class="subtle">먼저 원류(오프닝 계열)를 고르고 해당 변화의 백·흑 실습을 선택하세요. 현재 목록은 제공된 기본 수순이며, 실제 대국 빈도 통계 순위는 아직 연동되지 않았습니다.</p>';

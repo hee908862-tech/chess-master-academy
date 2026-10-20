@@ -79,6 +79,7 @@ def test_guest_return_and_board_layout(site,width,height):
         assert page.locator('#v9PuzzleBoard .sq').count()==0
         page.evaluate("tab('training')")
         expect(page.locator('#learningRouteStatus')).not_to_be_empty()
+        page.locator('#learningRoute > summary').click()
         page.locator('#learningRouteActions button').click()
         expect(page.locator('#learningBoard .sq')).to_have_count(64)
         expect(page.locator('#learningRouteStatus')).to_contain_text('1/4')

@@ -33,8 +33,9 @@ def test_solved_partial_diagnosis_five_tasks_resume_and_concept_path(page,site,t
     expect(page.locator('#journeyBoard .sq')).to_have_count(64)
     rows=stored('journey_progress')['active']['items'];assert len(rows)==24
     partial=False
+    partial_index=next(i for i,row in enumerate(rows) if len(row['line'])>=3)
     for index,row in enumerate(rows):
-        if index<2:
+        if index!=partial_index:
             for move in row['line'][::2]:
                 result=move_ui('journeyBoard',move)
                 if result['phase']=='feedback':break
@@ -48,8 +49,12 @@ def test_solved_partial_diagnosis_five_tasks_resume_and_concept_path(page,site,t
         page.locator('#journeyNext').click()
         if index<23:expect(page.locator('#journeyProgress')).to_have_text(f'{index+2} / 24 문항')
     assert partial
+    # All six measured areas now have both bands observed and usable scores.
     expect(page.locator('.growth-plan progress')).to_have_attribute('value','0')
-    report=api('/journey')['latest'];assert sum(a['full_success'] for a in report['areas'])>=2
+    report=api('/journey')['latest'];assert sum(a['full_success'] for a in report['areas'])>=22
+    assert all(a['performance']['score'] is not None and a['performance']['comparable'] for a in report['areas'] if a['id']!='strategy')
+    page.evaluate("tab('profile')");expect(page.locator('#growthProfile svg circle')).to_have_count(1)
+    page.evaluate("tab('diagnosis')")
     # Prepare a real pre-existing concept-stage path. Preserve it while using new tasks.
     old=api('/learning/from-diagnosis',{'report_id':report['id'],'item_id':report['training_plan'][0]['item_id']})
     task=old['active'];card=stored('learning_progress')['cards'][task['card_id']]
@@ -85,6 +90,13 @@ def test_solved_partial_diagnosis_five_tasks_resume_and_concept_path(page,site,t
     page.get_by_role('button',name='새 문제로 다시 진단하기',exact=True).click()
     expect(page.locator('#journeyProgress')).to_have_text('1 / 24 문항')
     current=api('/journey');assert current['latest']['id']==report['id'] and current['cycle']['unlocked']
+    page.locator('#journeyRefresh').click();expect(page.locator('#journeyProgress')).to_have_text('1 / 24 문항')
+    expect(page.locator('#journeyResults')).to_be_empty()
+    expect(page.locator('#journeyPast')).not_to_have_attribute('open','')
+    page.locator('#journeyPast summary').first.click()
+    expect(page.locator('#journeyPastReport .ability-card')).to_have_count(7)
+    expect(page.locator('#journeyPastReport .growth-plan')).not_to_be_visible()
+    page.locator('#journeyPast summary').first.click()
     for index in range(24):
         page.locator('#journeySkip').click();expect(page.locator('#journeyFeedback')).to_contain_text('미응답');page.locator('#journeyNext').click()
         if index<23:expect(page.locator('#journeyProgress')).to_have_text(f'{index+2} / 24 문항')

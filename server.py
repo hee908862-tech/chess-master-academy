@@ -1258,3 +1258,6 @@ attach_onboarding(app, globals())
 
 from game_analysis import attach_analysis
 attach_analysis(app, globals())
+
+from study_server import attach_study
+attach_study(app, globals())
