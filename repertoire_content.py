@@ -45,7 +45,7 @@ def lesson(course_id):
         for san in 'd4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Bd6 Bxd6 Qxd6 Bd3'.split():
             m=b.parse_san(san);alternate.append(m.uci());b.push(m)
         branches['bishop-exchange']=alternate
-    version=hashlib.sha256(json.dumps([c['version'],branches,NOTES.get(course_id), 'repertoire-content-v1'],sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:20]
+    version=hashlib.sha256(json.dumps([c['version'],c['notes'],c['ending'],branches,NOTES.get(course_id), 'repertoire-content-v1'],sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:20]
     return {'id':course_id,'title':c['title'],'version':version,'branches':branches}
 
 def explanation(course_id,moves):

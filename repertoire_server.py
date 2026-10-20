@@ -33,6 +33,9 @@ def next_moves(run):return list(dict.fromkeys(line[len(run['moves'])] for _,line
 def outdated(run):return run['lesson_id'] not in courses() or run['version']!=lesson(run['lesson_id'])['version']
 def event(run,kind,move=None):
     if len(run['events'])>=MAX_EVENTS:raise HTTPException(409,'시도 기록 한도입니다. 현재 시도를 마친 뒤 새 시도로 이어가세요.')
+    if kind in ('hint','deviation'):
+        point={'ply':len(run['moves']),'moves':list(run['moves']),'fen':board(run).fen()}
+        if point not in run.setdefault('weak_points',[]):run['weak_points'].append(point)
     run['events'].append({'kind':kind,'ply':len(run['moves']),'fen':board(run).fen(),'move':move,'at':now()})
 def advance(run):
     # Opponent uses the selected main line, or the registered alternate already chosen.
@@ -57,7 +60,7 @@ def record_completion(saved):
 def payload(saved):
     r=saved.get('active');active=None
     if r:
-        active={k:copy.deepcopy(r[k]) for k in ['id','root_id','lesson_id','version','title','side','mode','phase','moves','branch_ids','events','hints','deviations','feedback','start_ply']}
+        active={k:copy.deepcopy(r[k]) for k in ['id','root_id','lesson_id','version','title','side','mode','phase','moves','branch_ids','events','hints','deviations','feedback','start_ply','weak_points']}
         active.update(view(board(r)));active['outdated']=outdated(r)
         active['legal']=active['legal'] if r['phase']=='playing' and not active['outdated'] else []
         reveal=r['mode']=='learn' or r.get('hint_ply')==len(r['moves']) or r['phase']!='playing'
@@ -90,7 +93,7 @@ def attach_repertoire(app,ns):
             if r and r['phase']=='playing':raise HTTPException(409,'진행 중 시도를 먼저 이어가거나 마쳐 주세요.')
             if req.lesson_id not in saved['selected']:raise HTTPException(400,'내 레퍼토리에 먼저 선택해 주세요.')
             archive(saved);c=lesson(req.lesson_id);ident=secrets.token_hex(16)
-            saved['active']={'id':ident,'root_id':ident,'lesson_id':c['id'],'version':c['version'],'title':c['title'],'branches':copy.deepcopy(c['branches']),'moves':[],'branch_ids':list(c['branches']),'side':req.side,'mode':req.mode,'phase':'playing','events':[],'hints':0,'deviations':0,'feedback':'상대 대응을 확인하며 선택한 색의 수를 두세요.','start_ply':0,'at':now()}
+            saved['active']={'id':ident,'root_id':ident,'lesson_id':c['id'],'version':c['version'],'title':c['title'],'branches':copy.deepcopy(c['branches']),'moves':[],'branch_ids':list(c['branches']),'side':req.side,'mode':req.mode,'phase':'playing','events':[],'weak_points':[],'hints':0,'deviations':0,'feedback':'상대 대응을 확인하며 선택한 색의 수를 두세요.','start_ply':0,'at':now()}
             metric=saved['metrics'].setdefault(c['id'],{'hints':0,'deviations':0,'recall_attempts':0,'completions':0,'first_recall':None})
             if req.mode=='recall':metric['recall_attempts']+=1
             advance(saved['active'])
@@ -105,13 +108,13 @@ def attach_repertoire(app,ns):
             elif req.action in ('retry','weak'):
                 old=copy.deepcopy(r)
                 if req.action=='weak':
-                    points=[e['ply'] for e in r['events'] if e['kind'] in ('hint','deviation')]
+                    points=r.get('weak_points',[])
                     if not points:raise HTTPException(409,'도움이나 이탈 위치가 없습니다. 전체 복습을 선택하세요.')
-                    start=min(points)
+                    point=min(points,key=lambda p:p['ply']);start=point['ply']
                 else:start=0
                 if r['mode']=='recall' and metric['first_recall'] is None:metric['first_recall']={'attempt_id':r['id'],'completed':False,'clean':False}
                 archive(saved)
-                old.update(id=secrets.token_hex(16),moves=old['moves'][:start],phase='playing',events=[],start_ply=start,feedback='이전 도움·이탈 누적을 유지하는 재시도입니다.',at=now())
+                old.update(id=secrets.token_hex(16),moves=point['moves'] if req.action=='weak' else [],phase='playing',events=[],start_ply=start,feedback='이전 도움·이탈 누적을 유지하는 재시도입니다.',at=now())
                 old.pop('hint_ply',None);old.pop('recorded',None);saved['active']=old
                 if old['mode']=='recall':metric['recall_attempts']+=1
                 advance(old)

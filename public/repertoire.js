@@ -30,10 +30,10 @@ function render(){body.replaceChildren();if(!data)return;const r=data.active,hid
  if(r.guidance){for(const [k,label] of [['placement','배치 특징'],['opponent','상대 목표'],['plan','가능한 계획'],['exception','예외와 한계']]){make(info,'h4',label);make(info,'p',r.guidance[k]);}if(r.guidance.move_note){make(info,'p',r.guidance.move_note.facts);if(r.guidance.move_note.comment)make(info,'p',r.guidance.move_note.comment);}}
  for(const o of r.options)button(info,o.san+' · 등록 예시 수',()=>request('move',{move:o.move}));
  if(r.phase==='playing'&&!r.outdated)button(body,'현재 수·설명 힌트 (도움 기록)',()=>request('hint'));
- if(!r.outdated){button(body,'처음부터 다시 연습 (이력 유지)',()=>request('retry'));if(r.events.some(e=>['hint','deviation'].includes(e.kind)))button(body,'도움·이탈 위치부터 다시 연습',()=>request('weak'));}
+ if(!r.outdated){button(body,'처음부터 다시 연습 (이력 유지)',()=>request('retry'));if(r.weak_points.length)button(body,'도움·이탈 위치부터 다시 연습',()=>request('weak'));}
  if(r.phase==='complete'&&r.mode==='learn')button(body,'같은 레슨 답 가리고 복습',async()=>{await request('finish');if(!failed)request('start',{lesson_id:r.lesson_id,side:r.side,mode:'recall'});});
  button(body,r.phase==='complete'?'결과 보관 후 레슨 선택':'이 시도 기록하고 마치기',()=>request('finish'));
- const log=make(body,'details');make(log,'summary','내 입력·도움·이탈 이력');for(const e of r.events)make(log,'p',`${e.ply}반수 위치 · ${e.kind==='hint'?'힌트':e.kind==='deviation'?'등록 수순 이탈':'등록 수 재현'}${e.move?' · '+e.move:''}`);
+ const log=make(body,'details');make(log,'summary','내 입력·도움·이탈 이력');for(const p of r.weak_points)make(log,'p',`이전 시도 포함 도움·이탈 위치: ${p.ply}반수${hiddenAnswers?'':(' · '+(p.moves.join(' → ')||'초기 위치'))}`);for(const e of r.events)make(log,'p',`${e.ply}반수 위치 · ${e.kind==='hint'?'힌트':e.kind==='deviation'?'등록 수순 이탈':'등록 수 재현'}${e.move?' · '+e.move:''}`);
  }
  if(!hiddenAnswers){const history=make(body,'details');make(history,'summary','완료·중단 기록 '+data.history.length+'개');for(const r of [...data.history].reverse())make(history,'p',`${r.title} · ${r.mode==='recall'?'복습':'학습'} · ${r.phase==='complete'?'완료':'중단'} · 도움 ${r.hints} · 이탈 ${r.deviations}`);}
  make(body,'p',data.policy,'subtle');button(body,hiddenAnswers?'기존 탐색 보기 (복습 도움 기록)':'기존 강의 탐색·북마크 보기',async()=>{if(hiddenAnswers){await request('hint');if(failed)return;}opened=false;body.hidden=true;others();});controls();draw();}

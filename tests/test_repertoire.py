@@ -67,6 +67,7 @@ def test_hint_deviation_retry_preserved_and_stale_duplicate(runtime):
     data=post(a,data,'move',move='e2e4').json();assert data['active']['moves']==[] and data['active']['deviations']==1
     old=copy.deepcopy(data);data=post(a,data,'retry').json()
     assert data['active']['hints']==1 and data['active']['deviations']==1
+    assert data['active']['weak_points'][0]['moves']==[]
     assert data['active']['guidance'] is None and data['active']['options']==[]
     assert not data['metrics']['london-core']['first_recall']['clean']
     assert post(a,old,'hint').status_code==409
@@ -86,6 +87,8 @@ def test_weak_resume_illegal_save_failure_and_version_change(runtime,monkeypatch
     assert server.get_state('RUNTIME-A')==before
     data=post(a,data,'weak').json();assert data['active']['start_ply']==2 and data['active']['moves']==['d2d4','d7d5']
     assert a.get('/api/repertoire').json()==data
+    data=post(a,data,'retry').json();assert data['active']['moves']==[]
+    data=post(a,data,'weak').json();assert data['active']['moves']==['d2d4','d7d5']
     from fastapi import HTTPException
     original=server.save_state
     monkeypatch.setattr(server,'save_state',lambda *args:(_ for _ in ()).throw(HTTPException(503,'test save failure')))
