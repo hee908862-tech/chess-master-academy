@@ -85,3 +85,14 @@ def test_all_other_paths_real_board_or_choice_completion(page,site,lesson):
  if lesson=='ending-opposition':
   page.get_by_role('button',name='보드 방향 바꾸기',exact=True).click()
   page.locator('#educationPaths').screenshot(path='docs/qa-education/opposition-black.png')
+
+
+def test_prerequisite_link_opens_exact_existing_card_without_writes(page,site):
+ enter(page,site);before=page.evaluate("api('/foundations')")
+ card=page.locator('#educationBody article').filter(has=page.get_by_role('heading',name='공격선 관찰과 피하기',exact=True))
+ card.get_by_role('button',name='관련 기존 기초 보기',exact=True).click()
+ expect(page.locator('#foundationCourseList')).to_have_attribute('open','')
+ expect(page.locator('[data-course="king-check"]')).to_be_visible()
+ assert page.evaluate("document.activeElement.dataset.course")=='king-check'
+ assert page.evaluate("api('/foundations')")==before
+ assert page.evaluate("api('/education')")['active'] is None
