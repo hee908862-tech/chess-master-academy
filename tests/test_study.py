@@ -7,7 +7,22 @@ import chess
 import pytest
 from fastapi import HTTPException
 from test_runtime_isolation import runtime
-from study_server import courses,references,key,replay,opening_position,OpeningPosition,DATA
+from study_server import courses,references,key,replay,note,opening_position,OpeningPosition,DATA
+
+
+@pytest.mark.parametrize('line,expected',[
+    ('e4 e5 Ke2','백 Ke2: 킹을 e1에서 e2로 옮깁니다.'),
+    ('e4 e5 Qh5','백 Qh5: 퀸을 d1에서 h5로 옮깁니다.'),
+    ('h4 a6 Rh3','백 Rh3: 룩을 h1에서 h3로 옮깁니다.'),
+    ('e4 e5 Bc4','백 Bc4: 비숍을 f1에서 c4로 옮깁니다.'),
+    ('Nf3','백 Nf3: 나이트를 g1에서 f3로 옮깁니다.'),
+    ('e4','백 e4: 폰을 e2에서 e4로 옮깁니다.'),
+])
+def test_piece_object_particles_in_move_explanation(line,expected):
+    board=chess.Board();moves=[]
+    for san in line.split():
+        move=board.parse_san(san);moves.append(move.uci());board.push(move)
+    assert note({'moves':moves,'notes':{}},len(moves)-1)['facts'].startswith(expected)
 
 
 def test_every_authored_and_reference_line_is_legal_and_source_hashes_match():
