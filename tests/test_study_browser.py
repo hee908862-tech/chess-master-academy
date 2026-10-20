@@ -111,3 +111,35 @@ def test_first_visit_auto_board_and_late_resume_does_not_replace_move(page,site)
     page.evaluate('d=>window.releaseOpening(d)',saved);page.wait_for_timeout(150)
     assert page.locator('#studyOpeningBoard').inner_html()==before
     click_move(page,'studyOpeningBoard','d7d5');expect(page.locator('#studyMessage')).to_contain_text('등록된')
+
+
+def test_delayed_save_ack_after_move_updates_revision_without_replacing_board(page,site):
+    login(page,site);page.evaluate("tab('opening')")
+    expect(page.locator('#studyOpeningBoard .sq:enabled')).to_have_count(64)
+    click_move(page,'studyOpeningBoard','e2e4');expect(page.locator('#studyMessage')).to_contain_text('등록된')
+    pending=[];posts=[]
+    def hold_first(route):
+        posts.append(route.request.post_data_json)
+        if len(posts)==1:pending.append(route)
+        else:route.continue_()
+    page.route('**/api/study/openings/save',hold_first)
+    save=page.get_by_role('button',name='학습 위치 저장',exact=True)
+    save.click();expect(page.locator('#studySaveStatus')).to_contain_text('저장하고')
+    assert len(pending)==1
+    click_move(page,'studyOpeningBoard','e7e5');expect(page.locator('#studyMessage')).to_contain_text('등록된')
+    current=page.locator('#studyOpeningBoard').inner_html()
+    save.click();assert len(posts)==1  # One in-flight save; board remains usable.
+    with page.expect_response(lambda r:r.url.endswith('/study/openings/save')) as first:
+        pending[0].continue_()
+    assert first.value.status==200 and first.value.json()['revision']==1
+    expect(page.locator('#studySaveStatus')).to_contain_text('저장했어요')
+    assert page.locator('#studyOpeningBoard').inner_html()==current
+    with page.expect_response(lambda r:r.url.endswith('/study/openings/save')) as second:save.click()
+    assert second.value.status==200 and second.value.json()['revision']==2
+    expect(page.locator('#studySaveStatus')).to_contain_text('저장했어요')
+    assert posts==[
+        {'course_id':'italian-pianissimo','moves':['e2e4'],'mode':'explore','orientation':'white','revision':0},
+        {'course_id':'italian-pianissimo','moves':['e2e4','e7e5'],'mode':'explore','orientation':'white','revision':1}]
+    assert page.locator('#studyOpeningBoard').inner_html()==current
+    stored=page.evaluate("api('/study/openings')")['saved']
+    assert stored['revision']==2 and stored['moves']==['e2e4','e7e5']
