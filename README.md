@@ -1,3 +1,5 @@
+오프닝 레퍼토리 2A: [설계·보존·출처](README_OPENING_REPERTOIRE.md), [검증 증거](docs/qa-repertoire/README.md).
+
 > 수행 근거·학습 연결·홈과 계층 탐색 첫 단계: [구현 범위](README_EVIDENCE_LEARNING_FLOW.md) · [최종 검증](docs/qa-evidence-flow/README.md).
 
 > 기능 탐색·오프닝 55강·선택형 퍼즐 도전: [개편 및 검증 안내](README_NAVIGATION_CHALLENGES.md).
