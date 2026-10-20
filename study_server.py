@@ -56,7 +56,9 @@ def note(c,index):
     """Per-entry author notes plus literal board facts, never engine-generated theory."""
     b=replay(chess.STARTING_FEN,c['moves'][:index]);m=chess.Move.from_uci(c['moves'][index]);side='백' if b.turn else '흑'
     names={1:'폰',2:'나이트',3:'비숍',4:'룩',5:'퀸',6:'킹'}
-    facts=f"{side} {b.san(m)}: {names[b.piece_type_at(m.from_square)]}을 {chess.square_name(m.from_square)}에서 {chess.square_name(m.to_square)}로 옮깁니다."
+    piece=names[b.piece_type_at(m.from_square)]
+    particle='을' if (ord(piece[-1])-0xAC00)%28 else '를'
+    facts=f"{side} {b.san(m)}: {piece}{particle} {chess.square_name(m.from_square)}에서 {chess.square_name(m.to_square)}로 옮깁니다."
     if b.is_castling(m):facts+=' 킹을 옆으로 피하고 룩을 중앙 파일에 배치합니다.'
     elif b.is_capture(m):facts+=' 교환 뒤 열리는 파일과 되잡는 기물의 위치를 확인하세요.'
     else:
