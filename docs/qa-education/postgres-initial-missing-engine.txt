@@ -1,0 +1,69 @@
+..........FFF......                                                      [100%]
+=================================== FAILURES ===================================
+___________ test_real_image_engine_analysis_persists_without_rating ____________
+
+    def test_real_image_engine_analysis_persists_without_rating():
+        import game_analysis
+        c,code=account();legacy=server.get_state(code)
+        game={'moves':['e2e4','e7e5','g1f3','b8c6'],'color':'black','ended':'2026-10-20T12:00:00+00:00','assistance':{'version':1,'complete':True,'events':[]}}
+        legacy['games']=[game];server.save_state(code,legacy);key=game_analysis.game_key(game)
+        post(c,'games/analysis/'+key,{})
+        for _ in range(400):
+            result=c.get('/api/games/analysis').json()['games'][0]
+            if result['status'] not in ('queued','running'):break
+            time.sleep(.05)
+>       assert result['status'] in ('complete','partial'),result
+E       AssertionError: {'index': 0, 'game_key': '97ec7d9afb10c9b5bd1b25e10a1a500e', 'at': '2026-10-20T12:00:00+00:00', 'color': 'black', ...}
+E       assert 'failed' in ('complete', 'partial')
+
+scripts/predeploy_postgres.py:274: AssertionError
+____ test_internal_rating_real_engine_persists_and_legacy_is_not_rewritten _____
+
+    def test_internal_rating_real_engine_persists_and_legacy_is_not_rewritten():
+        c,code=account();legacy=server.get_state(code)
+        legacy['games']=[{'moves':['e2e4','e7e5'],'color':'white','result':'draw','ended':'2020-01-01'}]
+        server.save_state(code,legacy);before=server.get_state(code)['games'][0]
+        first=c.get('/api/games/analysis').json();assert first['app_rating']['series']=={}
+        assert first['games'][0]['app_rating']['eligible'] is False
+        assert server.get_state(code)['games'][0]==before
+        g=post(c,'game/new',{'color':'black','difficulty':5,'time_mode':'bullet'})
+        move=g['board']['legal'][0]
+        post(c,'game/move',{'from_sq':move['from'],'to_sq':move['to'],'session_id':g['session_id']})
+        post(c,'game/resign',{})
+        saved=server.get_state(code);rated=saved['games'][-1]['app_rating']
+>       assert rated['eligible'] and rated['after']<rated['before'] and rated['time_mode']=='bullet'
+E       assert (False)
+
+scripts/predeploy_postgres.py:292: AssertionError
+_________________ test_opening_bookmark_and_readonly_branch_pg _________________
+
+    def test_opening_bookmark_and_readonly_branch_pg():
+        c,code=account();before=server.get_state(code)
+>       response=post(c,'study/position',{'moves':['e2e4','c7c5'],'engine':True})
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scripts/predeploy_postgres.py:302: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+c = <starlette.testclient.TestClient object at 0x7f160ec6f410>
+path = 'study/position', body = {'moves': ['e2e4', 'c7c5'], 'engine': True}
+
+    def post(c,path,body):
+>       r=c.post('/api/'+path,json=body);assert r.status_code==200,r.text
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: {"detail":"엔진을 사용할 수 없습니다. 직접 양쪽 수를 두어 탐색할 수 있어요."}
+E       assert 503 == 200
+E        +  where 503 = <Response [503 Service Unavailable]>.status_code
+
+scripts/predeploy_postgres.py:47: AssertionError
+=============================== warnings summary ===============================
+../chess-venv/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /tmp/chess-venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED scripts/predeploy_postgres.py::test_real_image_engine_analysis_persists_without_rating
+FAILED scripts/predeploy_postgres.py::test_internal_rating_real_engine_persists_and_legacy_is_not_rewritten
+FAILED scripts/predeploy_postgres.py::test_opening_bookmark_and_readonly_branch_pg
+3 failed, 16 passed, 1 warning in 35.89s

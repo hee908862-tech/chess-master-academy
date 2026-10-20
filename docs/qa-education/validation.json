@@ -1,0 +1,14 @@
+{
+  "source_head": "67f23a497ff9b8ade5e1317339baa8e1f7e6438b",
+  "final_code_head": "962c15d30e42f338a779c0c6d3bd1c76c13904e2",
+  "whole_pytest": 501,
+  "postgres": 19,
+  "final_impact": 27,
+  "final_history_race": 2,
+  "whole_on_final_code": false,
+  "final_image_build": "blocked: no space left on device at COPY public",
+  "source_image": "sha256:91eb9cd5ace1588ee999d5a41c62f9bff367afc098b36d57480df904e1dbb43a",
+  "physical_mobile": false,
+  "production": false,
+  "education_effectiveness": false
+}

@@ -1,0 +1,3 @@
+Python AST: 106 passed
+JavaScript node --check: 24 passed
+Dedicated lint/type checker: not configured, not run
