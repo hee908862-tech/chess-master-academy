@@ -142,6 +142,8 @@
     $('learningLink').hidden=!link;
     $('learningLink').textContent=link?`진단 근거 ${link.item_id}에서 이어짐 · ${t?.selection?.source_card?'새 적용':'원본·개념 연습'} · ${link.complete?'완료한 수순 복습':link.first_correct?'첫 수 이후 후속 수 확인':'저장된 수행과 원본 비교'}. 원본 반복과 도움 사용은 독립 숙련이 아닙니다.`:'';
     if(concept&&route?.diagnosis)$('learningRoute').open=true;
+    let education=$('learningEducationLink');if(!education){education=document.createElement('button');education.id='learningEducationLink';education.className='btn';education.textContent='방어 태그의 기초 적용: 공격선 관찰 (동일 구조·숙련 보장 아님)';education.onclick=()=>window.cmaEducation?.open();$('learningConcept').after(education);}education.hidden=!(concept?.diagnosis&&route.tags?.includes('defensiveMove'));
+
     $('learningTitle').textContent=t?(t.category||'주제 비공개 · 독립 판단'):concept?'개념 확인 · 진단과 같은 원리':'시작할 문제를 선택하세요';
     $('learningMode').textContent=t?`${modeNames[t.mode]}${t.done?' 완료':''}`:concept?'읽기 전용 · 개념':'준비';
     $('learningGoal').textContent=t?`${t.goal} ${t.assessment_scope==='first_move'?'이 활동은 첫 수 판단으로 저장되며 아래 전체 수순 능력 지도에 합산하지 않습니다.':'전체 수순 수행으로 저장하며 독립 근거 조건을 충족할 때만 능력 지도에 반영합니다.'}`:(concept?'아래 설명과 원본 위치를 확인하고 개념 읽기 확인을 누르세요.':'오답노트에서 다시 풀거나 새 문제로 시작하세요.');

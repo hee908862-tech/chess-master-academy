@@ -6,7 +6,7 @@ COPY requirements.txt .
 RUN --mount=type=secret,id=pip_ca_bundle \
     if [ -f /run/secrets/pip_ca_bundle ]; then export PIP_CERT=/run/secrets/pip_ca_bundle; fi; \
     pip install --no-cache-dir -r requirements.txt
-COPY repertoire_content.py repertoire_server.py puzzle_challenge.py foundation_content.py foundation_server.py server.py exercises.py assessment_v3.py lesson_scenarios.py curriculum_v6.py v7_server.py v8_server.py assessment_v8.py mate3_v8.py v9_server.py learning_server.py assistance.py mate_explanation.py competencies.py journey_server.py onboarding_server.py build_journey_index.py journey_evidence.py growth_model.py game_analysis.py app_rating.py engine_budget.py study_server.py opening_courses.py .
+COPY education_content.py education_server.py repertoire_content.py repertoire_server.py puzzle_challenge.py foundation_content.py foundation_server.py server.py exercises.py assessment_v3.py lesson_scenarios.py curriculum_v6.py v7_server.py v8_server.py assessment_v8.py mate3_v8.py v9_server.py learning_server.py assistance.py mate_explanation.py competencies.py journey_server.py onboarding_server.py build_journey_index.py journey_evidence.py growth_model.py game_analysis.py app_rating.py engine_budget.py study_server.py opening_courses.py .
 COPY puzzles_lichess.jsonl ./puzzles_lichess.jsonl
 RUN python build_journey_index.py
 COPY public ./public

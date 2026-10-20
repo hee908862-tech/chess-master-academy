@@ -1,0 +1,1 @@
+Docker Chromium: real archived black side/start timestamp visible; controlled legacy missing fields show unrecorded labels. No aggregation mutation.

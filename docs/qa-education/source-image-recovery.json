@@ -1,0 +1,7 @@
+{
+  "head": "67f23a497ff9b8ade5e1317339baa8e1f7e6438b",
+  "image": "sha256:91eb9cd5ace1588ee999d5a41c62f9bff367afc098b36d57480df904e1dbb43a",
+  "six_completed_histories_after_restart": true,
+  "metrics_restored": true,
+  "note": "Recovered existing temporary account after startup exceeded original 10-second polling window; did not rerun lesson writes."
+}

@@ -1,0 +1,18 @@
+{
+  "source_head": "67f23a497ff9b8ade5e1317339baa8e1f7e6438b",
+  "final_code_head": "9aa91c658ebb418b33af43c0b89285a828937535",
+  "whole_pytest": 501,
+  "postgres": 19,
+  "final_impact": 27,
+  "final_history_race": 2,
+  "whole_on_final_code": false,
+  "final_image_build": "Derived image built and verified; clean full Dockerfile build remains blocked by storage",
+  "source_image": "sha256:91eb9cd5ace1588ee999d5a41c62f9bff367afc098b36d57480df904e1dbb43a",
+  "physical_mobile": false,
+  "production": false,
+  "education_effectiveness": false,
+  "reviewed_context_tests": 31,
+  "reviewed_context_postgres": 19,
+  "final_derived_image": "sha256:91495723280020b49140a5c6b6ebe23e9eab291ddc9e42ef5ab7fba9a1d0a9a4",
+  "runtime_files_matched": 101
+}

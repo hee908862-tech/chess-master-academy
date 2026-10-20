@@ -403,3 +403,18 @@ def test_repertoire_full_archive_preserves_legacy_active_on_finish():
     assert data['metrics']['london-core']['first_recall']['side']=='black'
     assert client.get('/api/repertoire/history/'+r['id']).status_code==200
     assert client.get('/api/repertoire').json()==data
+
+
+def test_education_pg_cas_restore_and_isolation():
+    from education_server import KEY
+    client,code=account();other,_=account();before=dict(server.get_state(code))
+    d=post(client,'education/action',dict(action='start',revision=0,lesson_id='threat-observe',mode='review'))
+    body=dict(action='hint',revision=d['revision'],attempt_id=d['active']['id'])
+    with ThreadPoolExecutor(2) as executor:results=list(executor.map(lambda _:client.post('/api/education/action',json=body),range(2)))
+    assert sorted(r.status_code for r in results)==[200,409]
+    d=client.get('/api/education').json();assert d['active']['hints']==1
+    assert other.get('/api/education').json()['active'] is None
+    after=dict(server.get_state(code));after.pop(KEY);assert after==before
+    d=post(client,'education/action',dict(action='finish',revision=d['revision'],attempt_id=d['active']['id']))
+    assert d['active'] is None and d['history'][0]['hints']==1
+    assert client.get('/api/education/history/'+d['history'][0]['id']).status_code==200

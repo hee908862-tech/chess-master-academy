@@ -1270,3 +1270,6 @@ attach_challenge(app, globals())
 
 from repertoire_server import attach_repertoire
 attach_repertoire(app, globals())
+
+from education_server import attach_education
+attach_education(app, globals())

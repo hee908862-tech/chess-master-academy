@@ -80,7 +80,7 @@ def payload(saved):
         active['guidance']=explanation(r['lesson_id'],r['moves']) if reveal and not active['outdated'] else None
         active['options']=[{'move':u,'san':board(r).san(chess.Move.from_uci(u))} for u in next_moves(r)] if reveal and not active['outdated'] else []
     return {'revision':saved.get('revision',0),'selected':saved.get('selected',[]),'active':active,'metrics':saved.get('metrics',{}),
-            'history':[{k:r[k] for k in ['id','lesson_id','title','version','mode','side','phase','hints','deviations','start_ply']} for r in records(saved)],
+            'history':[{k:r.get(k) for k in ['id','lesson_id','title','version','mode','side','phase','hints','deviations','start_ply','at']} for r in records(saved)],
             'can_start':can_start(saved),'capacity_notice':'정규 보관64개 한도입니다. 새 시작·재시도는 종료 기록 자리까지 필요합니다. 기존 시도의 종료와 기록 조회·강의 탐색은 가능합니다.' if not can_start(saved) else None,
             'retained_legacy_attempt':bool(saved.get('retained')),
             'catalog':[{'id':c['id'],'title':c['title'],'core':c['id'] in CORE,'version':lesson(c['id'])['version']} for c in courses().values()], 'policy':POLICY}
