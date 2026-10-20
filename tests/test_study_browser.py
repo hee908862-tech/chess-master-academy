@@ -143,3 +143,41 @@ def test_delayed_save_ack_after_move_updates_revision_without_replacing_board(pa
     assert page.locator('#studyOpeningBoard').inner_html()==current
     stored=page.evaluate("api('/study/openings')")['saved']
     assert stored['revision']==2 and stored['moves']==['e2e4','e7e5']
+
+
+@pytest.mark.parametrize('width',[390,1280])
+def test_opening_redo_boundaries_and_delayed_description(page,site,width):
+    page.set_viewport_size({'width':width,'height':950});login(page,site)
+    page.evaluate("tab('opening')");expect(page.locator('#studyCourse option')).to_have_count(55)
+    page.locator('#studyCourse').select_option('london-core')
+    expect(page.locator('#studyMessage')).to_contain_text('등록된')
+    previous=page.locator('#studyTools').get_by_role('button',name='이전 수',exact=True)
+    redo=page.get_by_role('button',name='되돌린 수 복원',exact=True)
+    expect(previous).to_be_disabled();expect(redo).to_be_disabled()
+    before=page.evaluate("api('/me')")
+    # Hold only the explanation: the actual board request still uses the server.
+    page.evaluate("""() => {const original=api;window.holdDescription=true;api=(p,...args)=>p==='/study/openings/position'&&window.holdDescription?new Promise(resolve=>window.releaseDescription=()=>original(p,...args).then(resolve)):original(p,...args)}""")
+    click_move(page,'studyOpeningBoard','d2d4')
+    expect(page.locator('#studyMessage')).to_have_text('현재 오프닝 위치의 해설을 불러오고 있어요…')
+    expect(page.locator('#studyChoices button')).to_have_count(0)
+    expect(redo).to_be_disabled()
+    page.evaluate('window.holdDescription=false;releaseDescription()')
+    expect(page.locator('#studyMessage')).to_contain_text('등록된')
+    expect(page.locator('#studyChoices button').first).to_be_visible()
+    board_after=page.locator('#studyOpeningBoard').inner_html()
+    explanation=page.locator('#studyExplanation').inner_text()
+    previous.click();expect(page.locator('#studyMessage')).to_contain_text('등록된')
+    expect(previous).to_be_disabled();expect(redo).to_be_enabled()
+    redo.click();expect(page.locator('#studyMessage')).to_contain_text('등록된')
+    expect(redo).to_be_disabled();expect(previous).to_be_enabled()
+    assert page.locator('#studyOpeningBoard').inner_html()==board_after
+    assert page.locator('#studyExplanation').inner_text()==explanation
+    # An alternative move replaces the old redo path; recall still hides answers.
+    previous.click();expect(redo).to_be_enabled()
+    page.locator('#studyMode').select_option('recall')
+    expect(page.locator('#studyExplanation')).to_contain_text('해설을 가렸어요')
+    click_move(page,'studyOpeningBoard','e2e4')
+    expect(redo).to_be_disabled()
+    expect(page.locator('#studyExplanation')).to_contain_text('해설을 가렸어요')
+    expect(page.locator('#studyChoices button')).to_have_count(0)
+    assert page.evaluate("api('/me')")['state']==before['state']
