@@ -1,0 +1,11 @@
+{
+  "source_head": "99c44303eb509eb9076234d210e1dd62ee707c88",
+  "image": "sha256:d751b78ff896a4e2cc56cd6208154f57372fb07fb67777bf60337bb09d8b7207",
+  "core_white_black_completions": 14,
+  "restart_restore": "PASS",
+  "bookmark_and_active_diagnosis_preserved": "PASS",
+  "other_progress_unchanged": "PASS",
+  "browser": "Chromium390/1280 actual image APIs",
+  "oom_killed": false,
+  "memory_peak_bytes": 116678656
+}

@@ -1,0 +1,13 @@
+{
+  "baseline": "e6f96c3f5f3b12c796e92c82121ceff8cdf6833d",
+  "sha256": {
+    "opening_courses.py": "2d6b9cc7d2bc66cef4202b10e6f4b681e6de894b8690219d32f5a6f4e0fae3f7",
+    "growth_model.py": "af3fca621060f608fd89b47347b4f7d6193c8f2e4e88ddadc719b24e8b763e33",
+    "competencies.py": "747fc5b1e36290961f5aaf0507cea577e33e36ab3eee8867e8d3538db930449e",
+    "foundation_content.py": "4d099f5a168a99d68dae3d4cc881706d2e1ae7172139d6358bf432ce4c3b39cb",
+    "puzzle_challenge.py": "297d23cff361248b6692e796d80244bef47b63baade9a0c90e0a231b90812170",
+    "puzzles_lichess.jsonl": "241c7a902d7952b7a7501f383aaef4a4b7a189113b61c3b3c51e91d4881b7310",
+    "public/study.js": "119c2739a78fb2c06ea3846c0ea09df1a3225297bbcd7fe17c0271edbfe737dc",
+    "study_server.py": "3a5aa93d89fe1dc662208d35aceba9408ced6225b860519f7393112b22a6ffcc"
+  }
+}
