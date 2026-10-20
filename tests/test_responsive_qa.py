@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright, expect
 from test_qa_browser import site
 from test_journey_browser import question
 
-@pytest.mark.parametrize('width',[320,360,390,430,768,1280])
+@pytest.mark.parametrize('width',[320,360,390,430,768,900,1024,1280])
 def test_responsive_boards_long_copy_and_last_result(site,width):
     with sync_playwright() as p:
         browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
@@ -33,9 +33,16 @@ def test_responsive_boards_long_copy_and_last_result(site,width):
         page.locator('#learningFresh').click()
         expect(page.locator('#learningBoard .sq')).to_have_count(64)
         expect(page.locator('#learningFresh')).to_be_enabled()
-        page.evaluate("document.getElementById('learningExplanation').textContent='긴 수순 '+('Nxf7+ d8=Q# '*20);document.getElementById('userBadge').textContent='QA20261019ABCDEFGHIJKLMNOP';")
+        page.evaluate("document.getElementById('learningExplanation').textContent='긴 수순 '+'Nxf7+ d8=Q# '.repeat(20);document.getElementById('userBadge').textContent='QA20261019ABCDEFGHIJKLMNOP';")
+        page.locator('#learningDetails').evaluate('e=>e.open=true')
+        expected='긴 수순 '+('Nxf7+ d8=Q# '*20)
+        actual=page.locator('#learningExplanation').text_content()
+        assert actual==expected and len(actual)==len(expected) and 'NaN' not in actual
+        expect(page.locator('#learningExplanation')).to_be_visible()
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
         page.screenshot(path=str(directory/f'training-{width}.png'),full_page=True)
+        if width in (900,1024):
+            assert page.locator('#learningDetails').bounding_box()['width']>=300
         browser.close()
 
 

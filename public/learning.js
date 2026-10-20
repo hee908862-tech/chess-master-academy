@@ -2,7 +2,7 @@
 (() => {
   const el = (tag, text, cls) => { const n=document.createElement(tag); if(text)n.textContent=text;if(cls)n.className=cls;return n; };
   const button = (text, fn) => {const b=el('button',text,'btn');b.onclick=fn;return b;};
-  let dashboard=null, task=null, selected=null, busy=false, generation=0, playbackIndex=-1, pendingLoad=false;
+  let dashboard=null, task=null, selected=null, busy=false, generation=0, playbackIndex=-1, pendingLoad=false, cardsRequest=null;
   const statusNames={unaided_first_success:'무도움 첫 시도 성공',later_unaided_success:'다른 날짜 무도움 성공',revealed_success:'정답 공개 후 성공',hinted_success:'도움 사용 후 성공',retry_success:'오답 후 재시도 성공',not_yet:'아직 미달성',unverified_alternative:'대안 수 미검증 (능력 집계 제외)',unaided_repeat_success:'같은 날짜 무도움 재시도 성공'};
   function outcomeLabel(a){
     if(!a)return '';
@@ -71,7 +71,21 @@
     const identity=token, rev=generation;const r=await api('/learning/start','POST',options);
     if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;render();await updateStats();
   });}
-  async function updateStats(){const identity=token;const d=await api('/learning/dashboard');if(identity!==token)return;dashboard=d;renderDashboard();}
+  async function updateStats(){const identity=token,rev=generation;const d=await api('/learning/dashboard');if(identity!==token||rev!==generation)return;dashboard=d;renderDashboard();}
+  async function loadMoreCards(){
+    if(cardsRequest||!dashboard||dashboard.cards_next==null)return;
+    const request={identity:token,rev:generation,list:dashboard,cursor:dashboard.cards_next};
+    cardsRequest=request;renderDashboard();
+    const current=()=>request.identity===token&&request.rev===generation&&request.list===dashboard&&request.cursor===dashboard.cards_next;
+    try{
+      const d=await api('/learning/dashboard?offset='+request.cursor);
+      if(!current())return;
+      const seen=new Set(dashboard.cards.map(c=>c.id));
+      const older=d.cards.filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
+      dashboard={...dashboard,cards:[...older,...dashboard.cards],cards_next:d.cards_next};
+    }catch(e){if(current())$('learningMessage').textContent=e.message;}
+    finally{if(cardsRequest===request){cardsRequest=null;renderDashboard();}}
+  }
   async function act(action,move){if(!task||task.done)return;const s=task;await run(async()=>{
     const identity=token, rev=generation;
     const r=await api('/learning/action','POST',{session_id:s.session_id,revision:s.revision,action,move});
@@ -102,7 +116,7 @@
       const actions=el('div',null,'btn-row');actions.append(button('다시 연습',()=>start({card_id:c.id})),button('검증',()=>start({card_id:c.id,mode:'verify'})),button('공통 태그 새 문제',()=>start({similar_to:c.id,mode:'verify'})));
       for(const [mode,label] of [['situation_practice','상황 연습'],['situation_verify','상황 검증']]){const b=button(label,()=>start({card_id:c.id,mode}));b.disabled=!dashboard.engine;b.title=dashboard.engine?'':'엔진을 사용할 수 없어 상황 대국을 시작할 수 없습니다.';actions.append(b);}item.append(actions);$('learningCards').append(item);
     }
-    if(dashboard.cards_next!==null&&dashboard.cards_next!==undefined)$('learningCards').append(button('이전 훈련 카드 더 보기',async()=>{const identity=token,rev=generation;try{const d=await api('/learning/dashboard?offset='+dashboard.cards_next);if(identity!==token||rev!==generation)return;dashboard={...dashboard,cards:[...d.cards,...dashboard.cards],cards_next:d.cards_next};renderDashboard();}catch(e){$('learningMessage').textContent=e.message;}}));
+    if(dashboard.cards_next!=null){const more=button(cardsRequest?'이전 카드 불러오는 중…':'이전 훈련 카드 더 보기',loadMoreCards);more.disabled=!!cardsRequest;$('learningCards').append(more);}
     $('learningSkills').replaceChildren();dashboard.skills.forEach(s=>{const box=el('div',null,'learning-item');box.append(el('strong',s.name),el('p',s.measured===false?'미측정 · 검증된 과제 준비 전':s.insufficient?'현재 버전 전체 수순 · 근거 부족':`현재 버전 전체 수순 · 최근 ${s.recent}% (${s.recent_n}/5 국면) · ${s.trend_available?`이전 ${s.previous}% (${s.previous_n}/5 국면)`:'이전 비교 근거 부족 · 추세 미판정'}`),el('small',`전체 참고 기록 ${s.count}회 · 연습 ${s.practice_count}회 / 검증 ${s.verification_count}회 · 태그 전이 성공 ${s.transfer}회`));for(const g of s.groups||[]){const scope={first_move:'첫 수 판단',full_line:'전체 수순',engine_situation:'상황 대국',unrecorded:'측정 범위 미기록'}[g.assessment_scope]||g.assessment_scope;box.append(el('p',`${g.reference_only?'별도 참고':'추천 기준'} · ${g.version==='unrecorded'?'버전 미기록':g.version} · ${scope} · ${g.count}회 / 독립 ${g.distinct}국면 · ${g.insufficient?'근거 부족':`최근 ${g.recent}% (${g.recent_n}/5)`} · ${g.trend_available?`동일 범위 이전 ${g.previous}% (${g.previous_n}/5)`:'추세 미판정'}`));}$('learningSkills').append(box);});
     lockControls();
     $('learningAttempts').replaceChildren();dashboard.attempts.forEach(a=>$('learningAttempts').append(el('p',`${a.at.slice(0,10)} · ${modeNames[a.mode]} · ${outcomeLabel(a)}`,'learning-item')));
@@ -135,7 +149,7 @@
   }
   function renderControls(){
     const area=$('learningControls');area.replaceChildren();if(dashboard?.path?.current===1&&dashboard.path.steps[1].status==='active'){area.append(el('span','설명을 읽은 뒤 옆 또는 아래 경로의 개념 읽기 확인을 눌러 주세요.','subtle'));return;}if(!task)return;
-    if(task.done){area.append(el('p',outcomeLabel(task.outcome)||'완료','tag'));if(task.path_id){area.append(button('경로 다음 단계',()=>continuePath()));return;}area.append(button('같은 위치 다시',()=>start({card_id:task.card_id,mode:task.mode})),button('다음 새 문제',()=>start({fresh:true,mode:'verify',category:dashboard?.cards.find(c=>c.id===task.card_id)?.category})));return;}
+    if(task.done){area.append(el('p',outcomeLabel(task.outcome)||'완료','tag'));if(task.path_id){area.append(button('경로 다음 단계',()=>continuePath()));return;}area.append(button('같은 위치 다시',()=>start({card_id:task.card_id,mode:task.mode})),button('다음 새 문제',()=>start({fresh:true,mode:'verify',category:task.outcome.category})));return;}
     if(!task.mode.includes('verify')){
       for(const [a,label] of [['hint',`힌트 ${Math.min(task.hint_level+1,3)}단계`],['reveal','답안 수순'],['refutation','상대 응수'],['undo','한 수 무르기']]){if(a==='undo'&&!task.mode.startsWith('situation'))continue;const b=button(label,()=>act(a));b.disabled=busy;area.append(b);}
     }else area.append(el('span','검증 중에는 힌트와 무르기를 사용할 수 없습니다.','subtle'));
