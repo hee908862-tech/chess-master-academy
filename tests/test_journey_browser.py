@@ -149,7 +149,9 @@ def test_real_journey_complete_skipped_then_training(site,width,height,label):
         data=page.evaluate("api('/journey')")
         assert data['active'] is None
         assert not any(a['full_success'] for a in data['latest']['areas'])
-        page.locator('#journeyResults button',has_text='설명과 함께 다시 익히기').first.click()
+        with page.expect_response('**/api/learning/cycle/start') as started:
+            page.locator('#journeyResults button',has_text='설명과 함께 다시 익히기').first.click()
+        assert started.value.status==200
         expect(page.locator('#training')).to_have_class('view active')
         linked=page.evaluate("api('/learning/dashboard')")
         assert linked['active']['growth_task']=={'report_id':data['latest']['id'],'task_id':'1'}

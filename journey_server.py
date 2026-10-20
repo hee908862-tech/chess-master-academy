@@ -229,7 +229,7 @@ def attach_journey(app, ns):
         state=read(code)
         before=copy.deepcopy(state)
         cycle=cycle_status(latest_cycle_report(state['results']),learning)
-        if body.mode in ('basic','gentle',*MODES) and cycle and not cycle['unlocked']:
+        if body.mode in ('basic',*MODES) and cycle and not cycle['unlocked']:
             raise HTTPException(409,cycle['message'])
         if body.mode not in ('basic','gentle',*MODES) and (body.competency not in COMPETENCIES or not COMPETENCIES[body.competency]['measured']):
             raise HTTPException(409,'검증된 자료가 없는 영역은 측정하지 않습니다.')
