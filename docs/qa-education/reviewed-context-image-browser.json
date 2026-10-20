@@ -1,0 +1,12 @@
+{
+  "source_head": "9aa91c658ebb418b33af43c0b89285a828937535",
+  "education_js_sha256": "213ee8d491b96f6931eaf7e23664d90b3b31cd1a917a547791d61d1ec03f6f2f",
+  "backend": "cma-education:final Docker + disposable PostgreSQL",
+  "frontend": "actual derived image assets; no response override",
+  "checks": [
+    "prerequisite exact card open/focus without saved-state mutation",
+    "old history failure after account change ignored",
+    "new account has no active attempt"
+  ],
+  "final_derived_image_verified": true
+}

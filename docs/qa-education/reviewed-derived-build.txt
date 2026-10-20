@@ -1,0 +1,29 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 83B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/cma-education:review
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 28.96kB done
+#4 DONE 0.0s
+
+#5 [1/2] FROM docker.io/library/cma-education:review
+#5 DONE 0.0s
+
+#6 [2/2] COPY runtime/ /app/
+#6 DONE 2.5s
+
+#7 exporting to image
+#7 exporting layers
+#7 exporting layers 0.3s done
+#7 writing image sha256:91495723280020b49140a5c6b6ebe23e9eab291ddc9e42ef5ab7fba9a1d0a9a4 done
+#7 naming to docker.io/library/cma-education:final done
+#7 DONE 0.3s

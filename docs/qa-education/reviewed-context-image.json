@@ -1,0 +1,20 @@
+{
+  "source_head": "9aa91c658ebb418b33af43c0b89285a828937535",
+  "image": "sha256:91495723280020b49140a5c6b6ebe23e9eab291ddc9e42ef5ab7fba9a1d0a9a4",
+  "memory_mib": 512,
+  "cpus": 1,
+  "source_hashes_matched": [
+    "server.py",
+    "education_content.py",
+    "education_server.py",
+    "repertoire_server.py",
+    "public/education.js",
+    "public/education.css",
+    "public/learning.js",
+    "public/repertoire.js",
+    "public/index.html"
+  ],
+  "real_http_lessons_completed": 6,
+  "restart_restored": true,
+  "stats_bookmark_preserved": true
+}
