@@ -10,16 +10,17 @@ const status=make(host,'p','경로 보기로 저장 상태를 확인하세요.')
 const open=btn(host,'교육 경로 보기 · 이어하기',()=>{opened=true;request();});
 const refresh=btn(host,'저장 상태 다시 확인',()=>request());
 const body=make(host,'div');body.id='educationBody';
-let data=null,owner=null,generation=0,busy=false,failed=false,opened=false,selected=null,flip=false;
+let data=null,owner=null,generation=0,busy=false,failed=false,opened=false,listVisible=false,selected=null,flip=false;
 function controls(){host.setAttribute('aria-busy',String(busy));for(const b of body.querySelectorAll('button,select'))b.disabled=busy||b.dataset.blocked==='true'||(failed&&b.dataset.navigation!=='true');open.disabled=busy;refresh.disabled=busy;}
 async function request(action,extra={}){if(busy)return false;const identity=token,stamp=++generation;busy=true;failed=false;selected=null;controls();
- try{const value=await api(action?'/education/action':'/education',action?'POST':'GET',action?{action,revision:data.revision,attempt_id:data.active?.id||'',...extra}:undefined);if(stamp!==generation||identity!==token)return false;data=value;owner=identity;status.textContent=action?'교육 기록을 저장했습니다.':'저장된 교육 경로입니다.';render();return true;}
+ try{const value=await api(action?'/education/action':'/education',action?'POST':'GET',action?{action,revision:data.revision,attempt_id:data.active?.id||'',...extra}:undefined);if(stamp!==generation||identity!==token)return false;data=value;owner=identity;status.textContent=action?'교육 기록을 저장했습니다.':'저장된 교육 경로입니다.';if(action==='start')listVisible=false;if(action==='finish')listVisible=true;render();if(action==='start'||action==='finish')window.cmaNavigation?.educationAction(action);return true;}
  catch(e){if(stamp===generation&&identity===token){failed=true;status.textContent=e.message+' 저장 상태를 다시 확인하세요.';}return false;}
  finally{if(stamp===generation){busy=false;controls();draw();}}}
-function render(){body.replaceChildren();if(!data||!opened)return;const r=data.active;
+function render(){body.replaceChildren();if(!data||!opened)return;const r=listVisible?null:data.active;
+ if(listVisible&&data.active)btn(body,'저장된 교육 실습 이어하기',()=>window.cmaNavigation.go('learn/education/practice'));
  if(!data.can_start)make(body,'p','보관 한도입니다. 현재 시도 종료·기존 결과 조회·다른 학습 탐색은 가능합니다. 새 기록을 위해 기존 기록을 자동 삭제하지 않습니다.');
  if(!r){for(const c of data.catalog){const card=make(body,'article');make(card,'h3',c.title);make(card,'p',c.intro);const m=data.metrics[c.id];if(m)make(card,'p',`교육 완료 ${m.completed} · 시도 ${m.attempts} · 누적 도움 ${m.hints} · 다른 응답 ${m.misses}`);for(const [mode,label] of [['learn','설명 보며 학습'],['review','설명 가리고 복습']]){const b=btn(card,label,()=>request('start',{lesson_id:c.id,mode}));b.dataset.blocked=String(!data.can_start);}
- btn(card,'관련 기존 기초 보기',async()=>{window.cmaAcademyNavigate?.('basics');const identity=token,stamp=generation;await window.cmaFoundations?.load();if(identity!==token||stamp!==generation||!$('learn').classList.contains('active'))return;$('foundationCourseList').open=true;const target=document.querySelector(`[data-course="${c.prerequisite}"]`);if(target){target.tabIndex=-1;target.focus();target.scrollIntoView({block:'start'});}});}}
+ btn(card,'관련 기존 기초 보기',async()=>{if(window.cmaNavigation)window.cmaNavigation.go('learn/basics');else window.cmaAcademyNavigate?.('basics');const identity=token,stamp=generation;await window.cmaFoundations?.load();if(identity!==token||stamp!==generation||!$('learn').classList.contains('active'))return;$('foundationCourseList').open=true;const target=document.querySelector(`[data-course="${c.prerequisite}"]`);if(target){target.tabIndex=-1;target.focus();target.scrollIntoView({block:'start'});}});}}
  else{
  make(body,'h3',r.title);make(body,'p',`${r.mode==='review'?'복습':'학습'} · 관찰 ${r.index+1}/3 · 이번 도움 ${r.hints} · 다른 응답 ${r.misses}`);
  const m=data.metrics[r.lesson_id];make(body,'p',`레슨 누적 도움 ${m.hints} · 다른 응답 ${m.misses} · 완료 ${m.completed} (숙련 판정 아님)`);
@@ -45,6 +46,6 @@ async function click(square){const r=data?.active;if(!r||busy||failed)return;if(
 function clear(){data=null;owner=token;selected=null;body.replaceChildren();status.textContent='저장 상태를 확인하세요.';}
 const previous=tab;tab=function(id){++generation;busy=false;if(owner!==token)clear();previous(id);if(id==='learn'&&opened)request();};
 $('signout')?.addEventListener('click',()=>{++generation;busy=false;clear();});
-window.cmaEducation={open(){opened=true;tab('learn');host.scrollIntoView({block:'start'});}};
+window.cmaEducation={open(){if(window.cmaNavigation){window.cmaNavigation.education();return;}opened=true;tab('learn');host.scrollIntoView({block:'start'});},show(list){opened=true;listVisible=list;if(owner!==token||!data)return request();render();},hasActive:()=>owner===token&&!!data?.active};
 const hub=$('academyHub');if(hub)btn(hub,'기초 적용 · 짧은 교육 경로',()=>window.cmaEducation.open());
 })();

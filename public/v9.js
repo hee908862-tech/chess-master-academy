@@ -97,16 +97,16 @@ async function next(kind){const st=modes[kind];if(!st.solved||st.busy)return;
  status(kind,'다음 상황입니다. 상대의 위협과 후속 수순까지 계산해 보세요.');paint(kind);
  }catch(e){if(revision===st.revision&&identity===token)await failed(kind,e)}finally{if(revision===st.revision)st.busy=false}
 }
-async function restore(kind,force=false){const st=modes[kind];if(!token||(!force&&st.task)||st.busy)return;const revision=st.revision,identity=token;
+async function restore(kind,force=false){const navigationVersion=window.cmaNavigation?.version();const st=modes[kind];if(!token||(!force&&st.task)||st.busy)return;const revision=st.revision,identity=token;
  try{const r=await api('/v9/session/'+kind);if(revision!==st.revision||identity!==token||st.busy||!r.active)return;
-  if(kind==='course'){selectCourse(r.theme);el('v9CourseLevel').value=r.level;courseSaved=r;}
+  if(kind==='course'){if(navigationVersion!==window.cmaNavigation?.version())return;selectCourse(r.theme);el('v9CourseLevel').value=r.level;courseSaved=r;}
   if(r.result){st.task={session_id:r.session_id,fen:r.result.completed_fen,theme:r.theme,level:r.level};st.side=r.result.completed_fen.split(' ')[1]==='w'?'black':'white';st.solved=true;
    drawBoard(boardName(kind),fromFen(st.task.fen),{flip:st.side==='black'});status(kind,r.result.message);if(kind==='course')el('v9CourseMeta').textContent=`${r.index}/${r.total} 해결 · ${r.done?'과정 완료':'다음 문제 대기'}`;el('v9'+props(kind)+'Next').hidden=false;el('v9'+props(kind)+'Hint').disabled=true;
    window.cmaMate?.show(boardName(kind),r.result.mate_explanation,st.side==='black');
   }else if(r.fen){st.task=r;st.side=r.side;st.solved=false;el('v9'+props(kind)+'Hint').disabled=false;paint(kind);status(kind,'진행 중인 문제를 복원했습니다.');}
  }catch(e){if(revision===st.revision&&identity===token)status(kind,'저장된 문제 확인 실패: '+e.message);}
 }
-let modeOwner=token;const previousTab=tab;tab=function(id){if(modeOwner!==token){modeOwner=token;courseRead++;courseSaved=null;invalidate('course');invalidate('puzzle');savedBox.replaceChildren();}previousTab(id);if(id==='puzzle')restore('puzzle');if(id==='learn')loadSavedCourse();};
+let modeOwner=token;const previousTab=tab;tab=function(id){if(modeOwner!==token){modeOwner=token;courseRead++;courseSaved=null;courseTheme=null;invalidate('course');invalidate('puzzle');savedBox.replaceChildren();}previousTab(id);if(id==='puzzle')restore('puzzle');if(id==='learn')loadSavedCourse();};
 async function loadSavedCourse(){const identity=token,rev=++courseRead;if(!identity){savedBox.textContent='로그인하면 저장된 과정을 이어갈 수 있습니다.';return;}savedBox.textContent='저장된 과정 확인 중…';try{const d=await api('/v9/session/course');if(identity!==token||rev!==courseRead)return;courseSaved=d;savedBox.replaceChildren();const add=(text,fn)=>{const b=document.createElement('button');b.className='btn';b.textContent=text;b.onclick=fn;savedBox.append(b);};if(d.active&&!d.done)add(`진행 중인 과정 이어하기 · ${catalog?.themes.find(t=>t.id===d.theme)?.name||d.theme} 현재 ${Math.min(d.index+1,d.total)}/${d.total} 문항`,()=>restore('course',true));else savedBox.append(document.createTextNode('진행 중인 과정 없음 · 아래에서 과목을 선택하세요.'));for(const item of d.paused||[])add(`보존한 과정 · ${catalog?.themes.find(t=>t.id===item.theme)?.name||item.theme} 현재 ${Math.min(item.index+1,item.total)}/${item.total} 문항 이어하기`,async()=>{const st=modes.course;if(st.busy)return;st.busy=true;const auth=token,version=st.revision;try{await api('/v9/course/resume/'+item.session_id,'POST',{theme:item.theme,level:item.level,replace_token:d.replace_token});if(auth!==token||version!==st.revision)return;st.busy=false;invalidate('course');await restore('course',true);await loadSavedCourse();}catch(e){if(auth===token)savedBox.textContent=e.message;}finally{if(auth===token&&version===st.revision)st.busy=false;}});}catch(e){if(identity===token&&rev===courseRead){savedBox.textContent='저장 과정 확인 실패: '+e.message;const retry=document.createElement('button');retry.className='btn';retry.textContent='저장 과정 다시 확인';retry.onclick=loadSavedCourse;savedBox.append(retry);}}}
 async function history(){const identity=token;if(!identity)return;try{const d=await api('/v9/progress');if(identity!==token)return;
  const a=d.courses||[];el('v9CourseHistory').textContent=a.length?'최근 과정: '+a.slice(-8).reverse().map(r=>`${catalog?.themes.find(t=>t.id===r.theme)?.name||r.theme} ${r.level} · 15문제 해결 · 첫 시도 ${r.first_try}/15 ${r.mastered?'✓ 숙련':'복습 권장'}`).join(' | '):'완료한 새 교육 과정이 아직 없습니다.';
@@ -119,7 +119,7 @@ function selectCourse(theme){invalidate('course');courseTheme=theme;el('v9LearnM
  const concept=window.cmaAcademyConcept(theme);el('v9CourseMessage').textContent='학습 목표: '+concept.goal+' '+concept.example+' 이 설명은 개념 예시이며 현재 문제의 정답 해설이 아닙니다. 15문제에서 직접 확인해 보세요.';
  el('v9CourseLevel').innerHTML='';for(const level of catalog.levels){const op=new Option(`${level} (${m?.counts[level]||0}개)`,level);op.disabled=(m?.counts[level]||0)<15;el('v9CourseLevel').add(op)}
  const available=[...el('v9CourseLevel').options].filter(o=>!o.disabled);el('v9CourseStart').disabled=!available.length;if(available.length)el('v9CourseLevel').value=available[0].value;else el('v9CourseMessage').textContent='이 과목은 준비된 문제가 부족하여 시작할 수 없습니다.';
- el('v9LearnMode').scrollIntoView({block:'nearest',behavior:'smooth'});
+ if(window.cmaNavigation)window.cmaNavigation.tacticSelected();else el('v9LearnMode').scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 async function init(){try{
  catalog=await api('/v9/catalog');el('v9DataCount').textContent=catalog.ready?`공개 검증 퍼즐 ${catalog.count.toLocaleString()}개`:'공개 문제 데이터 설치 필요';
@@ -129,7 +129,7 @@ async function init(){try{
   const option=new Option(`${t.name} (${total})`,t.id);option.disabled=total===0;select.add(option);
   const btn=document.createElement('button');btn.className='v9-course-card';btn.disabled=total===0;
   const title=document.createElement('strong');title.textContent=t.name;const goal=document.createElement('p');goal.textContent=window.cmaAcademyConcept(t.id).goal;const small=document.createElement('small');small.textContent=`전술 문제 수 · 낮은 난도(기존 입문) ${t.counts['입문']} · 중급 ${t.counts['중급']} · 고급 ${t.counts['고급']}`;
-  btn.append(title,goal,small);btn.onclick=()=>selectCourse(t.id);card.append(btn);
+  btn.id='tactic-'+t.id;btn.append(title,goal,small);btn.onclick=()=>selectCourse(t.id);card.append(btn);
  }
  if(!catalog.ready){const warning='공개 퍼즐 원본은 별도로 내려받아야 합니다. 배포 파일에 데이터가 없어 현재 15문제 과정과 공개 랜덤 퍼즐을 시작할 수 없습니다. README의 데이터 가져오기 안내를 확인하세요.';
  status('puzzle',warning);el('v9CourseHistory').textContent=warning;}
@@ -142,7 +142,8 @@ el('v9PuzzleHint').onclick=()=>hint('puzzle');el('v9CourseHint').onclick=()=>hin
 el('v9PuzzleStart').onclick=()=>start('puzzle');el('v9PuzzleNext').onclick=()=>next('puzzle');
 el('v9CourseStart').textContent='새 15문제 과정 시작';
 el('v9CourseStart').onclick=()=>start('course');el('v9CourseNext').onclick=()=>next('course');
-el('v9CourseBack').onclick=()=>{invalidate('course');el('v9LearnMode').hidden=true;courseTheme=null};
+el('v9CourseBack').onclick=()=>{if(window.cmaNavigation){window.cmaNavigation.go('learn/tactics');return;}invalidate('course');el('v9LearnMode').hidden=true;courseTheme=null};
+window.cmaTacticView={hasSelection:()=>!!courseTheme,loadSaved:async()=>{await catalogReady;await restore('course');}};
 const catalogReady=init();
 window.cmaOpenV9Course=async(theme)=>{await catalogReady;if(!catalog)return false;const m=catalog.themes.find(t=>t.id===theme);if(!m)return false;selectCourse(theme);return true};
 })();
