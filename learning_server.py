@@ -378,6 +378,8 @@ def attach_learning(app, ns):
         card = state['cards'][s['card_id']]
         b = chess.Board(s['fen'])
         verify = 'verify' in s['mode']
+        source = state['cards'].get((card.get('selection') or {}).get('source_card'), card)
+        link = source.get('diagnosis')
         return {'session_id': s['id'], 'revision': s['revision'], 'card_id': card['id'],
                 'fen': s['fen'], 'legal': [] if s['done'] else [m.uci() for m in b.legal_moves],
                 'assessment_scope':'full_line' if card.get('full_line') else 'first_move', 'rating':None if verify and not s['done'] else card.get('rating'), 'side': s['side'], 'mode': s['mode'], 'done': s['done'], 'turns': s['turns'],
@@ -387,7 +389,7 @@ def attach_learning(app, ns):
                 'opponent_last_move': s.get('opponent_last_move'), 'hint_level': s['hints'],
                 'context': card.get('context', '직전 위치 기록이 없어 변화의 의미를 추측하지 않습니다.'),
                 'explanation': s.get('explanation'), 'playback': s.get('playback', []),
-                'growth_task':s.get('growth_task'), 'outcome': s.get('outcome'), 'selection': None if verify and not s['done'] else s.get('selection'), 'path_id': s.get('path_id'), 'premove': False}
+                'learning_link':None if verify and not s['done'] else copy.deepcopy(link), 'growth_task':s.get('growth_task'), 'outcome': s.get('outcome'), 'selection': None if verify and not s['done'] else s.get('selection'), 'path_id': s.get('path_id'), 'premove': False}
 
     def finish(state, s, success):
         if s['done']: return

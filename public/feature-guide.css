@@ -4,3 +4,6 @@
 #puzzleChallenge[hidden],#v9PuzzleRoot[hidden]{display:none!important}
 /* Reserve the shared help toolbar above the existing desktop diagnosis board. */
 @media(min-width:851px){.journey-board-panel .board{max-width:min(560px,max(240px,calc(100dvh - 410px)))}}
+
+@media(min-width:851px){#academyNavigationDialog{position:fixed;margin:0;width:350px;max-height:calc(100dvh - 24px);z-index:1500;box-shadow:0 16px 42px #0008;padding:18px}#academyNavigationDialog h2{font-size:18px}}
+.learning-observation{border-left:3px solid #8fe5c8;padding:8px 12px;margin:10px 0}.learning-observation p{margin:6px 0}.learning-flow-steps{font-weight:700;line-height:1.8}.independent-check{border-top:1px solid var(--line);margin-top:20px;padding-top:16px}.independent-check .btn{margin:6px}.home-options{margin-top:18px}.home-options .btn{margin:6px}.home-estimate{font-size:13px;color:var(--muted)}

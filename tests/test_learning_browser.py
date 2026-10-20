@@ -63,6 +63,7 @@ def test_saved_route_review_concept_transfer_resume(route_page,site,width,height
     page.evaluate("api('/learning/start','POST',{fresh:true})")
     page.evaluate("tab('home')")
     expect(page.locator('#learningReason')).to_contain_text('복습할 위치 1개')
+    page.locator('#homeExplore > summary').click()
     page.locator('.learning-home > summary').click()
     page.locator('#learningPath button').first.click()
     expect(page.locator('#learningRouteStatus')).to_contain_text('1/4')

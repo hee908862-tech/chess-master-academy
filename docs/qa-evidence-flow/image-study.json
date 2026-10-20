@@ -1,0 +1,35 @@
+{
+  "conditions": "local image 1CPU/512MiB, PostgreSQL17 loopback, temporary account",
+  "ozelq_balanced_512m": {
+    "status": "verified_error",
+    "reason": "large_loss",
+    "policy": "alternative-v2",
+    "settings": {
+      "threads": 1,
+      "hash_mb": 16,
+      "seconds_per_position": 0.3,
+      "max_depth": 16,
+      "minimum_depth": 10
+    },
+    "engine": "Stockfish 17.1",
+    "depths": [
+      16,
+      16
+    ],
+    "depth": 16,
+    "before_cp": 479,
+    "after_cp": -618,
+    "before_mate": null,
+    "after_mate": null,
+    "loss_cp": 1097
+  },
+  "courses": 55,
+  "references": 3865,
+  "actual_engine_reply": "e7e5",
+  "read_only_branch": "PASS",
+  "recall_no_answers": "PASS",
+  "bookmark_restart_restore": "PASS",
+  "game_state_unchanged": "PASS",
+  "oom_killed": false,
+  "memory_peak_bytes": 400015360
+}

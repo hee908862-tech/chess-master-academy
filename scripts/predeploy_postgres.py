@@ -241,6 +241,11 @@ def test_growth_balanced_cycle_unlock_and_preserved_snapshots():
         s=post(c,'journey/action',{'session_id':s['session_id'],'revision':s['revision'],'action':'skip'})
         s=post(c,'journey/action',{'session_id':s['session_id'],'revision':s['revision'],'action':'next'})
     report=s['report'];assert report['snapshot']['version']=='growth-v1'
+    before=state('journey_progress',code)
+    observed=c.get('/api/journey').json()
+    assert len(observed['learning_evidence'][report['id']])==24
+    assert all(row['label']=='미응답 · 수행 미관찰' for row in observed['learning_evidence'][report['id']].values())
+    assert state('journey_progress',code)==before and observed['latest']==report
     assert c.post('/api/journey/start',json={'mode':'balanced'}).status_code==409
     for task in report['training_plan']:
         body={'report_id':report['id'],'item_id':task['id']}
