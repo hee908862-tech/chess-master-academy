@@ -1,3 +1,4 @@
+from engine_budget import open_engine, EngineBusy
 """Version 7 API additions: server-validated hint, takeback, and review variations.
 No automatic changes to existing database schemas are necessary.
 """
@@ -25,7 +26,7 @@ def attach_v7(app, ns):
         exe=get_engine()
         if exe and Path(exe).exists():
             try:
-                with chess.engine.SimpleEngine.popen_uci(exe,timeout=10) as eng:
+                with open_engine(exe,timeout=10) as eng:
                     return eng.play(board,chess.engine.Limit(time=time_limit)).move, 'stockfish'
             except Exception:pass
         return ai_move(board,5),'fallback'

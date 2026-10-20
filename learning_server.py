@@ -1,3 +1,4 @@
+from engine_budget import open_engine, EngineBusy
 """Evidence-based learning, isolated from legacy progress JSON writes.
 New records use one locked row per account (SQLite BEGIN IMMEDIATE / PostgreSQL
 FOR UPDATE). No accounts, old records, or corpus entries are rewritten.
@@ -261,7 +262,7 @@ def attach_learning(app, ns):
             raise HTTPException(503, 'Stockfish가 연결되지 않았습니다. 실전 실수 분석·대안 수 평가·상황 대국은 사용할 수 없습니다. 원본 수순 퍼즐은 이용할 수 있습니다.')
         eng = None
         try:
-            eng = chess.engine.SimpleEngine.popen_uci(path, timeout=5)
+            eng = open_engine(path, timeout=5)
             eng.configure({'Threads': 1, 'Hash': 16})
             yield eng
         except (chess.engine.EngineError, TimeoutError, OSError) as exc:

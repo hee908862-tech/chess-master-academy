@@ -81,7 +81,7 @@ def test_chart_breaks_missing_and_incompatible_points(page,site):
     data['results']=[first,second,third,data['latest']]
     page.route('**/api/games/analysis',lambda r:r.fulfill(json={'games':[{'game_key':'x','at':'2026-10-20','status':'running','color':'black'}],'average':None,'rating_reason':'산출 보류'}))
     open_page(page,site);page.evaluate("tab('profile')")
-    expect(page.locator('#growthProfile circle')).to_have_count(3)
+    expect(page.locator('#growthProfile circle')).to_have_count(2)
     expect(page.locator('#growthProfile line[stroke="#8fe5c8"]')).to_have_count(0)
     expect(page.locator('#gamePerformance')).to_contain_text('분석 중')
     expect(page.locator('#gamePerformance circle')).to_have_count(0)
@@ -96,3 +96,30 @@ def test_recommendation_button_routes_task_and_unlock_stays_server_owned(page,si
     page.get_by_role('button',name='설명과 함께 다시 익히기',exact=True).first.click()
     expect(page.locator('#learningMessage')).to_contain_text('진행 중인 훈련')
     assert calls==[{'report_id':'2','item_id':'1'}]
+
+
+def test_additional_reports_do_not_displace_comparable_growth_points(page,site):
+    data=mock_status(page,report_fixture(number=2))
+    first=data['results'][0];last=data['latest'];old=[{'id':'extra'+str(i),'at':'2026-10-20','version':'journey-v3','areas':[],'items':[]} for i in range(13)]
+    data['results']=[first,*old,last,*old]
+    page.route('**/api/games/analysis',lambda r:r.fulfill(json={'games':[],'average':None}))
+    open_page(page,site);page.evaluate("tab('profile')")
+    expect(page.locator('#growthProfile circle')).to_have_count(2)
+    expect(page.locator('#growthProfile line[stroke="#8fe5c8"]')).to_have_count(1)
+    expect(page.locator('#growthProfile summary')).to_contain_text('26개 기록')
+
+
+def test_internal_rating_chart_separates_clock_modes_and_shows_exclusions(page,site):
+    mock_status(page,report_fixture(number=2))
+    def row(mode,number,after):return {'game_key':mode+str(number),'at':'2026-10-20','status':'not_started','color':'black','time_mode':mode,'app_rating':{'eligible':True,'version':'app-rating-beta-v1','result':'win','before':50,'after':after,'anchor':40}}
+    data={'games':[row('unlimited',1,53),row('bullet',2,54),row('unlimited',3,56),{'game_key':'old','status':'not_started','app_rating':{'eligible':False,'reasons':['실제 AI 설정 기록 불완전']}}],
+          'average':None,'app_rating':{'version':'app-rating-beta-v1','series':{'unlimited':{'value':56,'games':2},'bullet':{'value':54,'games':1}},'note':'미보정 내부 지표'}}
+    page.route('**/api/games/analysis',lambda r:r.fulfill(json=data))
+    open_page(page,site);page.evaluate("tab('profile')")
+    expect(page.locator('.app-rating circle')).to_have_count(2)
+    expect(page.locator('.app-rating')).to_contain_text('잠정')
+    page.screenshot(path=str(Path(__file__).resolve().parents[1]/'docs/qa-growth/internal-rating-unlimited.png'),full_page=True)
+    page.get_by_label('내부 레이팅 시계 형식').select_option('bullet')
+    expect(page.locator('.app-rating circle')).to_have_count(1)
+    expect(page.locator('#gamePerformance')).to_contain_text('실제 AI 설정 기록 불완전')
+    page.screenshot(path=str(Path(__file__).resolve().parents[1]/'docs/qa-growth/internal-rating-bullet.png'),full_page=True)

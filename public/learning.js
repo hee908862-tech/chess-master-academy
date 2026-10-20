@@ -131,7 +131,7 @@
   }
   function render(){
     const route=dashboard?.path;
-    const concept=route?.current===1 && route.steps[1].status==='active' && !route.done ? route : null;
+    const concept=!task?.growth_task && route?.current===1 && route.steps[1].status==='active' && !route.done ? route : null;
     const t=concept?null:task;
     $('learningTitle').textContent=t?(t.category||'주제 비공개 · 독립 판단'):concept?'개념 확인 · 진단과 같은 원리':'시작할 문제를 선택하세요';
     $('learningMode').textContent=t?`${modeNames[t.mode]}${t.done?' 완료':''}`:concept?'읽기 전용 · 개념':'준비';
@@ -149,7 +149,7 @@
     renderControls();lockControls();
   }
   function renderControls(){
-    const area=$('learningControls');area.replaceChildren();if(dashboard?.path?.current===1&&dashboard.path.steps[1].status==='active'){area.append(el('span','설명을 읽은 뒤 옆 또는 아래 경로의 개념 읽기 확인을 눌러 주세요.','subtle'));return;}if(!task)return;
+    const area=$('learningControls');area.replaceChildren();if(!task?.growth_task&&dashboard?.path?.current===1&&dashboard.path.steps[1].status==='active'){area.append(el('span','설명을 읽은 뒤 옆 또는 아래 경로의 개념 읽기 확인을 눌러 주세요.','subtle'));return;}if(!task)return;
     if(task.done&&task.growth_task){area.append(el('p',outcomeLabel(task.outcome),'tag'),button('추천 훈련과 진행률 보기',()=>tab('diagnosis')));return;}
     if(task.done){area.append(el('p',outcomeLabel(task.outcome)||'완료','tag'));if(task.path_id){area.append(button('경로 다음 단계',()=>continuePath()));return;}area.append(button('같은 위치 다시',()=>start({card_id:task.card_id,mode:task.mode})),button('다음 새 문제',()=>start({fresh:true,mode:'verify',category:task.outcome.category})));return;}
     if(!task.mode.includes('verify')){

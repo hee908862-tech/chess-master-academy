@@ -1,3 +1,4 @@
+from engine_budget import open_engine, EngineBusy
 """V8 API: 49 timed questions + short AI evaluation game, rating history.
 Works with existing JSON progress records, no schema migration.
 """
@@ -25,7 +26,7 @@ def attach_v8(app,ns):
         path=ns['STOCKFISH_PATH']
         if not path or not Path(path).exists():return None
         try:
-            with chess.engine.SimpleEngine.popen_uci(path,timeout=10) as engine:
+            with open_engine(path,timeout=10) as engine:
                 info=engine.analyse(board,chess.engine.Limit(time=0.11))
                 return info['score'].white().score(mate_score=10000)
         except Exception:

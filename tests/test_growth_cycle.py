@@ -68,6 +68,7 @@ def test_balanced_24_snapshots_cycle_unlock_and_new_positions(setup):
         assert learner.post('/api/learning/cycle/start',json=body).status_code==409
     status=c.get('/api/journey').json();assert status['cycle']['completed']==5 and status['cycle']['unlocked']
     assert all(t['completion']['helped'] for t in status['cycle']['tasks'])
+    for _ in range(2):assert c.post('/api/journey/start',json={'mode':'basic'}).status_code==409
     before={r['puzzle_id'] for r in rows}
     new=post(c,'start',{'mode':'balanced'})
     assert not before.intersection(r['puzzle_id'] for r in saved(db)['active']['items'])

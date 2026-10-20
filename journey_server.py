@@ -212,6 +212,9 @@ def attach_journey(app, ns):
     def start(body:Start, authorization: str | None = Header(default=None)):
         code=auth(authorization)
         if read(code)['active']:raise HTTPException(409,'저장된 진단을 먼저 이어서 완료하세요.')
+        # Preserve existing legacy sessions, but new requests cannot reuse a spent cycle.
+        if body.mode=='basic' and latest_cycle_report(read(code)['results']):
+            raise HTTPException(409,'이후 진단은 균형 또는 간이 진단으로 시작해 주세요.')
         pools=inventory() # Always outside a user transaction, including cold fallback.
         snapshot=external_snapshot(code)
         ids,positions,uncertain,learning=external(code,snapshot)

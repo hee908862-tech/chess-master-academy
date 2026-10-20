@@ -1,3 +1,5 @@
+> PR #8 독립 검토 후속: [내부 베타 레이팅과 회귀 수정](README_REVIEW_BETA_RATING.md).
+
 > 최신 진단·추천 훈련·성장 그래프 및 대국 분석 변경은 [성장 주기 안내](README_GROWTH_CYCLE.md)를 확인하세요.
 
 > 아래는 초기 v9.0 배포 기록입니다. 최신 진단·훈련 흐름, 저장 호환성과 검증 범위는 [근거 중심 진단 안내](README_DIAGNOSTIC_JOURNEY.md)를 확인하세요.

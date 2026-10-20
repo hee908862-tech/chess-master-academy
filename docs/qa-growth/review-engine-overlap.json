@@ -1,0 +1,12 @@
+{
+  "result": "PASS",
+  "conditions": "app 1 CPU/512MiB, one worker, PG 1 CPU/512MiB, 21 own moves background analysis overlaps alternative diagnosis and AI response",
+  "own_moves": 21,
+  "analysis_status": "complete",
+  "foreground_retry_seconds": 0.18340010099927895,
+  "other_account_profile_seconds": 0.03846528999565635,
+  "max_observed_engine_processes": 1,
+  "memory_peak_bytes": 401653760,
+  "oom_killed": false,
+  "foreground_retry_after_analysis": "PASS"
+}

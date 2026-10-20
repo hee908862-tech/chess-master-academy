@@ -1,3 +1,4 @@
+from engine_budget import open_engine, EngineBusy
 import copy
 import os, json, secrets, hashlib, hmac, sqlite3, random, threading, time
 from datetime import datetime, timezone
@@ -14,6 +15,7 @@ from pydantic import BaseModel, Field
 import chess
 import chess.engine
 from assistance import ledger as assistance_ledger, record_move as assistance_move, archive as assistance_archive, review as assistance_review
+from app_rating import play_recorded, record_ai, archive as rating_archive
 from exercises import bank as exercise_bank, public as public_exercise
 
 ROOT=Path(__file__).resolve().parent
@@ -277,14 +279,23 @@ def fallback_ai(board,depth=2):
 def ai_move(board,level=5):
  if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists():
   try:
-   with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH,timeout=8) as engine:
+   with open_engine(STOCKFISH_PATH,timeout=8) as engine:
     
     try:
-     engine.configure({'UCI_LimitStrength':True,'UCI_Elo':max(1320,min(3000,800+int(level)*220))})
-    except Exception: pass
-    return engine.play(board,chess.engine.Limit(time=.07+int(level)*.065)).move
+     settings={'Threads':1,'Hash':16,'UCI_LimitStrength':True,'UCI_Elo':max(1320,min(3000,800+int(level)*220))}
+     engine.configure(settings);configured=True
+    except Exception:configured=False;settings={}
+    seconds=.07+int(level)*.065
+    chosen=engine.play(board,chess.engine.Limit(time=seconds)).move
+    name=engine.id.get('name','unknown')
+    record_ai(board,name,{**settings,'seconds':seconds,'level':int(level),'configured':configured,'fallback':False},20+5*(int(level)-1) if configured and name=='Stockfish 17.1' else None)
+    return chosen
+  except EngineBusy:raise HTTPException(503,'분석 엔진이 사용 중입니다. 잠시 후 다시 두세요. 착수는 저장하지 않았습니다.',headers={'Retry-After':'1'})
   except Exception: pass
- return fallback_ai(board,depth=1 if int(level)<=2 else 2 if int(level)<=6 else 3)
+ depth=1 if int(level)<=2 else 2 if int(level)<=6 else 3
+ chosen=fallback_ai(board,depth=depth)
+ record_ai(board,'cma-minimax-v1',{'depth':depth,'fallback':True}, {1:20,2:35,3:50}[depth])
+ return chosen
 
 def serialize_board(board,player_color='white'):
  positions={chess.square_name(s):p.symbol() for s,p in board.piece_map().items()}
@@ -322,6 +333,7 @@ def finish_by_clock(state, loser):
     'started':active.get('started'),'time_mode':active.get('time_mode','unlimited'),
     'hint_used':active.get('hint_used'),'hint_plies':active.get('hint_plies',[]),
     'termination':'timeout',**assistance_archive(active)})
+ rating_archive(state,active)
  state['active_game']=None
  return result
 
@@ -331,6 +343,7 @@ def store_finished(state,board):
  active=state['active_game']
  state['games'].append({'result':outcome,'moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),'engine':active['engine'],'color':active.get('color','white'),'difficulty':active.get('difficulty',5),'started':active.get('started'),'time_mode':active.get('time_mode','unlimited'),
  'hint_used':active.get('hint_used'),'hint_plies':active.get('hint_plies',[]),'termination':'rules',**assistance_archive(active)})
+ rating_archive(state,active)
  state['active_game']=None
 
 class NewGameBody(BaseModel):
@@ -362,9 +375,10 @@ def new_game(body:NewGameBody,authorization:str|None=Header(default=None)):
  'white_ms':TIME_MODES[body.time_mode][0],'black_ms':TIME_MODES[body.time_mode][0],
  'hint_used':False,'hint_plies':[],'turn_started_at':time.time()}
  assistance_ledger(state['active_game'], complete=True)
+ state['active_game']['ai_execution']={'version':'ai-execution-v1','complete':True,'calls':[]}
  board=chess.Board()
  if body.color=='black':
-  first=ai_move(board,body.difficulty)
+  first=play_recorded(ai_move,board,body.difficulty,state['active_game'])
   if first:
    board.push(first);state['active_game']['moves'].append(first.uci())
    state['active_game']['turn_started_at']=time.time()
@@ -417,7 +431,7 @@ def move(body:MoveBody,authorization:str|None=Header(default=None)):
  ai_uci=None
  if not board.is_game_over(claim_draw=True):
   ai_start=time.time()
-  ai=ai_move(board,active.get('difficulty',5))
+  ai=play_recorded(ai_move,board,active.get('difficulty',5),active)
   ai_elapsed=int((time.time()-ai_start)*1000)
   if mode!='unlimited':
    ai_key='black_ms' if color=='white' else 'white_ms'
@@ -444,6 +458,7 @@ def resign(authorization:str|None=Header(default=None)):
  active=state['active_game']
  state['games'].append({'result':'loss','moves':active['moves'],'ended':datetime.now(timezone.utc).isoformat(),'engine':active['engine'],'resigned':True,'color':active.get('color','white'),'difficulty':active.get('difficulty',5),'started':active.get('started'),'time_mode':active.get('time_mode','unlimited'),
  'hint_used':active.get('hint_used'),'hint_plies':active.get('hint_plies',[]),'termination':'resign',**assistance_archive(active)})
+ rating_archive(state,active)
  state['active_game']=None;save_state(code,state)
  return {'ok':True}
 
@@ -730,7 +745,7 @@ def assessment_answer(body:AssessmentMove,authorization:str|None=Header(default=
 def eval_for_white(board):
  if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists():
   try:
-   with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH,timeout=8) as engine:
+   with open_engine(STOCKFISH_PATH,timeout=8) as engine:
     res=engine.analyse(board,chess.engine.Limit(time=.07))
     return res['score'].white().score(mate_score=10000)
   except Exception:pass
@@ -739,7 +754,7 @@ def eval_for_white(board):
 def medium_move(board):
  if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists():
   try:
-   with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH,timeout=8) as engine:
+   with open_engine(STOCKFISH_PATH,timeout=8) as engine:
     engine.configure({'UCI_LimitStrength':True,'UCI_Elo':1500})
     return engine.play(board,chess.engine.Limit(time=.17)).move
   except Exception:pass
@@ -1017,7 +1032,7 @@ def game_review(index:str,authorization:str|None=Header(default=None)):
  if len(moves)>200:raise HTTPException(400,'긴 대국은 분석 구간을 나누어야 합니다. 현재는 200수 이하만 지원합니다.')
  eng=None
  if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists():
-  try:eng=chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH,timeout=15)
+  try:eng=open_engine(STOCKFISH_PATH,timeout=15)
   except Exception:pass
  try:
   return build_review_rows(eng,game,index,moves)

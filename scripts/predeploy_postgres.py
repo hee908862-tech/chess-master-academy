@@ -270,3 +270,23 @@ def test_real_image_engine_analysis_persists_without_rating():
     assert result['user_moves']==2 and result['rating'] is None and result['engine'].startswith('Stockfish')
     assert c.get('/api/games/analysis').json()['average'] is None
     assert server.get_state(code)['games']==[game]
+
+
+def test_internal_rating_real_engine_persists_and_legacy_is_not_rewritten():
+    c,code=account();legacy=server.get_state(code)
+    legacy['games']=[{'moves':['e2e4','e7e5'],'color':'white','result':'draw','ended':'2020-01-01'}]
+    server.save_state(code,legacy);before=server.get_state(code)['games'][0]
+    first=c.get('/api/games/analysis').json();assert first['app_rating']['series']=={}
+    assert first['games'][0]['app_rating']['eligible'] is False
+    assert server.get_state(code)['games'][0]==before
+    g=post(c,'game/new',{'color':'black','difficulty':5,'time_mode':'bullet'})
+    move=g['board']['legal'][0]
+    post(c,'game/move',{'from_sq':move['from'],'to_sq':move['to'],'session_id':g['session_id']})
+    post(c,'game/resign',{})
+    saved=server.get_state(code);rated=saved['games'][-1]['app_rating']
+    assert rated['eligible'] and rated['after']<rated['before'] and rated['time_mode']=='bullet'
+    assert saved['app_ratings']['bullet']['games']==1
+    assert c.post('/api/game/resign').status_code==400
+    server.initdb()
+    assert server.get_state(code)==saved
+    assert c.get('/api/games/analysis').json()['app_rating']['series']['bullet']['games']==1

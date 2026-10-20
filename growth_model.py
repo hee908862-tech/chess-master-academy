@@ -1,3 +1,4 @@
+from engine_budget import open_engine, EngineBusy
 """Versioned app exercise performance; no population rating or Elo conversion."""
 import copy
 import math
@@ -104,7 +105,7 @@ def verify_loss(fen,move,path):
         board=chess.Board(fen);side=board.turn
         m=chess.Move.from_uci(move)
         if m not in board.legal_moves:return None
-        engine=chess.engine.SimpleEngine.popen_uci(path,timeout=3)
+        engine=open_engine(path,timeout=3)
         try:
             engine.configure({'Threads':1,'Hash':16})
             first=engine.analyse(board,chess.engine.Limit(time=.12,depth=14));board.push(m)

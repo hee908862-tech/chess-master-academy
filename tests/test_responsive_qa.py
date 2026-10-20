@@ -10,13 +10,18 @@ def test_responsive_boards_long_copy_and_last_result(site,width):
     with sync_playwright() as p:
         browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
         page=browser.new_page(viewport={'width':width,'height':900},is_mobile=width<768,has_touch=width<768)
+        errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
         page.add_init_script("localStorage.setItem('chess_token',"+repr(site[1])+");")
         task=question();task['question']['goal']='상대 응수를 확인하고 이어서 직접 두세요. '+('d7d8n-e8f7-'*12)
         task['question']['label']='메이트 수순 · 한국어 설명과 긴 날짜 2026-10-19T23:59:59.999999+00:00'
         page.route('**/api/onboarding',lambda r:r.fulfill(json={'status':'completed','version':1}))
         page.route('**/api/journey',lambda r:r.fulfill(json={'active':task,'latest':None,'results':[],'competencies':[]}))
         page.goto(site[0]);page.evaluate("tab('diagnosis')")
-        expect(page.locator('#journeyBoard .sq')).to_have_count(64)
+        try:expect(page.locator('#journeyBoard .sq')).to_have_count(64)
+        except AssertionError as error:
+            page.screenshot(path=f'/tmp/cma-responsive-failure-{width}.png',full_page=True)
+            message=page.locator('#journeyMessage').text_content()
+            raise AssertionError(f'{error}; journey status={message}; page errors={errors}') from error
         expect(page.locator('#journeyBoard [aria-label^="e3 "]')).to_have_attribute('aria-label','e3 흑 룩')
         for view in ['diagnosis','profile','help']:
             page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(100)
