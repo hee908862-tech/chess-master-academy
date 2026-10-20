@@ -70,7 +70,7 @@ def analyse_game(game,path):
     return {'status':'partial' if partial else 'complete','score_version':VERSION,'quality':round(sum(quality)/len(quality),1) if quality else None,'quality_moves':len(quality),'mate_unscored':sum(r['quality'] is None for r in rows),
             'user_moves':len(rows),'expected_moves':expected,'rows':rows,'flags':flags,'representative':not flags,
             'engine':engine_name,'settings':{'threads':1,'hash_mb':16,'seconds_per_position':.08,'max_depth':14,'minimum_depth':8,'max_user_moves':80},
-            'rating':None,'rating_reason':'레이팅은 산출을 보류합니다. 실제 사람의 레이팅으로 검증한 환산 모델이 없어요.',
+            'rating':None,'rating_reason':'외부 사람 레이팅으로의 환산은 보류합니다. 검증된 환산 모델이 없어요.',
             'method':'내 수 품질: 내 관점의 엔진 평가 손실에 100×exp(-손실cp/200)를 적용한 평균. 공식 정확도·Elo가 아닙니다.'}
 
 
@@ -102,7 +102,7 @@ def attach_analysis(app,ns):
         records=[{'index':i,'game_key':game_key(g),'at':g.get('ended'),'color':g.get('color','white'),'app_rating':rating_game(g),'time_mode':g.get('time_mode','unknown'),**visible(stored.get(game_key(g)))} for i,g in enumerate(games)]
         eligible=[r for r in records if r.get('quality') is not None and r.get('representative') and r.get('score_version')==VERSION and r['status']=='complete']
         return {'games':records,'average':round(sum(r['quality']*r.get('quality_moves',r['user_moves']) for r in eligible)/sum(r.get('quality_moves',r['user_moves']) for r in eligible),1) if eligible else None,
-                'representative_games':len(eligible),'app_rating':rating_summary(state),'rating':None,'rating_reason':'정확도 하나로 Elo를 환산하지 않습니다. 검증된 모델이 없어 추정 레이팅은 산출을 보류합니다.'}
+                'representative_games':len(eligible),'app_rating':rating_summary(state),'rating':None,'rating_reason':'정확도 하나로 Elo를 환산하지 않습니다. 검증된 모델이 없어 외부 사람 레이팅으로의 환산은 보류합니다.'}
     @app.post('/api/games/analysis/{key}')
     def start(key:str,authorization:str|None=Header(default=None)):
         code=auth(authorization);game=next((g for g in ns['get_state'](code).get('games',[]) if game_key(g)==key),None)
