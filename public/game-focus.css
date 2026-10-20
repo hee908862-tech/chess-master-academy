@@ -1,0 +1,40 @@
+/* One layout owns the play screen, independent of legacy two-column/card rules. */
+body.game-focus-active .topbar,body.game-focus-active #onboardingInvitation{display:none}
+#play{gap:8px;overflow-anchor:none}
+#play .feature-toolbar{margin:0;min-height:44px}
+#gameFocusTitle{font-size:22px;line-height:1.3;margin:0}
+#play .game-settings,#play .game-secondary-tools,#play .game-information{border:1px solid var(--line);border-radius:10px;padding:0 10px;background:var(--panel)}
+#play summary{cursor:pointer;min-height:44px;padding:10px 0;line-height:1.5;font-size:14px;overflow-wrap:anywhere}
+#play .game-setting-fields{display:flex;flex-wrap:wrap;gap:10px;align-items:end;padding:8px 0}
+#play .game-setting-fields label{display:grid;gap:4px;font-size:14px;flex:1 1 140px}
+#play .game-setting-fields .field{width:100%!important;max-width:none!important;min-height:44px}
+#play .game-focus-stage{display:grid;grid-template-columns:minmax(360px,1fr) minmax(240px,.6fr);gap:16px;align-items:start}
+#play .game-focus-board{min-width:0}
+#play .game-turn-clock{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;min-height:32px;margin-bottom:6px;font-size:14px}
+#gameBoard{width:100%;max-width:min(100%,max(360px,calc(100dvh - 190px)))!important;margin:auto}
+#play .game-focus-controls{display:grid;gap:8px;min-width:0}
+#play .game-primary-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#play .game-primary-actions .btn{min-height:44px;margin:0;padding:10px 6px;font-size:14px;white-space:normal}
+#play #gameActionReason{margin:0;font-size:13px;line-height:1.5}
+#play #gameStatus{margin:0;padding:8px 10px;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+#play #gamePremoveStatus{display:block;font-size:12px;line-height:1.5;color:var(--muted)}
+#play .game-danger-actions{display:flex;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding:12px 0;margin-top:12px}
+#play .board-tools label{min-height:44px!important;font-size:14px!important}
+#play .game-information .lead{font-size:14px}
+#play .game-information h3{font-size:16px;margin-top:12px!important}
+body.game-focus-active .cma-promotion-panel{max-height:calc(100dvh - 24px);overflow:auto}
+@media(max-width:1050px) and (min-width:851px){#play .game-focus-stage{grid-template-columns:minmax(320px,1fr) minmax(210px,.6fr)}}
+@media(max-width:850px){
+ body.game-focus-active .app{padding:8px!important}
+ body.game-focus-active .mobile-nav{position:static!important;inset:auto!important;width:100%;margin-top:8px;padding-bottom:max(8px,env(safe-area-inset-bottom));border-radius:12px 12px 0 0}
+ #play .game-focus-stage{grid-template-columns:minmax(0,1fr);gap:8px}
+ #play .game-turn-clock{min-height:28px}
+ #gameBoard{max-width:min(100%,440px)!important}
+ #play.game-in-progress #gameSettingsSummary{font-size:12px}
+ #play .game-primary-actions .btn{font-size:14px}
+ #play .game-setting-fields label{flex-basis:90px}
+}
+@media(max-height:600px){#gameBoard{max-width:min(100%,480px)!important}}
+/* Available column width also matters when text/page scaling narrows the main area. */
+body.game-focus-active .main{container-type:inline-size}
+@container(max-width:700px){#play .game-focus-stage{grid-template-columns:minmax(0,1fr);gap:8px}}

@@ -20,6 +20,7 @@ def setup_wait(page,site,mode,initial=None):
         name='gameBoard';path='**/api/game/move'
         page.route('**/api/game/new',lambda r:r.fulfill(json={'board':board,'session_id':'s1','player_color':'white'}))
         page.evaluate("tab('play')");page.locator('#newGame').click()
+        page.locator('#gameTools > summary').click()
     elif mode=='assessment':
         name='testBoard';path='**/api/v8/assessment/game-move'
         page.route('**/api/v8/assessment/status',lambda r:r.fulfill(json={'active':True,'phase':'game','session_id':'s1','board':board}))
