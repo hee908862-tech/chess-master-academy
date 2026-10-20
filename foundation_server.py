@@ -42,7 +42,7 @@ def attach_foundations(app, ns):
         courses=[]
         for c in COURSES:
             p=saved.get('courses',{}).get(c['id'],{})
-            courses.append({k:c[k] for k in ('id','title','goal')}|{'total':len(c['steps']),'completed':len(p.get('completed_steps',[])), 'done':bool(p.get('done'))})
+            courses.append({k:c[k] for k in ('id','title','goal')}|{'total':len(c['steps']),'started':bool(p),'completed':len(p.get('completed_steps',[])), 'done':bool(p.get('done'))})
         active=saved.get('active')
         recommended=next((c['id'] for c in courses if not c['done']),None)
         task=None
