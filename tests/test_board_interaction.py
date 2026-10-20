@@ -19,7 +19,9 @@ def setup_wait(page,site,mode,initial=None):
     if mode=='game':
         name='gameBoard';path='**/api/game/move'
         page.route('**/api/game/new',lambda r:r.fulfill(json={'board':board,'session_id':'s1','player_color':'white'}))
-        page.evaluate("tab('play')");page.locator('#newGame').click()
+        page.evaluate("tab('play')")
+        if not page.locator('#gameSettings').evaluate('(e)=>e.open'):page.locator('#gameSettings > summary').click()
+        page.locator('#newGame').click()
         page.locator('#gameTools > summary').click()
     elif mode=='assessment':
         name='testBoard';path='**/api/v8/assessment/game-move'

@@ -36,7 +36,7 @@ function install(){
  for(const id of ['playerColor','aiLevel','timeMode'])$(id).addEventListener('change',update);
  update();
  const previousTab=tab;tab=function(id){const previous=document.querySelector('.view.active')?.id;if(id==='play'&&previous==='play')return;previousTab(id);document.body.classList.toggle('game-focus-active',id==='play');if(previous!==id){
-  const current=document.getElementById(id);const heading=current?.querySelector('h1,h2');if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}
+  const current=document.getElementById(id);const heading=current?.querySelector('h1,h2');if(current){current.tabIndex=-1;if(heading&&!current.hasAttribute('aria-label'))current.setAttribute('aria-label',heading.textContent);current.focus({preventScroll:true});}
   // Cancel an in-flight smooth scroll from the old screen, after the layout changes.
   scrollTo({top:0,left:0,behavior:'instant'});
  }};
