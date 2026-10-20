@@ -38,6 +38,13 @@ def test_traceable_recommendation_and_selected_independent_check(page,site,width
     requests=[]
     page.route('**/api/journey/start',lambda r:(requests.append(r.request.post_data_json),r.fulfill(status=409,json={'detail':'진행 중 기록을 보존했습니다.'})))
     open_page(page,site);page.evaluate("tab('diagnosis')")
+    summary=page.locator('#journeyResults .growth-abilities')
+    expect(summary).to_be_visible()
+    expect(summary.locator('.ability-card')).to_have_count(7)
+    for card in summary.locator('.ability-card').all():
+        expect(card.locator('.ability-score')).to_be_visible()
+        expect(card.locator('details')).not_to_have_attribute('open','')
+    assert summary.evaluate("e=>!!(e.compareDocumentPosition(document.querySelector('#journeyResults .growth-plan')) & Node.DOCUMENT_POSITION_FOLLOWING)")
     expect(page.locator('.growth-plan')).to_contain_text('5개 완료는 학습량이며 독립 숙련이 아닙니다.')
     expect(page.locator('.learning-observation').first).to_contain_text('실제 제출: e4')
     expect(page.locator('.learning-observation').first).to_contain_text('Nf3')
