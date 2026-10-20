@@ -43,6 +43,9 @@ def test_signup_from_trial_starts_real_first_step_without_transferring_success(g
     d=p.evaluate("api('/foundations')");assert d['completed']==0 and not d['active']['solved'] and d['active']['step']==0
     assert 'R5K1' in d['active']['fen']
     assert p.evaluate("api('/me')")['stats']['games']==0
+    expect(p.locator('#academyTactics')).not_to_have_attribute('open','')
+    p.wait_for_function("()=>{const b=document.getElementById('foundationBoard').getBoundingClientRect(),n=document.querySelector('.mobile-nav').getBoundingClientRect();return b.top>=0&&b.bottom<=n.top}")
+    Path('/tmp/cma-first-visit-captures').mkdir(exist_ok=True);p.screenshot(path='/tmp/cma-first-visit-captures/formal-first-viewport.png')
 
 
 def test_existing_login_keeps_saved_activity_and_cancel_is_safe(guest,site):
