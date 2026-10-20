@@ -1,0 +1,38 @@
+{
+  "home": {
+    "text": "rgb(17, 24, 39)",
+    "background": "linear-gradient(130deg, rgb(118, 154, 255), rgb(141, 170, 255))",
+    "opacity": "1",
+    "ratios": [
+      6.61991400033125,
+      7.878490631654179
+    ]
+  },
+  "play": {
+    "text": "rgb(17, 24, 39)",
+    "background": "linear-gradient(130deg, rgb(118, 154, 255), rgb(141, 170, 255))",
+    "opacity": "1",
+    "ratios": [
+      6.61991400033125,
+      7.878490631654179
+    ]
+  },
+  "diagnosis": {
+    "text": "rgb(17, 24, 39)",
+    "background": "linear-gradient(130deg, rgb(118, 154, 255), rgb(141, 170, 255))",
+    "opacity": "1",
+    "ratios": [
+      6.61991400033125,
+      7.878490631654179
+    ]
+  },
+  "training": {
+    "text": "rgb(17, 24, 39)",
+    "background": "linear-gradient(130deg, rgb(118, 154, 255), rgb(141, 170, 255))",
+    "opacity": "1",
+    "ratios": [
+      6.61991400033125,
+      7.878490631654179
+    ]
+  }
+}

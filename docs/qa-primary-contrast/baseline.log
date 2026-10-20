@@ -1,0 +1,31 @@
+F
+=================================== FAILURES ===================================
+________ test_main_actions_contrast_keyboard_and_narrow_layout[320-800] ________
+
+page = <Page url='http://127.0.0.1:58285/'>
+site = ('http://127.0.0.1:58285', '_szXJpyX6bpCWDIDdanoO8LyWkWG47ikU59B9I84vnHUpWM5')
+width = 320, height = 800
+
+    @pytest.mark.parametrize('width,height',[(320,800),(1280,720)])
+    def test_main_actions_contrast_keyboard_and_narrow_layout(page,site,width,height):
+        login(page,site);page.set_viewport_size(dict(width=width,height=height))
+        OUT.mkdir(exist_ok=True);measurements={}
+        for view,selector in [('home','#journeyHomeOpen'),('play','#newGame'),('diagnosis','#journeyStart'),('training','#learningFresh'),('learn','#foundationPrimary button')]:
+            page.evaluate('v=>tab(v)',view)
+            target=page.locator(selector);expect(target).to_be_visible();expect(target).to_be_enabled()
+            page.keyboard.press('Tab');target.focus();target.scroll_into_view_if_needed();page.wait_for_timeout(200)
+            expect(target).to_be_focused()
+            assert target.evaluate("e=>getComputedStyle(e).outlineStyle")!='none'
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+            if view!='learn':
+                c=contrast(target);measurements[view]=c
+>               assert min(c['ratios'])>=4.5,(view,c)
+E               AssertionError: ('play', {'text': 'rgb(255, 255, 255)', 'background': 'linear-gradient(130deg, rgb(118, 154, 255), rgb(141, 170, 255))', 'opacity': '1', 'ratios': [2.679750371860783, 2.251664415617819]})
+E               assert 2.251664415617819 >= 4.5
+E                +  where 2.251664415617819 = min([2.679750371860783, 2.251664415617819])
+
+tests/test_primary_contrast_browser.py:35: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_primary_contrast_browser.py::test_main_actions_contrast_keyboard_and_narrow_layout[320-800]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 2 deselected in 9.23s
