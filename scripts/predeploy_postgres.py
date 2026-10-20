@@ -385,3 +385,21 @@ def test_repertoire_pg_cas_and_unrelated_records_preserved():
     assert other.get('/api/repertoire').json()['active'] is None
     data=post(client,'repertoire/action',{'action':'retry','revision':data['revision'],'attempt_id':data['active']['id']})
     assert data['active']['hints']==1 and not data['metrics']['london-core']['first_recall']['clean']
+
+
+def test_repertoire_full_archive_preserves_legacy_active_on_finish():
+    import copy
+    from repertoire_server import KEY
+    client,code=account()
+    data=post(client,'repertoire/action',{'action':'select','revision':0,'selected':['london-core']})
+    data=post(client,'repertoire/action',{'action':'start','revision':data['revision'],'lesson_id':'london-core','mode':'recall','side':'black'})
+    saved=server.get_state(code);r=copy.deepcopy(saved[KEY]['active'])
+    saved[KEY]['history']=[{**copy.deepcopy(r),'id':f'pg-cap-{i}','phase':'stopped'} for i in range(64)];server.save_state(code,saved)
+    data=client.get('/api/repertoire').json();assert not data['can_start']
+    body={'revision':data['revision'],'attempt_id':r['id']}
+    assert client.post('/api/repertoire/action',json={**body,'action':'retry'}).status_code==409
+    data=post(client,'repertoire/action',{**body,'action':'finish'})
+    assert data['active'] is None and data['retained_legacy_attempt'] and len(data['history'])==65
+    assert data['metrics']['london-core']['first_recall']['side']=='black'
+    assert client.get('/api/repertoire/history/'+r['id']).status_code==200
+    assert client.get('/api/repertoire').json()==data

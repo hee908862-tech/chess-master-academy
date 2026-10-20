@@ -56,6 +56,7 @@ def test_recall_completion_alternative_no_other_state_changes(runtime,side):
     assert data['active']['phase']=='complete'
     if side=='white':assert data['active']['branch_ids']==['bishop-exchange']
     assert data['metrics']['london-core']['first_recall']['clean']
+    assert data['metrics']['london-core']['first_recall']['side']==side
     after=dict(server.get_state('RUNTIME-A'));after.pop(KEY);assert after==dict(before)
     assert b.get('/api/repertoire').json()['active'] is None
     assert post(a,data,'move',move='a2a3').status_code==409
@@ -112,3 +113,64 @@ def test_concurrent_revision_and_bounds(runtime):
     assert post(a,current,'select',selected=['x']*17).status_code==422
     state=server.get_state('RUNTIME-A');state[KEY]['active']['events']=[{'kind':'hint','ply':0}]*256;server.save_state('RUNTIME-A',state)
     current=a.get('/api/repertoire').json();assert post(a,current,'hint').status_code==409
+
+
+@pytest.mark.parametrize('action',['finish','retry'])
+def test_first_incomplete_recall_side_and_legacy_unknown_preserved(runtime,action):
+    server,(a,b)=runtime;data=start(a,side='black')
+    data=post(a,data,action).json()
+    first=data['metrics']['london-core']['first_recall']
+    assert first['side']=='black' and not first['completed']
+    state=server.get_state('RUNTIME-A');state[KEY]['metrics']['london-core']['first_recall'].pop('side');server.save_state('RUNTIME-A',state)
+    before=copy.deepcopy(server.get_state('RUNTIME-A'))
+    loaded=a.get('/api/repertoire').json()
+    assert 'side' not in loaded['metrics']['london-core']['first_recall']
+    assert server.get_state('RUNTIME-A')==before
+
+
+@pytest.mark.parametrize('count',[63,64])
+@pytest.mark.parametrize('phase',[None,'playing','complete'])
+@pytest.mark.parametrize('action',['start','retry','finish','move'])
+def test_archive_boundary_matrix_preserves_and_allows_exit(runtime,count,phase,action):
+    server,(a,b)=runtime;data=start(a);state=server.get_state('RUNTIME-A');s=state[KEY]
+    template=copy.deepcopy(s['active']);template.update(phase='complete',moves=lesson('london-core')['branches']['main'],recorded=True)
+    s['history']=[{**copy.deepcopy(template),'id':f'archived-{i}'} for i in range(count)]
+    if phase is None:s['active']=None
+    elif phase=='complete':s['active']=copy.deepcopy(template)
+    server.save_state('RUNTIME-A',state);before=copy.deepcopy(server.get_state('RUNTIME-A'));data=a.get('/api/repertoire').json()
+    result=post(a,data,action,lesson_id='london-core',mode='recall',move='d2d4')
+    expected=200 if (action=='start' and phase is None and count==63) or (action=='finish' and phase is not None) or (action=='move' and phase=='playing') else 409
+    assert result.status_code==expected,result.text
+    saved=server.get_state('RUNTIME-A')[KEY]
+    assert saved['history'][:count]==before[KEY]['history']
+    if expected==409:assert server.get_state('RUNTIME-A')==before
+    if action=='finish' and expected==200:
+        out=result.json();assert out['active'] is None and not out['can_start']
+        assert len(out['history'])==count+1
+        assert out['retained_legacy_attempt']==(count==64)
+        assert a.get('/api/repertoire/history/'+template['id']).status_code==200
+        assert a.get('/api/repertoire').json()==out
+    if action=='start' and expected==200:
+        assert post(a,result.json(),'finish').status_code==200
+
+
+def test_event_and_byte_limits_preserve_normal_finish(runtime,monkeypatch):
+    import json
+    import repertoire_server as module
+    server,(a,b)=runtime;data=start(a)
+    state=server.get_state('RUNTIME-A');s=state[KEY];s['active']['events']=[{'kind':'hint','ply':0,'fen':chess.STARTING_FEN}]*256
+    server.save_state('RUNTIME-A',state);data=a.get('/api/repertoire').json();before=copy.deepcopy(server.get_state('RUNTIME-A'))
+    for action in ['hint','move']:assert post(a,data,action,move='d2d4').status_code==409
+    assert server.get_state('RUNTIME-A')==before
+    assert post(a,data,'finish').status_code==200
+    data=start(a)
+    state=server.get_state('RUNTIME-A');s=state[KEY]
+    # Exact real 1MiB persisted boundary, including a fixture-only inert padding field.
+    s['padding']='';current=len(json.dumps(s,ensure_ascii=False).encode());s['padding']='x'*(module.MAX_BYTES-current)
+    assert len(json.dumps(s,ensure_ascii=False).encode())==module.MAX_BYTES
+    server.save_state('RUNTIME-A',state);data=a.get('/api/repertoire').json();before=copy.deepcopy(server.get_state('RUNTIME-A'))
+    assert post(a,data,'hint').status_code==409
+    assert server.get_state('RUNTIME-A')==before
+    out=post(a,data,'finish');assert out.status_code==200,out.text
+    assert out.json()['active'] is None
+    assert server.get_state('RUNTIME-A')[KEY]['padding']==before[KEY]['padding']
