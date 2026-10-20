@@ -43,5 +43,6 @@ $('foundationHomeOpen').onclick=openRecommended;
 const oldTab=tab;tab=function(id){if(owner!==token)reset();oldTab(id);if(['learn','home'].includes(id))load();};
 const oldAuth=auth;auth=async function(...args){reset();await oldAuth(...args);await load();};$('signout')?.addEventListener('click',reset);
 const oldCourse=window.cmaOpenV9Course;window.cmaOpenV9Course=async(...args)=>{tacticsChosen=true;tactics.open=true;return oldCourse(...args);};
-window.cmaFoundations={load,openRecommended,openTactics};load();
+async function startFirstIfEmpty(guard){const account=token;tab('learn');await load();if(!guard()||token!==account||owner!==account||busy||failed||!data)return;if(data.active||data.courses.some(c=>c.started)){return openRecommended();}tactics.open=false;return act('start','rook-bishop');}
+window.cmaFoundations={load,openRecommended,openTactics,startFirstIfEmpty};load();
 })();

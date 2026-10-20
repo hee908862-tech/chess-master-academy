@@ -53,6 +53,7 @@ def test_actual_game_geometry_hint_undo_and_navigation(page,site):
     assert page.evaluate("document.activeElement.closest('.view').id")=='home'
     page.evaluate("tab('play')")
     assert page.evaluate('game.fen')==before['fen']
+    page.locator('.mobile-nav [data-tab=profile]').click()
     page.locator('#moreNavigation').click()
     page.locator('#moreNavigationDialog').get_by_role('button',name='기록',exact=True).click()
     page.wait_for_timeout(50)

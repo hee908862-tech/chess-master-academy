@@ -61,23 +61,20 @@ def test_guest_return_and_board_layout(site,width,height):
         errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
         page.goto(site[0]);page.wait_for_timeout(700)
         if width<=850:
-            page.locator('.mobile-nav').get_by_role('button',name='더보기',exact=True).click()
+            page.locator('.mobile-nav [data-tab=profile]').click();page.locator('#moreNavigation').click()
             page.locator('#moreNavigationDialog').get_by_role('button',name='퍼즐',exact=True).click()
-        else:page.locator('[data-tab="puzzle"]:visible').first.click()
+        else:
+            page.locator('#navigationTools > summary').click();page.locator('[data-tab="puzzle"]:visible').first.click()
         expect(page.locator('#puzzle')).to_have_class('view active')
         page.locator('#v9PuzzleStart').click()
         expect(page.locator('#accountStatus')).to_contain_text('로그인이 필요')
         expect(page.locator('#v8ProfileResult')).to_contain_text('로그인하면')
         page.locator('#codeField').fill('BROWSER-QA');page.locator('#pinField').fill('test-pin-9384')
-        # First-login introduction is now intentional. Close it before exercising
-        # the original guest-return and board-layout contract.
+        # Login returns to the chosen feature; starting-level guidance stays optional.
         with page.expect_response('**/api/starting-level') as notice:
             page.locator('#signin').click()
         intro=notice.value.json()
-        if not intro['choice'] and not intro['defer_auto']:
-            expect(page.locator('#startingLevelDialog')).to_be_visible()
-            page.locator('#startingLevelClose').click()
-            expect(page.locator('#startingLevelDialog')).not_to_be_visible()
+        expect(page.locator('#startingLevelDialog')).not_to_be_visible()
         expect(page.locator('#puzzle')).to_have_class('view active')
         assert page.locator('#v9PuzzleBoard .sq').count()==0
         page.evaluate("tab('training')")
