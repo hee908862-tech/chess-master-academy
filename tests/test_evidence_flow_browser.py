@@ -46,6 +46,7 @@ def test_traceable_recommendation_and_selected_independent_check(page,site,width
     page.get_by_role('button',name='선택 분야 7일 기억 확인',exact=True).click()
     expect(page.locator('#journeyMessage')).to_contain_text('진행 중 기록을 보존했습니다.')
     assert requests==[{'mode':'recheck','competency':'promotion'}]
+    expect(field).to_be_disabled()
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
     out=Path('docs/qa-evidence-flow');out.mkdir(exist_ok=True)
     page.screenshot(path=str(out/f'evidence-{width}.png'),full_page=True)

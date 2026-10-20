@@ -1,4 +1,3 @@
-from journey_evidence import learning_observation
 """Versioned diagnostic snapshots and transactional, resumable multi-ply responses."""
 import copy
 import json
@@ -18,7 +17,7 @@ from pydantic import BaseModel
 from competencies import VERSION, COMPETENCIES, position_key, line_positions
 from v9_server import LIB, DATA_FILE
 from mate_explanation import explain_mate
-from journey_evidence import JOURNEY_VERSION, COVERAGE_POLICY, CUED, UNCUED, recheck_gate, additional_plan, build_report
+from journey_evidence import JOURNEY_VERSION, COVERAGE_POLICY, CUED, UNCUED, recheck_gate, additional_plan, build_report, learning_observation
 
 
 def now(): return datetime.now(timezone.utc)
@@ -202,7 +201,7 @@ def attach_journey(app, ns):
         _,learning=external_snapshot(code)
         path=learning.get('path');active_training=learning.get('active')
         visible=[state['results'][-1] if state['results'] else None,latest_cycle_report(state['results'])]
-        evidence={r['id']:{i['id']:learning_observation(i) for i in r.get('items',[])} for r in visible if r}
+        evidence={r['id']:{i['id']:learning_observation(i) for i in (r.get('items') or []) if isinstance(i,dict) and i.get('id')} for r in visible if r and r.get('id')}
         return {'learning_evidence':evidence,'preparing':_inventory_lock.locked(),'training':{'path_id':path['id'] if path else None,'path_done':path.get('done',False) if path else False,'active':bool(active_training and not active_training.get('done')),'has_path':bool(path)},
                 'activity':{'diagnoses':len(state['results']),'answered':sum(bool(i.get('submitted')) for r in state['results'] for i in r.get('items',[])), 'recommended_completed':sum(len(c.get('completed',{})) for c in learning.get('cycles',{}).values())},
                 'cycle':cycle_status(latest_cycle_report(state['results']),learning),
