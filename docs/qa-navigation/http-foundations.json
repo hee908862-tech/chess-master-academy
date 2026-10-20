@@ -1,0 +1,9 @@
+{
+  "image": "sha256:13e59528f290e7e0d28fb7821f8dea343947d6c0b7cdc8e83c2612677b83396e",
+  "conditions": "local 1CPU/512MiB PostgreSQL17; unique temporary accounts",
+  "foundation_partial_line_restart_restore": "PASS",
+  "diagnosis_learning_course_preserved": "PASS",
+  "no_training_credit": "PASS",
+  "account_separation": "PASS",
+  "oom_killed": false
+}

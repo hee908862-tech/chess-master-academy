@@ -203,6 +203,6 @@
   tab=function(id){document.body.classList.toggle('learning-active',id==='training');generation++;selected=null;oldTab(id);if(id==='training'||id==='home')load();};
   const oldSignout=$('signout')?.onclick;
   if($('signout'))$('signout').onclick=function(e){clear();return oldSignout?.call(this,e);};
-  const mq=matchMedia('(max-width: 760px)');const details=()=>{$('learningDetails').open=!mq.matches;};details();mq.addEventListener('change',details);
+  const mq=matchMedia('(max-width: 760px)');const details=()=>{$('learningDetails').open=true;};details();mq.addEventListener('change',details);
   render();load();
 })();

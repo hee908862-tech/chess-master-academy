@@ -29,7 +29,7 @@ function applyTheme(){const t=BOARD_THEMES[prefs.boardTheme]||BOARD_THEMES.walnu
 function notice(id,text,type=''){const e=$(id);if(!e)return;e.className=(id==='gameStatus'||id==='puzzleStatus'?'notice ':'status ')+type;e.textContent=text;}
 async function api(path,method='GET',body){const opts={method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})}};if(body!==undefined)opts.body=JSON.stringify(body);let resp;const controller=new AbortController(),legacyTimed=['/v8/assessment/start','/v8/assessment/status'].includes(path),timed=legacyTimed||/^\/(journey|learning|me|onboarding|profile)(\/|$)/.test(path);if(timed)opts.signal=controller.signal;const timeout=timed?setTimeout(()=>controller.abort(),legacyTimed?60000:30000):null;try{resp=await fetch('/api'+path,opts)}catch(e){throw Error(e.name==='AbortError'?'서버 응답 시간이 초과되었습니다. 저장 상태를 다시 확인하세요.':'서버와 연결할 수 없습니다. 서버를 실행하거나 Render 주소로 접속하세요.')}finally{clearTimeout(timeout)}const data=await resp.json();if(!resp.ok){const error=Error(typeof data.detail==='string'?data.detail:(Array.isArray(data.detail)?data.detail.map(x=>x.msg).join(' / '):data.detail?.message||'요청이 실패했습니다.'));error.detail=data.detail;error.status=resp.status;throw error;}return data;}
 function tab(id){window.cmaBoardTools?.cancelAll();cancelPromotion();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));scrollTo({top:0,behavior:'smooth'});if(id==='home'||id==='profile'){refreshSummaryOnly();if(id==='profile')renderWinrates();}}
-document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
+document.querySelectorAll('[data-tab]').forEach(b=>{b.onclick=()=>tab(b.dataset.tab);});
 document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.go)));
 $('loginNav').onclick=()=>tab('profile');
 function fromFen(fen){const out={};fen.split(' ')[0].split('/').forEach((row,r)=>{let c=0;for(const ch of row){if(/\d/.test(ch))c+=Number(ch);else out[FILES[c++]+(8-r)]=ch}});return out;}
@@ -108,11 +108,15 @@ async function choosePromotion(sqFrom,sqTo,piece,moves){
       modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');
       document.body.appendChild(modal);
     }
-    promotionCancel=()=>{modal.hidden=true;resolve(null)};
+    const origin=document.activeElement;
+    const finish=value=>{promotionCancel=null;modal.hidden=true;if(origin?.isConnected&&!origin.disabled)origin.focus();resolve(value);};
+    promotionCancel=()=>finish(null);
+    modal.onclick=e=>{if(e.target===modal)cancelPromotion();};
+    modal.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();cancelPromotion();}if(e.key==='Tab'){const list=[...modal.querySelectorAll('button')];if(e.shiftKey&&document.activeElement===list[0]){e.preventDefault();list.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===list.at(-1)){e.preventDefault();list[0].focus();}}};
     const turn=piece===piece.toUpperCase()?'w':'b';
     modal.replaceChildren();
     const panel=document.createElement('div');panel.className='cma-promotion-panel';
-    const title=document.createElement('h3');title.textContent='어떤 기물로 승격할까요?';panel.appendChild(title);
+    const title=document.createElement('h3');title.textContent='어떤 기물로 승격할까요?';title.id='cmaPromotionTitle';modal.setAttribute('aria-labelledby',title.id);panel.appendChild(title);
     const caption=document.createElement('p');caption.textContent='퀸 · 룩 · 비숍 · 나이트 중 선택하세요.';panel.appendChild(caption);
     const buttons=document.createElement('div');buttons.className='cma-promotion-choices';
     for(const [code,name,notation] of [['q','퀸','Q'],['r','룩','R'],['b','비숍','B'],['n','나이트','N']]){
@@ -120,9 +124,9 @@ async function choosePromotion(sqFrom,sqTo,piece,moves){
       const btn=document.createElement('button');btn.type='button';btn.className='btn';
       const icon=document.createElement('span');icon.className='cma-promotion-glyph';icon.textContent=(typeof PIECES!=='undefined'?PIECES[turn==='w'?notation:notation.toLowerCase()]:notation)||notation;
       btn.append(icon,document.createTextNode(name));
-      btn.onclick=()=>{promotionCancel=null;modal.hidden=true;resolve(code)};buttons.append(btn);
+      btn.onclick=()=>finish(code);buttons.append(btn);
     }
-    panel.append(buttons);modal.append(panel);modal.hidden=false;
+    panel.append(buttons);const close=document.createElement('button');close.className='btn';close.textContent='승격 선택 취소';close.onclick=()=>cancelPromotion();panel.append(close);modal.append(panel);modal.hidden=false;buttons.querySelector('button')?.focus();
   });
 }
 

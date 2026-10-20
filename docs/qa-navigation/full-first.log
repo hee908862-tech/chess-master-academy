@@ -1,0 +1,43 @@
+........................................................................ [ 18%]
+........................................................................ [ 37%]
+........................F............................................... [ 56%]
+........................................................................ [ 74%]
+........................................................................ [ 93%]
+.........................                                                [100%]
+=================================== FAILURES ===================================
+________ test_real_journey_complete_skipped_then_training[1366-768-pc] _________
+
+site = (isolated loopback server, temporary test token redacted)
+width = 1366, height = 768, label = 'pc'
+
+    @pytest.mark.parametrize('width,height,label',[(1366,768,'pc'),(390,844,'mobile')])
+    def test_real_journey_complete_skipped_then_training(site,width,height,label):
+        """Real local APIs and temporary accounts. Skips are never presented as success."""
+        import secrets
+        import urllib.request
+        req=urllib.request.Request(site[0]+'/api/register',json.dumps({'code':'JOURNEY-'+secrets.token_hex(4),'pin':'qa-journey-pin'}).encode(),{'Content-Type':'application/json'})
+        account=json.load(urllib.request.urlopen(req))
+        captures=Path(__file__).resolve().parents[1]/'docs'/'qa-reliability'
+        captures.mkdir(parents=True,exist_ok=True)
+        with sync_playwright() as p:
+            browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+            page=browser.new_page(viewport={'width':width,'height':height})
+            page.add_init_script(f"localStorage.setItem('chess_token',{json.dumps(account['token'])});")
+            page.goto(site[0]);page.evaluate("api('/starting-level','POST',{choice:'experienced',revision:0})");page.locator('#journeyHomeOpen').click();page.locator('#journeyStart').click()
+            expect(page.locator('#journeyBoard .sq')).to_have_count(64,timeout=30000)
+            board=page.locator('#journeyBoard').bounding_box()
+            nav=page.locator('.mobile-nav')
+            bottom=nav.bounding_box()['y'] if nav.is_visible() else height
+>           assert board['y']+board['height']<=bottom+1
+E           assert (385.28125 + 423) <= (768 + 1)
+
+tests/test_journey_browser.py:133: AssertionError
+=============================== warnings summary ===============================
+../../tmp/chess-venv/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /tmp/chess-venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_journey_browser.py::test_real_journey_complete_skipped_then_training[1366-768-pc]
+1 failed, 384 passed, 1 warning in 689.54s (0:11:29)
