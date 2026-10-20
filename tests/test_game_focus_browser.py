@@ -4,7 +4,7 @@ from pathlib import Path
 import chess
 from playwright.sync_api import expect
 from test_qa_browser import page, site, open_page, square
-from test_board_interaction import board_data
+from test_board_interaction import board_data, setup_wait, play_initial, reply
 
 CAPTURES=Path('/tmp/cma-game-focus-evidence')
 
@@ -102,3 +102,21 @@ def test_wait_failure_check_clock_and_end_keep_actions(page,site):
     page.evaluate("game.is_over=true;drawGame();document.getElementById('turnIndicator').textContent='대국 종료';")
     expect(page.locator('#v7Hint')).to_be_visible();expect(page.locator('#v7Hint')).to_be_disabled()
     expect(page.locator('#v7Undo')).to_be_visible();expect(page.locator('#v7Undo')).to_be_disabled()
+
+
+def test_menu_escape_preserves_waiting_premove(page,site):
+    name,requests,task=setup_wait(page,site,'game')
+    page.get_by_role('checkbox',name='프리무브 gameBoard',exact=True).check()
+    play_initial(page,name);square(page,name,'g1').click();square(page,name,'f3').click()
+    page.locator('#gameTools > summary').click()
+    expect(page.locator('#gamePremoveStatus')).to_contain_text('g1 → f3')
+    page.locator('.nav [data-tab=learn]').click();page.keyboard.press('Escape')
+    expect(page.locator('#gameBoard .premove-arrow')).to_have_count(1)
+    page.evaluate("tab('play')")
+    expect(page.locator('#gameBoard .premove-arrow')).to_have_count(1)
+    b=chess.Board();b.push_uci('e2e4');b.push_uci('e7e5');reply(requests[0],'game',b,task)
+    for _ in range(100):
+        if len(requests)==2:break
+        page.wait_for_timeout(50)
+    assert len(requests)==2
+    b.push_uci('g1f3');reply(requests[1],'game',b,task,True)
