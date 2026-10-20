@@ -13,10 +13,12 @@ const home=document.createElement('div');home.id='journeyHome';home.className='c
 for(const b of document.querySelectorAll('[data-tab="assessment"]')){b.dataset.tab='diagnosis';b.onclick=()=>tab('diagnosis');}
 const profile=document.createElement('div');profile.className='card journey-profile-link';profile.innerHTML='<h3>근거 중심 진단 기록</h3><p>문항별 첫수·전체 수순, 반복 노출과 독립 근거를 구분해 확인합니다.</p><button class="btn" id="journeyProfileOpen">진단 결과와 재평가 보기</button>';by('profile').prepend(profile);
 const open=()=>tab('diagnosis');by('journeyHomeOpen').onclick=open;by('journeyProfileOpen').onclick=open;by('journeyHomeTrain').onclick=()=>tab('training');by('journeyLegacy').onclick=()=>tab('assessment');
+let requestedEntry=null;
+const entryOffer=document.createElement('div');entryOffer.id='journeyEntryOffer';entryOffer.className='card';entryOffer.hidden=true;by('journeyIntro').before(entryOffer);
 let state=null,session=null,selected=null,busy=false,serial=0,owner=null,needsRefresh=false,pendingLoad=false;
 function say(s){by('journeyMessage').textContent=s;}
-function clear(){window.growthProfile?.({results:[]});state=null;session=null;selected=null;needsRefresh=false;owner=token;window.cmaMate?.clear('journeyBoard');by('journeyBoard').replaceChildren();by('journeyResults').replaceChildren();by('journeyHistory').replaceChildren();by('journeyHistory').hidden=true;by('journeyPast').hidden=true;by('journeyPastReport').replaceChildren();window.cmaLearningCycle?.(null);by('journeyTask').hidden=true;by('journeyIntro').hidden=false;by('journeyResume').hidden=true;by('journeyHomeStatus').textContent='첫 진단으로 현재의 풀이 과정을 확인하세요.';}
-function controls(){by('journeyStart').disabled=busy||needsRefresh||!!(session&&session.phase!=='complete')||!!(state?.cycle&&!state.cycle.unlocked);by('journeyQuick').disabled=by('journeyStart').disabled;by('journeyResume').hidden=!session||session.phase==='complete';by('journeyResume').disabled=busy;by('journeyRefresh').disabled=busy;by('journeySkip').disabled=busy||needsRefresh;by('journeyNext').disabled=busy||needsRefresh;section.setAttribute('aria-busy',String(busy));for(const b of by('journeyResults').querySelectorAll('button'))b.disabled=busy||needsRefresh||b.dataset.ineligible==='true';renderHome();}
+function clear(){requestedEntry=null;entryOffer.hidden=true;entryOffer.replaceChildren();window.growthProfile?.({results:[]});state=null;session=null;selected=null;needsRefresh=false;owner=token;window.cmaMate?.clear('journeyBoard');by('journeyBoard').replaceChildren();by('journeyResults').replaceChildren();by('journeyHistory').replaceChildren();by('journeyHistory').hidden=true;by('journeyPast').hidden=true;by('journeyPastReport').replaceChildren();window.cmaLearningCycle?.(null);by('journeyTask').hidden=true;by('journeyIntro').hidden=false;by('journeyResume').hidden=true;by('journeyHomeStatus').textContent='첫 진단으로 현재의 풀이 과정을 확인하세요.';}
+function controls(){by('journeyStart').disabled=busy||needsRefresh||!!(session&&session.phase!=='complete')||!!(state?.cycle&&!state.cycle.unlocked);by('journeyQuick').disabled=by('journeyStart').disabled;by('journeyResume').hidden=!session||session.phase==='complete';by('journeyResume').disabled=busy;by('journeyRefresh').disabled=busy;by('journeySkip').disabled=busy||needsRefresh;by('journeyNext').disabled=busy||needsRefresh;section.setAttribute('aria-busy',String(busy));for(const b of by('journeyResults').querySelectorAll('button'))b.disabled=busy||needsRefresh||b.dataset.ineligible==='true';renderHome();renderEntryOffer();}
 function text(parent,tag,value,cls){const el=document.createElement(tag);el.textContent=value;if(cls)el.className=cls;parent.append(el);return el;}
 function button(parent,label,fn){const b=text(parent,'button',label,'btn');b.type='button';b.onclick=fn;return b;}
 function lines(v){return Array.isArray(v)?v.join(' · '):typeof v==='object'?Object.entries(v||{}).map(([k,x])=>`${k}: ${x}`).join(' · '):String(v??'');}
@@ -29,7 +31,8 @@ function renderReport(report,target='journeyResults',readOnly=false){let host=by
  text(follow,'p',next?'아직 완성하지 못했거나 비교할 수순부터 설명과 함께 연습해요. 아래 문항별로 다른 분야를 골라도 됩니다.':'관찰한 수순을 완주했어요. 한 수순을 복습하거나 준비되면 더 넓은 분야를 확인해 보세요.');
  const item=next||report.items?.[0];if(item)button(follow,next?'먼저 연결된 수순 연습하기':'관찰한 수순 복습하기',()=>train(report.id,item.item_id||item.id));
  text(follow,'p','입문 연습은 표준 진단의 추천 5개 주기와 별도입니다. 연습 후 입문을 다시 확인하거나, 기초·응용 문제를 포함하는 표준 진단을 직접 선택할 수 있어요. 입문 결과를 표준 성장 점수에 합치지 않습니다.');
- for(const [label,mode] of [['표준 균형 진단으로 · 24문항','balanced'],['표준 간이 진단으로 · 12문항','quick'],['입문 새 문제로 다시 확인','gentle']]){const b=button(follow,label,()=>start(mode));b.dataset.ineligible=String(!!(state?.cycle&&!state.cycle.unlocked));}
+ for(const [label,mode] of [['표준 균형 진단으로 · 24문항','balanced'],['표준 간이 진단으로 · 12문항','quick'],['입문 새 문제로 다시 확인','gentle']]){const b=button(follow,label,()=>start(mode));b.dataset.ineligible=String(mode!=='gentle'&&!!(state?.cycle&&!state.cycle.unlocked));}
+ if(state?.cycle&&!state.cycle.unlocked){text(follow,'p',`표준 진단은 기존 추천 과제 ${state.cycle.remaining}개를 마친 뒤 시작할 수 있어요. 입문 관찰은 이 진행률을 바꾸지 않습니다.`,'notice');button(follow,'기존 표준 추천 이어가기',()=>{const panel=by('journeyPreviousCycle');if(panel){panel.open=true;panel.scrollIntoView({block:'start'});}});}
  button(follow,'시작 수준 선택 / 변경',()=>window.cmaStartingLevel?.open());
  }
  if(report.snapshot&&window.growthReport){window.growthReport(host,report,state?.cycle,(task)=>window.learningCycle(report.id,task.id),()=>start('balanced'),(area)=>start('targeted',area),readOnly);const details=document.createElement('details');host.append(details);text(details,'summary','문항별 풀이와 자세한 근거');host=text(details,'div','');}
@@ -71,5 +74,13 @@ async function train(report_id,item_id){if(!ready('diagnosis')||busy||needsRefre
 by('journeyStart').onclick=()=>start();by('journeyQuick').onclick=()=>start('quick');by('journeyResume').onclick=()=>{renderSession(session);by('journeyTask').scrollIntoView({block:'start'});};by('journeyRefresh').onclick=load;by('journeyNext').onclick=()=>action('next');by('journeySkip').onclick=()=>action('skip');by('journeyPause').onclick=()=>tab('home');
 const oldTab=tab;tab=function(id){document.body.classList.toggle('journey-active',id==='diagnosis');if(owner!==token){++serial;busy=false;clear();}if(busy){++serial;busy=false;pendingLoad=false;needsRefresh=true;}oldTab(id);if(['diagnosis','home','profile','training'].includes(id))load();};
 const oldSignout=by('signout')?.onclick;if(oldSignout)by('signout').onclick=function(e){++serial;busy=false;clear();return oldSignout.call(this,e);};
-window.cmaJourney={load,open};load();
+function renderEntryOffer(){entryOffer.replaceChildren();entryOffer.hidden=!requestedEntry;if(!requestedEntry)return;
+ text(entryOffer,'h3',requestedEntry==='gentle'?'부담 적은 입문 관찰 시작':'표준 균형 진단 시작');
+ const active=session&&session.phase!=='complete';
+ text(entryOffer,'p',active?'진행 중인 진단이 있습니다. 기존 풀이를 먼저 이어서 완료해 주세요.':requestedEntry==='gentle'?'기존 표준 결과와 추천 진행률을 보존하며 별도 입문 관찰을 시작합니다.':state?.cycle&&!state.cycle.unlocked?`기존 추천 과제 ${state.cycle.remaining}개를 마친 뒤 표준 진단을 시작할 수 있습니다.`:'24문항으로 기초·응용 분야의 수행을 확인합니다.');
+ const b=button(entryOffer,active?'진행 중인 진단 이어하기':requestedEntry==='gentle'?'입문 관찰 시작 · 최대 6문항':'표준 균형 진단 시작 · 24문항',()=>{if(active){requestedEntry=null;renderEntryOffer();by('journeyTask').scrollIntoView({block:'start'});}else{const mode=requestedEntry;requestedEntry=null;start(mode);}});
+ b.disabled=busy||needsRefresh||(!active&&requestedEntry!=='gentle'&&!!(state?.cycle&&!state.cycle.unlocked));
+}
+function openEntry(mode='gentle'){if(owner!==token)clear();requestedEntry=mode;tab('diagnosis');renderEntryOffer();entryOffer.scrollIntoView({block:'start'});}
+window.cmaJourney={load,open,openEntry};load();
 })();
