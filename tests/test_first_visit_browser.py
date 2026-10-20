@@ -164,3 +164,65 @@ def test_skip_prioritizes_activities_and_preserves_revisit_preference(guest,site
     p.locator('#trialSkip').click();expect(p.locator('#entryChoices h2')).to_be_focused()
     expect(p.locator('#firstSkip')).to_be_hidden()
     assert not p.evaluate('token')
+
+
+def test_late_logout_cannot_clear_new_login_and_failure_preserves_account(guest,site):
+    p=guest
+    def login_new(prefix):
+        p.evaluate("tab('profile')")
+        p.locator('#codeField').fill(prefix+secrets.token_hex(4))
+        p.locator('#pinField').fill('trial-test-pin42')
+        p.locator('#signup').click()
+        expect(p.locator('#home')).to_have_class('view active')
+        return p.evaluate('token')
+    first=login_new('OUT-A-')
+    waits=[];p.route('**/api/logout',lambda r:waits.append(r))
+    p.evaluate("tab('profile')");p.locator('#signout').click()
+    p.wait_for_function("()=>document.getElementById('signup').disabled===false")
+    for _ in range(100):
+        if waits:break
+        p.wait_for_timeout(20)
+    assert len(waits)==1
+    p.evaluate("cmaEntry.cancel();tab('home')")
+    second=login_new('OUT-B-');assert second!=first
+    before=p.evaluate("api('/foundations')")
+    waits[0].fulfill(json={'ok':True});p.wait_for_timeout(200)
+    assert p.evaluate('token')==second
+    assert p.evaluate("localStorage.getItem('chess_token')")==second
+    assert p.evaluate("api('/foundations')")==before
+    expect(p.locator('#home')).to_have_class('view active')
+    p.unroute('**/api/logout')
+    p.route('**/api/logout',lambda r:r.fulfill(status=503,json={'detail':'temporary test failure'}))
+    p.evaluate("tab('profile')");p.locator('#signout').click()
+    expect(p.locator('#accountStatus')).to_contain_text('로그아웃하지 못했습니다')
+    assert p.evaluate('token')==second
+    p.unroute('**/api/logout');p.locator('#signout').click()
+    expect(p.locator('#userBadge')).to_have_text('게스트')
+    assert not p.evaluate('token') and not p.evaluate("localStorage.getItem('chess_token')")
+
+
+def test_entry_primary_contrast_initial_skip_and_returning(guest,site):
+    import re
+    p=guest
+    def check(selector):
+        el=p.locator(selector)
+        el.focus()
+        colors=el.evaluate("e=>{const s=getComputedStyle(e);return {fg:s.color,bg:s.backgroundImage,outline:s.outlineStyle}}")
+        def luminance(rgb):
+            v=[int(x)/255 for x in rgb]
+            v=[x/12.92 if x<=.04045 else ((x+.055)/1.055)**2.4 for x in v]
+            return sum(a*b for a,b in zip(v,[.2126,.7152,.0722]))
+        fg=luminance(re.findall(r'\d+',colors['fg'])[:3])
+        stops=re.findall(r'rgb\((\d+), (\d+), (\d+)\)',colors['bg'])
+        assert len(stops)==2,colors
+        ratios=[(max(fg,luminance(c))+.05)/(min(fg,luminance(c))+.05) for c in stops]
+        assert min(ratios)>=4.5,(selector,ratios)
+        expect(el).to_be_focused()
+        print(selector,'gradient contrast',ratios,'focus',colors['outline'])
+    check('#firstTry')
+    p.locator('#firstSkip').click();check('#entry-diagnosis')
+    p.screenshot(path='/tmp/cma-first-visit-captures/skip-choices.png',full_page=True)
+    p.reload();check('#entry-diagnosis')
+    p.evaluate("t=>localStorage.setItem('chess_token',t)",site[1]);p.reload()
+    expect(p.locator('#journeyHomeOpen')).to_be_visible()
+    check('#journeyHomeOpen')
