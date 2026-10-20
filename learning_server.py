@@ -13,7 +13,7 @@ from typing import Literal
 
 import chess
 import chess.engine
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Query
 from pydantic import BaseModel, Field
 from v9_server import LIB, THEMES
 from competencies import VERSION as COMPETENCY_VERSION, COMPETENCIES, supports, line_positions
@@ -136,6 +136,13 @@ def attach_learning(app, ns):
     with db() as conn:
         execute(conn, 'CREATE TABLE IF NOT EXISTS learning_progress (code TEXT PRIMARY KEY, state TEXT NOT NULL)')
 
+    def normalize_cards(state):
+        for card in state['cards'].values():
+            if 'tags' not in card:
+                puzzle = LIB.get(card['id'].removeprefix('puzzle-')) if card['id'].startswith('puzzle-') else None
+                card['tags'] = sorted(set(puzzle['themes']) & set(THEMES)) if puzzle else proven_tags(card)
+                card['tag_evidence'] = 'Lichess 원본 학습 태그' if puzzle else 'python-chess 규칙으로 확인된 특징'
+
     @contextmanager
     def store(code):
         with db() as conn:
@@ -146,11 +153,7 @@ def attach_learning(app, ns):
             suffix = ' FOR UPDATE' if ns['DATABASE_URL'] else ''
             row = execute(conn, 'SELECT state FROM learning_progress WHERE code=?' + suffix, (code,)).fetchone()
             state = json.loads(row['state'])
-            for card in state['cards'].values():
-                if 'tags' not in card:
-                    puzzle = LIB.get(card['id'].removeprefix('puzzle-')) if card['id'].startswith('puzzle-') else None
-                    card['tags'] = sorted(set(puzzle['themes']) & set(THEMES)) if puzzle else proven_tags(card)
-                    card['tag_evidence'] = 'Lichess 원본 학습 태그' if puzzle else 'python-chess 규칙으로 확인된 특징'
+            normalize_cards(state)
             yield state
             execute(conn, 'UPDATE learning_progress SET state=? WHERE code=?', (json.dumps(state, ensure_ascii=False), code))
 
@@ -284,6 +287,8 @@ def attach_learning(app, ns):
         exposure = card.setdefault('exposure', {}).setdefault(day, {'hints': 0, 'revealed': False, 'wrong': 0})
         delayed = any(date < day for date in card.get('exposure', {})) or any(a['card_id'] == card['id'] and a['at'][:10] < day for a in state['attempts'])
         completed_today = any(a['card_id'] == card['id'] and a['at'][:10] == day and a['success'] for a in state['attempts'])
+        current_helped=bool(s['hints'] or s['undone'] or s['revealed'])
+        previous=s.get('prior_help',{})
         revealed = s['revealed'] or exposure['revealed']
         helped = bool(s['hints'] or s['undone'] or exposure['hints'])
         wrong = max(s['wrong'], exposure['wrong'])
@@ -295,7 +300,11 @@ def attach_learning(app, ns):
                    'mode': s['mode'], 'success': success, 'status': status,
                    'position': ' '.join(card['fen'].split()[:4]),
                    'selection': s.get('selection'), 'path_id': s.get('path_id'),
-                   'hint_level': max(s['hints'], exposure['hints']), 'helped': bool(helped or revealed), 'wrong': wrong, 'fresh': s['fresh']}
+                   'current_helped':current_helped, 'current_hint_level':s['hints'],
+                   'prior_helped':bool(previous.get('hints') or previous.get('revealed')),
+                   'prior_help_known':'prior_help' in s,
+                   'completion_basis':'evaluation_maintenance' if s['mode'].startswith('situation') else 'reference_line',
+                   'turns':s['turns'], 'hint_level': max(s['hints'], exposure['hints']), 'helped': bool(helped or revealed), 'wrong': wrong, 'fresh': s['fresh']}
         eligible_result = status in ('unaided_first_success', 'later_unaided_success') or success is False
         prior = [a for a in state['attempts'] if a['card_id'] == card['id']]
         independent_kind = None
@@ -315,36 +324,40 @@ def attach_learning(app, ns):
         s.update(done=True, outcome=attempt, message='학습 기록을 저장했습니다.' if success else '아직 목표에 도달하지 못했습니다. 기록을 저장했습니다.')
 
     @app.get('/api/learning/dashboard')
-    def dashboard(authorization: str | None = Header(default=None)):
+    def dashboard(authorization: str | None = Header(default=None), offset: int = Query(0, ge=0)):
         code = auth(authorization)
-        with store(code) as state:
-            due = [public_card(c) for c in state['cards'].values() if c['due'] <= now().isoformat()]
-            skills = []
-            for key, label in CATEGORIES.items():
-                rows = [a for a in state['attempts'] if a['category'] == key]
-                groups=evidence_groups(rows)
-                primary=next((g for g in groups if not g['reference_only']),
-                    {'independent':0,'distinct':0,'recent':None,'previous':None,'novel':0,'delayed':0,
-                     'insufficient':True,'trend_available':False,'recent_n':0,'previous_n':0})
-                skills.append({'id':key,'name':label,'count':len(rows),'groups':groups,
-                    'rate_version':COMPETENCY_VERSION,'rate_scope':'full_line',
-                    **{k:primary[k] for k in ('independent','distinct','recent','previous','novel','delayed','insufficient','trend_available','recent_n','previous_n')},
-                    'measured':COMPETENCIES[key]['measured'],'scope':COMPETENCIES[key]['scope'],
-                    'first_move_count':sum(a.get('assessment_scope')=='first_move' for a in rows),
-                    'full_line_count':sum(a.get('assessment_scope')=='full_line' for a in rows),
-                    'practice_count':sum(a['mode'] in ('practice','situation_practice') for a in rows),
-                    'verification_count':sum(a['mode'] in ('verify','situation_verify') for a in rows),
-                    'transfer':sum(bool((a.get('selection') or {}).get('overlap')) and a['fresh'] and a['mode']=='verify' and a['status']=='unaided_first_success' for a in rows)})
-            eligible=[s for s in skills if s['measured'] and not s['insufficient'] and s['recent']<100]
-            lowest=min((s['recent'] for s in eligible),default=None)
-            priorities=[s for s in eligible if s['recent']==lowest]
-            weakest=priorities[0] if len(priorities)==1 else None
-            return {'competency_version': COMPETENCY_VERSION, 'due': due, 'cards': [public_card(c) for c in state['cards'].values()],
-                    'attempts': state['attempts'][-50:][::-1], 'skills': skills, 'intervals': state['intervals'],
-                    'active': payload(state), 'path': public_path(state), 'recommended': weakest['id'] if weakest else None,
-                    'reason': '같은 버전·전체 수순의 최근 독립 국면에서 미완료 근거가 있는 영역' if weakest else '비교 가능한 전체 수순 근거가 부족하거나 동률입니다. 보완 순위를 정하지 않습니다.',
-                    'engine': bool(ns['STOCKFISH_PATH'] and Path(ns['STOCKFISH_PATH']).is_file()),
-                    'notice': '공통 역량 이름을 사용하지만 이 지도는 훈련 기록입니다. 성공률과 추천은 같은 버전·같은 측정 범위 안에서만 계산합니다. 구형·미기록 버전과 첫 수 판단은 별도 참고이며 전체 수순 근거로 합산하지 않습니다. 각 비교 구간에 독립 국면 5개가 없으면 추세를 표시하지 않습니다. 미출제는 기록된 문제 ID와 전체 원본 수순의 국면 기준이며, 식별 기록이 없는 과거·외부 노출까지 보장하지 않습니다. 기존 진단·대국 통계는 기록 메뉴에 보존됩니다. 실제 레이팅이 아닙니다.'}
+        with db() as conn:
+            row=execute(conn,'SELECT state FROM learning_progress WHERE code=?',(code,)).fetchone()
+        state=json.loads(row['state']) if row else {'cards':{},'attempts':[],'intervals':[1,3,7],'active':None}
+        normalize_cards(state) # Read compatibility only; the next write persists additive fields.
+        due = [public_card(c) for c in state['cards'].values() if c['due'] <= now().isoformat()]
+        skills = []
+        for key, label in CATEGORIES.items():
+            rows = [a for a in state['attempts'] if a['category'] == key]
+            groups=evidence_groups(rows)
+            primary=next((g for g in groups if not g['reference_only']),
+                {'independent':0,'distinct':0,'recent':None,'previous':None,'novel':0,'delayed':0,
+                 'insufficient':True,'trend_available':False,'recent_n':0,'previous_n':0})
+            skills.append({'id':key,'name':label,'count':len(rows),'groups':groups,
+                'rate_version':COMPETENCY_VERSION,'rate_scope':'full_line',
+                **{k:primary[k] for k in ('independent','distinct','recent','previous','novel','delayed','insufficient','trend_available','recent_n','previous_n')},
+                'measured':COMPETENCIES[key]['measured'],'scope':COMPETENCIES[key]['scope'],
+                'first_move_count':sum(a.get('assessment_scope')=='first_move' for a in rows),
+                'full_line_count':sum(a.get('assessment_scope')=='full_line' for a in rows),
+                'practice_count':sum(a['mode'] in ('practice','situation_practice') for a in rows),
+                'verification_count':sum(a['mode'] in ('verify','situation_verify') for a in rows),
+                'transfer':sum(bool((a.get('selection') or {}).get('overlap')) and a['fresh'] and a['mode']=='verify' and a['status']=='unaided_first_success' for a in rows)})
+        eligible=[s for s in skills if s['measured'] and not s['insufficient'] and s['recent']<100]
+        lowest=min((s['recent'] for s in eligible),default=None)
+        priorities=[s for s in eligible if s['recent']==lowest]
+        weakest=priorities[0] if len(priorities)==1 else None
+        return {'competency_version': COMPETENCY_VERSION, 'due': due[:50], 'due_count':len(due), 'cards': [public_card(c) for c in list(state['cards'].values())[::-1][offset:offset+50]][::-1],
+                'cards_total':len(state['cards']), 'cards_next':offset+50 if offset+50<len(state['cards']) else None,
+                'attempts': state['attempts'][-50:][::-1], 'skills': skills, 'intervals': state['intervals'],
+                'active': payload(state), 'path': public_path(state), 'recommended': weakest['id'] if weakest else None,
+                'reason': '같은 버전·전체 수순의 최근 독립 국면에서 미완료 근거가 있는 영역' if weakest else '비교 가능한 전체 수순 근거가 부족하거나 동률입니다. 보완 순위를 정하지 않습니다.',
+                'engine': bool(ns['STOCKFISH_PATH'] and Path(ns['STOCKFISH_PATH']).is_file()),
+                'notice': '공통 역량 이름을 사용하지만 이 지도는 훈련 기록입니다. 성공률과 추천은 같은 버전·같은 측정 범위 안에서만 계산합니다. 구형·미기록 버전과 첫 수 판단은 별도 참고이며 전체 수순 근거로 합산하지 않습니다. 각 비교 구간에 독립 국면 5개가 없으면 추세를 표시하지 않습니다. 미출제는 기록된 문제 ID와 전체 원본 수순의 국면 기준이며, 식별 기록이 없는 과거·외부 노출까지 보장하지 않습니다. 기존 진단·대국 통계는 기록 메뉴에 보존됩니다. 실제 레이팅이 아닙니다.'}
 
     @app.post('/api/learning/settings')
     def settings(body: Settings, authorization: str | None = Header(default=None)):
@@ -476,6 +489,7 @@ def attach_learning(app, ns):
         exposure['last_at'] = now().isoformat()
         state['active'] = {'first_exposure': first_exposure, 'id': secrets.token_hex(16), 'revision': 0, 'card_id': card['id'],
             'mode': mode, 'fen': b.fen(), 'side': 'white' if b.turn else 'black', 'done': False,
+            'prior_help':{'hints':exposure['hints'],'revealed':exposure['revealed']},
             'turns': 0, 'hints': 0, 'revealed': False, 'wrong': 0, 'undone': False,
             'selection': card.get('selection') if fresh else None, 'fresh': fresh, 'goal': goal, 'baseline': baseline,
             'opponent_last_move': card.get('prior'), 'history': [], 'moves': [], 'line_index': 0}

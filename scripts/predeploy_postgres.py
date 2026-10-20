@@ -196,3 +196,38 @@ def test_cross_module_reservations_share_pg_account_lock(monkeypatch):
         jobs=[pool.submit(c.post,'/api/journey/start',json={}),pool.submit(c.post,'/api/learning/start',json={'fresh':True})]
         responses=[j.result(timeout=10) for j in jobs]
     assert sorted(r.status_code for r in responses)==[200,409],[r.text for r in responses]
+
+
+def test_reset_atomic_duplicate_and_inflight_generation(monkeypatch):
+    a,code=account();b,other=account()
+    state_a=server.blank_state();state_a['completed_lessons']=['preserve-until-reset'];server.save_state(code,state_a)
+    with server.db() as conn:
+        for table in ('journey_progress','learning_progress'):
+            server.execute(conn,f'INSERT INTO {table}(code,state) VALUES(?,?)',(code,json.dumps({'sentinel':'old'})))
+    body={'pin':'temporary-local-pin','confirmation':'초기화','revision':0}
+    execute=server.execute
+    def fail(conn,query,args=()):
+        if query.startswith('DELETE FROM learning_progress'):raise RuntimeError('controlled rollback')
+        return execute(conn,query,args)
+    monkeypatch.setattr(server,'execute',fail)
+    assert a.post('/api/profile/reset',json=body).status_code==500
+    assert state('progress',code)['completed_lessons']==['preserve-until-reset']
+    assert state('journey_progress',code)=={'sentinel':'old'}
+    monkeypatch.setattr(server,'execute',execute)
+    entered=threading.Event();release=threading.Event();save=server.save_state
+    def delayed(c,s):
+        if c==code and s.get('active_game'):entered.set();assert release.wait(8)
+        return save(c,s)
+    monkeypatch.setattr(server,'save_state',delayed)
+    with ThreadPoolExecutor(3) as pool:
+        pending=pool.submit(a.post,'/api/game/new',json={'color':'white'})
+        assert entered.wait(4)
+        try:
+            resets=[pool.submit(a.post,'/api/profile/reset',json=body) for _ in range(2)]
+            assert sorted(r.result().status_code for r in resets)==[200,409]
+        finally:release.set()
+        assert pending.result().status_code==409
+    assert state('progress',code)==server.blank_state()
+    assert state('journey_progress',code) is None and state('learning_progress',code) is None
+    assert b.get('/api/me').json()['reset_revision']==0
+    assert a.get('/api/me').json()['reset_revision']==1

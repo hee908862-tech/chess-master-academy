@@ -155,10 +155,17 @@ drawBoard('reviewBoard',fromFen(chessStart));
 // Reset keeps account ID but removes learning and gameplay records; require current PIN.
 $('resetProfileV5').onclick=async()=>{
  if(!ready())return;
- const pin=$('resetPinV5').value,confirmation=$('resetConfirmV5').value.trim();
+ const identity=token,pin=$('resetPinV5').value,confirmation=$('resetConfirmV5').value.trim();
  if(!pin||confirmation!=='초기화'){$('resetStatusV5').textContent='현재 PIN과 확인 문구 “초기화”를 입력하세요.';return}
- if(!confirm('대국·퍼즐·학습·실력 진단 기록 전체를 삭제합니다. 복원할 수 없습니다. 진행하시겠습니까?'))return;
- $('resetProfileV5').disabled=true;
- try{const r=await api('/profile/reset','POST',{pin,confirmation});$('resetStatusV5').textContent=r.message;$('resetPinV5').value='';$('resetConfirmV5').value='';v5Review=null;await refresh()}
- catch(e){$('resetStatusV5').textContent=e.message}finally{$('resetProfileV5').disabled=false}
+ if(!confirm('이 계정의 대국·퍼즐·모든 진단·훈련·노출 이력과 처음 안내를 삭제합니다. 복원할 수 없습니다. 계속할까요?')){$('resetStatusV5').textContent='초기화를 취소했습니다. 기록은 유지됩니다.';return;}
+ $('resetProfileV5').disabled=true;$('resetStatusV5').textContent='계정과 저장 상태를 확인하고 있습니다…';
+ try{
+  const snapshot=await api('/me');if(token!==identity)return;
+  $('resetStatusV5').textContent='기록 초기화를 저장 중입니다. 완료 여부를 확인할 때까지 다시 누르지 마세요.';
+  const r=await api('/profile/reset','POST',{pin,confirmation,revision:snapshot.reset_revision});if(token!==identity)return;
+  $('resetStatusV5').textContent=r.message;$('resetPinV5').value='';$('resetConfirmV5').value='';v5Review=null;
+  // Reload clears every module's in-memory session without deleting account or preferences.
+  location.reload();
+ }catch(e){if(token===identity)$('resetStatusV5').textContent=e.message+' 초기화 완료는 확인되지 않았습니다. 기록을 새로 확인한 뒤 판단해 주세요.';}
+ finally{$('resetProfileV5').disabled=false;}
 };
