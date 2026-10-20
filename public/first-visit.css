@@ -27,5 +27,3 @@ body.entry-home #onboardingInvitation,body.entry-guest #signout{display:none!imp
 .first-entry.explored #firstTry{font-size:14px;padding:10px 12px;min-height:44px;justify-self:start}
 .first-entry.explored #entryChoices h2{font-size:26px;margin:0 0 6px}
 #entryChoices>button{min-height:48px;text-align:left;white-space:normal}
-/* Scope contrast correction to entry and returning-home primary actions. */
-#firstEntry .btn.primary,#journeyHomeOpen.btn.primary{color:#111827}
