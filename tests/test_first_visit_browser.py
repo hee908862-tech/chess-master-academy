@@ -228,3 +228,15 @@ def test_entry_primary_contrast_initial_skip_and_returning(guest,site):
     p.evaluate("t=>localStorage.setItem('chess_token',t)",site[1]);p.reload()
     expect(p.locator('#journeyHomeOpen')).to_be_visible()
     check('#journeyHomeOpen')
+
+
+@pytest.mark.parametrize('signed_in',[False,True])
+def test_trial_continue_label_matches_authentication(guest,site,signed_in):
+    p=guest
+    if signed_in:
+        p.evaluate("t=>localStorage.setItem('chess_token',t)",site[1]);p.reload()
+    writes=[];p.on('request',lambda r:writes.append(r.url) if '/api/' in r.url and r.method!='GET' else None)
+    p.evaluate('cmaEntry.openTrial()')
+    square(p,'trialBoard','a1').click();square(p,'trialBoard','a4').click()
+    expect(p.locator('#trialContinue')).to_have_text('계속 배우기 · 저장된 활동 보기' if signed_in else '계속 배우기 · 로그인하고 기초 시작')
+    assert writes==[]
