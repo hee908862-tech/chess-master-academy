@@ -1261,3 +1261,6 @@ attach_analysis(app, globals())
 
 from study_server import attach_study
 attach_study(app, globals())
+
+from foundation_server import attach_foundations
+attach_foundations(app, globals())

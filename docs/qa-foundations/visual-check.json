@@ -1,0 +1,7 @@
+{
+  "fixture": "local container, new temporary account, Chromium",
+  "reduced_motion_scroll": "auto",
+  "mobile_primary_touch_height": 46.390625,
+  "primary_above_bottom_nav": true,
+  "horizontal_overflow": false
+}

@@ -8,6 +8,8 @@ from test_entry_followup_browser import finish_ui
 def rules_ui(page):
     page.evaluate('cmaStartingLevel.open()')
     page.get_by_role('button',name='룰부터 배우기',exact=True).click()
+    expect(page.locator('#learn')).to_have_class('view active')
+    page.evaluate('cmaStartingLevel.open()')
     for move in ['a1a4','a1a4','a1a8','g1f2']:
         with page.expect_response('**/api/starting-level/move') as response:
             page.locator(f'#ruleBoard [aria-label^="{move[:2]} "]').click()
