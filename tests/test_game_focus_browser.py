@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 import chess
+import pytest
 from playwright.sync_api import expect
 from test_qa_browser import page, site, open_page, square
 from test_board_interaction import board_data, setup_wait, play_initial, reply
@@ -124,3 +125,68 @@ def test_menu_escape_preserves_waiting_premove(page,site):
         page.wait_for_timeout(50)
     assert len(requests)==2
     b.push_uci('g1f3');reply(requests[1],'game',b,task,True)
+
+
+@pytest.mark.parametrize('width,height',[(360,800),(390,844)])
+def test_replacement_success_collapses_but_pending_failure_preserves(page,site,width,height):
+    open_page(page,site);page.set_viewport_size(dict(width=width,height=height));page.evaluate("tab('play')")
+    if not page.evaluate('!!game&&!game.is_over'):
+        page.locator('#newGame').click();page.wait_for_function('game&&!gameBusy')
+    if not page.locator('#gameSettings').evaluate('(e)=>e.open'):page.locator('#gameSettings > summary').click()
+    saved=page.evaluate('({session:game.session_id,fen:game.fen})')
+    page.locator('#playerColor').select_option('white')
+    page.locator('#aiLevel').select_option('1')
+    expect(page.locator('#gameSettings')).to_have_attribute('open','')
+    requests=[]
+    page.route('**/api/game/new',lambda r:requests.append(r))
+    page.locator('#newGame').click()
+    page.wait_for_function('gameBusy')
+    expect(page.locator('#gameSettings')).to_have_attribute('open','')
+    assert page.evaluate('({session:game.session_id,fen:game.fen})')==saved
+    for _ in range(100):
+        if requests:break
+        page.wait_for_timeout(20)
+    assert len(requests)==1
+    requests[0].fulfill(status=503,json={'detail':'교체 실패 검사'})
+    expect(page.locator('#gameStatus')).to_contain_text('교체 실패 검사')
+    page.wait_for_function('!gameBusy')
+    expect(page.locator('#gameSettings')).to_have_attribute('open','')
+    assert page.evaluate('({session:game.session_id,fen:game.fen})')==saved
+    page.unroute('**/api/game/new')
+    page.locator('#newGame').click()
+    page.wait_for_function('(old)=>game.session_id!==old&&!gameBusy',arg=saved['session'])
+    expect(page.locator('#gameSettings')).not_to_have_attribute('open','')
+    for id in ['gameBoard','turnIndicator','gameClock','v7Hint','v7Undo']:
+        r=page.locator('#'+id).bounding_box()
+        assert r['x']>=0 and r['y']>=0 and r['x']+r['width']<=width+1 and r['y']+r['height']<=height,(id,r)
+    CAPTURES.mkdir(exist_ok=True);page.screenshot(path=str(CAPTURES/f'replaced-{width}.png'))
+
+@pytest.mark.parametrize('width,height',[(320,640),(360,800)])
+def test_promotion_controls_hit_targets_focus_and_long_status(page,site,width,height):
+    open_page(page,site);page.set_viewport_size(dict(width=width,height=height));page.evaluate("tab('play')")
+    board=board_data(chess.Board('7k/P7/8/8/8/8/8/4K3 w - - 0 1'))
+    page.evaluate("b=>{playerColor='white';showGame({...b,session_id:'picker'},'승격 검사');setGameClock(null);}",board)
+    for choice,label in [('q','퀸'),('r','룩'),('b','비숍'),('n','나이트'),(None,'승격 선택 취소')]:
+        origin=square(page,'gameBoard','a8');origin.focus()
+        page.evaluate("()=>{window.pickerResult='pending';choosePromotion('a7','a8','P',game.legal).then(x=>window.pickerResult=x)}")
+        modal=page.locator('#cmaPromotionModal');expect(modal).to_be_visible()
+        buttons=modal.locator('button');expect(buttons).to_have_count(5)
+        for button in buttons.all():
+            box=button.bounding_box()
+            assert box['x']>=0 and box['y']>=0 and box['x']+box['width']<=width and box['y']+box['height']<=height
+            assert button.evaluate('(e)=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}')
+        expect(buttons.first).to_be_focused();page.keyboard.press('Shift+Tab');expect(buttons.last).to_be_focused()
+        page.keyboard.press('Tab');expect(buttons.first).to_be_focused()
+        buttons.filter(has_text=label).click()
+        page.wait_for_function("pickerResult!=='pending'")
+        assert page.evaluate('pickerResult')==choice
+        expect(modal).to_be_hidden();expect(origin).to_be_focused()
+        assert page.evaluate('game.fen')==board['fen']
+    page.evaluate("notice('gameStatus','긴 오류 안내: '+('연결을 확인한 뒤 다시 시도하세요. '.repeat(60)),'err');scrollTo(0,0)")
+    for id in ['v7Hint','v7Undo']:
+        button=page.locator('#'+id);r=button.bounding_box()
+        assert r['y']>=page.locator('#gameBoard').bounding_box()['y']+page.locator('#gameBoard').bounding_box()['height']
+        assert r['y']+r['height']<=height
+        assert button.evaluate('(e)=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}')
+    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+    CAPTURES.mkdir(exist_ok=True);page.screenshot(path=str(CAPTURES/f'long-status-{width}.png'))

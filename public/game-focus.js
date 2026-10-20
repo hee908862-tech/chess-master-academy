@@ -25,10 +25,10 @@ function install(){
  const oldPanels=play.querySelector(':scope > .two');const oldInfo=oldPanels.querySelector(':scope > .card:not(.board-panel)');
  for(const child of [...oldInfo.children])information.append(child);
  oldPanels.remove();originalHeader.remove();toolbar.after(settings);settings.after(stage);
- let previouslyActive=!!game&&!game.is_over;
+ let previouslyActive=!!game&&!game.is_over,previousSession=game?.session_id;
  function update(){const active=!!game&&!game.is_over;play.classList.toggle('game-in-progress',active);
-  if(active&&!previouslyActive){const inside=settings.contains(document.activeElement);settings.open=false;if(inside)title.focus({preventScroll:true});}
-  previouslyActive=active;
+  if(active&&(!previouslyActive||(game.session_id&&game.session_id!==previousSession))){const inside=settings.contains(document.activeElement);settings.open=false;if(inside)title.focus({preventScroll:true});}
+  previouslyActive=active;previousSession=game?.session_id;
   const values=['playerColor','aiLevel','timeMode'].map(id=>$(id).selectedOptions[0]?.textContent||'');
   settingSummary.textContent=(active?'새 대국 설정':'대국 설정')+' · '+values.join(' · ');
  }
