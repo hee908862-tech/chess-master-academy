@@ -12,7 +12,7 @@ open.id='educationOpen';const refresh=btn(host,'저장 상태 다시 확인',()=
 const body=make(host,'div');body.id='educationBody';
 let data=null,owner=null,generation=0,busy=false,failed=false,opened=false,listVisible=false,selected=null,flip=false;
 function controls(){host.setAttribute('aria-busy',String(busy));for(const b of body.querySelectorAll('button,select'))b.disabled=busy||b.dataset.blocked==='true'||(failed&&b.dataset.navigation!=='true');open.disabled=busy;refresh.disabled=busy;}
-async function request(action,extra={}){const navigationVersion=window.cmaNavigation?.version();if(busy)return false;const identity=token,stamp=++generation;busy=true;failed=false;selected=null;controls();
+async function request(action,extra={}){const navigationVersion=window.cmaNavigation?.version();if(action==='start')window.cmaNavigation?.capture();if(busy)return false;const identity=token,stamp=++generation;busy=true;failed=false;selected=null;controls();
  try{const value=await api(action?'/education/action':'/education',action?'POST':'GET',action?{action,revision:data.revision,attempt_id:data.active?.id||'',...extra}:undefined);if(stamp!==generation||identity!==token)return false;data=value;owner=identity;status.textContent=action?'교육 기록을 저장했습니다.':'저장된 교육 경로입니다.';if(navigationVersion===window.cmaNavigation?.version()){if(action==='start')listVisible=false;if(action==='finish')listVisible=true;}render();if(action==='start'||action==='finish')window.cmaNavigation?.educationAction(action,navigationVersion);return true;}
  catch(e){if(stamp===generation&&identity===token){failed=true;status.textContent=e.message+' 저장 상태를 다시 확인하세요.';}return false;}
  finally{if(stamp===generation){busy=false;controls();draw();}}}
