@@ -157,6 +157,7 @@ def test_skip_prioritizes_activities_and_preserves_revisit_preference(guest,site
     for id in ['entry-diagnosis','entry-training','entry-play','entry-learn']:
         assert p.locator('#'+id).bounding_box()['y']<p.locator('#firstTry').bounding_box()['y']
     p.keyboard.press('Tab');expect(p.locator('#entry-diagnosis')).to_be_focused()
+    p.wait_for_timeout(250)  # Allow the existing button style transition to settle for capture.
     p.screenshot(path='/tmp/cma-first-visit-captures/skip-choices.png',full_page=True)
     p.reload();expect(p.locator('#firstSkip')).to_be_hidden()
     expect(p.locator('#entryChoices')).to_be_visible()
@@ -221,6 +222,7 @@ def test_entry_primary_contrast_initial_skip_and_returning(guest,site):
         print(selector,'gradient contrast',ratios,'focus',colors['outline'])
     check('#firstTry')
     p.locator('#firstSkip').click();check('#entry-diagnosis')
+    p.wait_for_timeout(250)  # Allow the existing button style transition to settle for capture.
     p.screenshot(path='/tmp/cma-first-visit-captures/skip-choices.png',full_page=True)
     p.reload();check('#entry-diagnosis')
     p.evaluate("t=>localStorage.setItem('chess_token',t)",site[1]);p.reload()
