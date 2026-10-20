@@ -331,3 +331,20 @@ def test_starting_choice_cas_and_learning_switch_preserve_pg_records():
     assert after['active']==before['active']
     assert after['cards'][restored['card_id']]['exposure']!=before['cards'][restored['card_id']]['exposure']
     assert c.get('/api/starting-level').json()['revision']==1
+
+
+def test_foundations_pg_cas_restore_and_record_isolation():
+    c,code=account()
+    stored=server.get_state(code);stored['v9_course']={'existing':'preserve'};server.save_state(code,stored)
+    before=state('progress',code)
+    s=c.get('/api/foundations').json()
+    s=post(c,'foundations/action',{'action':'start','course_id':'rook-bishop','revision':s['revision']})
+    move={'action':'move','course_id':'rook-bishop','revision':s['revision'],'value':'a1a4'}
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        statuses=list(pool.map(lambda _:c.post('/api/foundations/action',json=move).status_code,range(2)))
+    assert sorted(statuses)==[200,409]
+    s=c.get('/api/foundations').json();assert s['courses'][0]['completed']==1
+    server.initdb()
+    assert c.get('/api/foundations').json()==s
+    after=state('progress',code);after.pop('foundation_v1');assert after==before
+    other,_=account();assert other.get('/api/foundations').json()['completed']==0

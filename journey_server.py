@@ -222,7 +222,10 @@ def attach_journey(app, ns):
         snapshot=external_snapshot(code)
         starting=snapshot[0].get('learner_start',{})
         if body.mode=='entry':
-            if starting.get('choice')=='rules' and starting.get('rules_step',0)<4:
+            from foundation_content import COURSES as foundation_courses
+            foundations=snapshot[0].get('foundation_v1',{}).get('courses',{})
+            foundation_done=all(foundations.get(c['id'],{}).get('done') for c in foundation_courses)
+            if starting.get('choice')=='rules' and starting.get('rules_step',0)<4 and not foundation_done:
                 raise HTTPException(409,'말 이동·잡기·체크·왕 안전 안내를 먼저 마치거나 시작 수준을 바꿔 주세요.')
             body=Start(mode='balanced' if starting.get('choice')=='experienced' else 'gentle')
         ids,positions,uncertain,learning=external(code,snapshot)

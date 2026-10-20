@@ -33,6 +33,8 @@ def test_rules_level_board_completion_and_reload(page,site):
     page.evaluate('cmaStartingLevel.open()')
     dialog=page.locator('#startingLevelDialog');expect(dialog).to_be_visible()
     dialog.get_by_role('button',name='룰부터 배우기',exact=True).click()
+    expect(page.locator('#learn')).to_have_class('view active')
+    page.evaluate('cmaStartingLevel.open()')
     expect(page.locator('#ruleTitle')).to_contain_text('1/4')
     for i,(start,end) in enumerate([('a1','a4'),('a1','a4'),('a1','a8'),('g1','f2')]):
         square(page,'ruleBoard',start).click();square(page,'ruleBoard',end).click()

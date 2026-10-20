@@ -1,0 +1,41 @@
+{
+  "base_commit": "ebe5371e1716a2b2d0d75409506a940e5bd11f37",
+  "recorded_at_utc": "2026-10-20T14:56:33.399138+00:00",
+  "source_sha256": {
+    "foundation_content.py": "4d099f5a168a99d68dae3d4cc881706d2e1ae7172139d6358bf432ce4c3b39cb",
+    "foundation_server.py": "9f2bee19a786e4557ec29cd18b77e8f397d713a33fae60b99558c155b8c428f4",
+    "journey_server.py": "085fbc0547106e69fac7832dc337cb6bb6fb5cc23c1e8fe72e675d690870a3a1",
+    "server.py": "d4872d0a07c4bc714ee78d8847e2f9bd95db00978b3970137b680a93151005ba",
+    "Dockerfile": "1dbf676c363d86580b01547b455ddb23a07513865ba62e45e90ff0b7fd7deab0",
+    "public/foundations.js": "6cd3b67efb1d72407beb7f9de31b5d00152ecfc793fb2e0cdc72cbfda7ad8db5",
+    "public/foundations.css": "d8bbe053d112719163652dcfeaf5568e4d7b6ef634706c13fa0b644a5e641fef",
+    "public/starting-level.js": "7c11d827c93b32a8b677e1ab6211701642707e37aa22b82b454760b1b051c87d",
+    "public/audit-ui.js": "ebc236fe85287a0d316e5ac861882c0fe9c804b209fb26d062bffba8d82ddb3c",
+    "public/index.html": "45c0821d1ae522957bd6dcbdd1df97f5c7757760a955fa5a317d129cbc3df305",
+    "public/onboarding.js": "d395f098a5d0c9e1690c56600761220aa145c6a858ea344f8f103ed00800f51f",
+    "public/v9.js": "54c2bc9a6b86d99abbcd9059b5170bc85351aef558939e4ed07b83da1bbfa5fe"
+  },
+  "pytest": {
+    "passed": 372,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 645.52,
+    "exit_code": 0
+  },
+  "postgres": {
+    "passed": 15,
+    "seconds": 33.54
+  },
+  "syntax": {
+    "python_ast_files": 86,
+    "javascript_files": 20,
+    "diff_check": "PASS"
+  },
+  "docker_image": "sha256:23785bf301ad5fd2befe6849bcd6aa953476a69fefa5108f5d63a797b8bc20dc",
+  "production_mutations": false,
+  "remaining": [
+    "Independent review before merge/deploy",
+    "Production browser QA",
+    "Physical mobile/Safari and screen reader verification"
+  ]
+}

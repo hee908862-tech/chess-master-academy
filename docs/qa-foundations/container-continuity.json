@@ -1,0 +1,11 @@
+{
+  "conditions": "local image 1CPU/512MiB, PostgreSQL17, unique temporary account",
+  "image": "sha256:23785bf301ad5fd2befe6849bcd6aa953476a69fefa5108f5d63a797b8bc20dc",
+  "rules_to_actual_entry": "PASS",
+  "diagnosis_restart": "PASS",
+  "learning_switch_help_restart_resume": "PASS",
+  "course_restart_resume": "PASS",
+  "no_completion_credit_created": "PASS",
+  "oom_killed": false,
+  "memory_peak_bytes": 111042560
+}
