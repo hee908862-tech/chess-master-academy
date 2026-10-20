@@ -1267,3 +1267,6 @@ attach_foundations(app, globals())
 
 from puzzle_challenge import attach_challenge
 attach_challenge(app, globals())
+
+from repertoire_server import attach_repertoire
+attach_repertoire(app, globals())
