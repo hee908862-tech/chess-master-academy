@@ -14,8 +14,11 @@ def test_navigation_help_no_mutations_and_opening_layout(page,site,width):
  nav=page.locator('.mobile-nav' if width==390 else '.nav')
  button=nav.locator('[data-tab="learn"]');button.focus();page.keyboard.press('Enter')
  expect(page.locator('#academyNavigationDialog')).to_be_visible()
- page.keyboard.press('Shift+Tab');expect(page.locator('#academyNavigationDialog button').last).to_be_focused()
- page.keyboard.press('Tab');expect(page.locator('#academyNavigationDialog button').first).to_be_focused()
+ if width==390:
+  page.keyboard.press('Shift+Tab');expect(page.locator('#academyNavigationDialog button').last).to_be_focused()
+  page.keyboard.press('Tab');expect(page.locator('#academyNavigationDialog button').first).to_be_focused()
+ else:
+  assert not page.locator('#academyNavigationDialog').evaluate("e=>e.matches(':modal')")
  page.keyboard.press('Escape');expect(button).to_be_focused()
  button.click();page.locator('[data-academy="tactics"]').click()
  expect(page.locator('#learn')).to_have_class('view active')

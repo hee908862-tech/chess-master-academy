@@ -95,3 +95,52 @@ def build_report(session, previous, current):
             '상대 응수를 보면서 수순을 실행한 기록이며 머릿속 선계산이나 실전 탐지 능력을 직접 측정하지 않습니다.',
             '전략·장기 계획과 일반 종반 운영, 외부 Elo 및 교육 효과는 이 결과로 판단하지 않습니다.'],
         'comparison':'같은 버전·같은 안내 조건의 관찰만 묶습니다. 단서 제공 결과와 단서 비공개 결과를 비교 점수로 합치지 않습니다.'}
+
+
+def learning_observation(item):
+    """Read-only description of a saved response, never a new grade or diagnosis.
+
+    Only follow the validated reference prefix. A different legal move ends that
+    prefix; we never invent its continuation or infer why the learner chose it.
+    """
+    import chess
+    outcome = item.get('outcome')
+    label = {'completed': '전체 수순 성공', 'partial_execution': '일부 수행 후 미완료',
+             'verified_error': '엔진 분석에서 큰 손실 확인', 'verified_non_mate': '규칙으로 메이트 미달성 확인',
+             'not_answered': '미응답 · 수행 미관찰', 'unverified_alternative': '대안 판단 보류',
+             'equivalent_alternative': '평가가 비슷한 대안 · 후속 수순 미확인'}.get(outcome, '기록 범위 확인 필요')
+    result = {'label': label, 'observed': [], 'reference': None,
+              'limit': '저장된 기준 수순과의 비교입니다. 유일 최선 수나 심리적 원인을 뜻하지 않습니다.'}
+    try:
+        board = chess.Board(item['fen'])
+        if not board.is_valid(): return result
+        line = item['line']
+        validated = board.copy()
+        for uci in line:
+            move = chess.Move.from_uci(uci)
+            if move not in validated.legal_moves: return result
+            validated.push(move)
+        submitted = item.get('submitted', [])
+        offset = 0
+        for uci in submitted:
+            move = chess.Move.from_uci(uci)
+            if move not in board.legal_moves: return result
+            result['observed'].append(board.san(move))
+            if offset >= len(line) or uci != line[offset]: break
+            board.push(move); offset += 1
+            if offset < len(line): board.push_uci(line[offset]); offset += 1
+        if offset < len(line):
+            move = chess.Move.from_uci(line[offset])
+            facts = []
+            if board.is_check(): facts.append('이 위치에서는 체크에 대응해야 합니다.')
+            if board.is_capture(move): facts.append('기준 수는 기물을 잡습니다.')
+            if board.is_castling(move): facts.append('기준 수는 캐슬링입니다.')
+            if move.promotion: facts.append('기준 수는 승격을 포함합니다.')
+            san = board.san(move); board.push(move)
+            if board.is_checkmate(): facts.append('기준 수 뒤 체크메이트입니다.')
+            elif board.is_check(): facts.append('기준 수 뒤 상대 킹이 체크입니다.')
+            result['reference'] = {'san': san, 'move': move.uci(), 'own_move': offset // 2 + 1,
+                                   'facts': facts}
+    except (KeyError, TypeError, ValueError, IndexError, AssertionError):
+        return {'label': label, 'observed': [], 'reference': None, 'limit': '저장된 위치·수순을 확인할 수 없어 구체적인 착수 설명을 만들지 않았습니다.'}
+    return result

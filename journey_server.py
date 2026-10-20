@@ -1,3 +1,4 @@
+from journey_evidence import learning_observation
 """Versioned diagnostic snapshots and transactional, resumable multi-ply responses."""
 import copy
 import json
@@ -200,7 +201,9 @@ def attach_journey(app, ns):
         code=auth(authorization);state=read(code)
         _,learning=external_snapshot(code)
         path=learning.get('path');active_training=learning.get('active')
-        return {'preparing':_inventory_lock.locked(),'training':{'path_id':path['id'] if path else None,'path_done':path.get('done',False) if path else False,'active':bool(active_training and not active_training.get('done')),'has_path':bool(path)},
+        visible=[state['results'][-1] if state['results'] else None,latest_cycle_report(state['results'])]
+        evidence={r['id']:{i['id']:learning_observation(i) for i in r.get('items',[])} for r in visible if r}
+        return {'learning_evidence':evidence,'preparing':_inventory_lock.locked(),'training':{'path_id':path['id'] if path else None,'path_done':path.get('done',False) if path else False,'active':bool(active_training and not active_training.get('done')),'has_path':bool(path)},
                 'activity':{'diagnoses':len(state['results']),'answered':sum(bool(i.get('submitted')) for r in state['results'] for i in r.get('items',[])), 'recommended_completed':sum(len(c.get('completed',{})) for c in learning.get('cycles',{}).values())},
                 'cycle':cycle_status(latest_cycle_report(state['results']),learning),
                 'growth':[{'id':r.get('id'),'at':r.get('at'),'snapshot':r.get('snapshot'),'version':r.get('version')} for r in state['results']],

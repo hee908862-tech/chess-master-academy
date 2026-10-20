@@ -4,24 +4,37 @@ const node=(parent,tag,text,cls)=>{const e=document.createElement(tag);if(text!=
 const button=(parent,label,fn)=>{const b=node(parent,'button',label,'btn');b.type='button';b.onclick=fn;return b;};
 const date=value=>{const d=new Date(value);return isNaN(d)?'날짜 미기록':d.toLocaleDateString('ko-KR');};
 const labels={mate:'메이트',calculation:'이어지는 수 읽기',capture:'포획과 교환',defense:'위협에 대응',promotion:'승격',endgame:'종반 전술',strategy:'전략과 계획'};
-window.growthReport=(host,report,cycle,train,recheck,additional,readOnly=false)=>{
+window.cmaObservation=(host,item,observation)=>{
+ const box=node(host,'div',null,'learning-observation');
+ node(box,'strong',observation?.label||'원본 기록에서 수행 범위를 확인하세요.');
+ node(box,'p',`관찰 근거 ${item.id} · ${item.puzzle_id||'자료 ID 미기록'} · 직접 수행 ${item.correct_plies??0}/${item.total_plies??'?'}수`);
+ node(box,'p','실제 제출: '+(observation?.observed?.join(' → ')||item.submitted?.join(' → ')||'없음 · 원인을 추정하지 않습니다.'));
+ if(observation?.reference){const r=observation.reference;node(box,'p',`비교할 원본의 내 ${r.own_move}번째 수: ${r.san} (${r.move})`);for(const fact of r.facts)node(box,'p',fact);}
+ if(item.engine_evidence)node(box,'p',window.cmaEvidenceLabel?.(item.engine_evidence)||'대안 분석 근거 확인 필요');
+ node(box,'small',observation?.limit||'구체적인 수순 설명은 저장된 원본 근거에서 확인하세요. 과거 결과는 다시 채점하지 않습니다.');
+};
+window.growthReport=(host,report,cycle,train,recheck,additional,readOnly=false,evidence={},rechecks={})=>{
  const intro=node(host,'section',null,'card growth-intro');node(intro,'span','나의 분야별 실력','tag');node(intro,'h2','잘한 부분을 살리고, 다음 수를 연습해요');
+ node(intro,'p','균형 24문항은 분야별 4문항의 관찰입니다. 검증된 종합 실력 검사가 아니며, 심리적 원인을 추정하지 않습니다.','notice');
  node(intro,'p',report.insights?.message||'이번에 관찰한 수행을 확인하세요.');
  const strengths=report.insights?.strengths||[],priorities=report.insights?.priorities||[];
  const insights=node(intro,'div',null,'growth-insights');
  for(const [title,list,empty] of [['잘한 부분',strengths,'아직 완주한 수순이 적어요. 첫 수를 찾은 경험부터 쌓아 봐요.'],['먼저 연습할 부분',priorities,'뚜렷한 차이보다 고르게 확인할 부분이 보여요. 추천 과제로 함께 연습해요.']]){const box=node(insights,'div');node(box,'h3',title);if(!list.length)node(box,'p',empty);for(const a of list.slice(0,2)){node(box,'strong',labels[a.id]||a.label);node(box,'p',a.reason.split('。')[0].split('. ')[0]);}}
- const abilities=node(host,'section',null,'card');node(abilities,'h3','분야별 수행 지표');node(abilities,'p','기초·응용 문제에서 직접 이어 둔 수를 0–100으로 나타냈어요. 실전 레이팅이 아니며, 작은 변화는 다음 진단에서도 확인해 보세요.','subtle');
+ const abilities=node(host,'details',null,'card');node(abilities,'summary','분야별 수행 지표 · 관찰과 한계');node(abilities,'p','기초·응용 문제에서 직접 이어 둔 수를 0–100으로 나타냈어요. 실전 레이팅이 아니며, 작은 변화는 다음 진단에서도 확인해 보세요.','subtle');
  const grid=node(abilities,'div',null,'ability-grid');
  for(const area of report.areas||[]){const card=node(grid,'article',null,'ability-card'),p=area.performance||{};node(card,'h4',labels[area.id]||area.label);node(card,'strong',p.score==null?(area.id==='strategy'?'미측정':(p.observed||area.unverified||area.equivalent||area.partial||area.first_success)?'추가 확인 필요':'아직 응답 없음'):`${p.score} / 100`,'ability-score');const meter=node(card,'div',null,'ability-meter');meter.setAttribute('aria-hidden','true');if(p.score!=null){const fill=node(meter,'span');fill.style.width=p.score+'%';}node(card,'p',area.observation);node(card,'small',p.score==null?(area.id==='strategy'?'검증된 전략 과제가 준비되기 전까지 점수를 표시하지 않습니다.':`점수는 기초·응용 양쪽 관찰이 필요해요. 기초 ${p.band_counts?.[0]||0}개, 응용 ${p.band_counts?.[1]||0}개 확인. 각 난도 2개씩 확인하면 성장 비교 조건을 충족해요. 판단 보류와 건너뛰기는 0점이 아닙니다.`):`${p.observed}문제 관찰 · ${p.comparable?'균형 진단 조건 충족':'간이·부분 관찰'} · ${p.confidence}`);if(p.range){const detail=node(card,'details');node(detail,'summary','점수 해석');node(detail,'small',`불확실성 범위 ${p.range[0]}–${p.range[1]} · 표본이 적어 넓게 표시돼요. 검증된 실력 범위가 아닌 문제 표본에 따른 참고 범위입니다.`);}if(!readOnly&&area.id!=='strategy')button(card,'이 분야 더 확인하기',()=>additional(area.id));}
  if(readOnly)return;
- const plan=node(host,'section',null,'card growth-plan');node(plan,'h3','다음 진단까지, 추천 훈련 5개');
+ const plan=node(host,'section',null,'card growth-plan');host.insertBefore(plan,abilities);node(plan,'h3','다음 진단까지, 추천 훈련 5개');node(plan,'p','수행 근거 → 개념·원본 연습 → 새 문제 적용 → 도움 없는 독립 확인','learning-flow-steps');
  const current=cycle?.report_id===report.id?cycle:null;
  node(plan,'p',current?.message||'이전 진단의 추천 목록입니다. 최신 결과에서 현재 훈련을 시작하세요.','cycle-message');
  const progress=node(plan,'progress');progress.max=5;progress.value=current?.completed||0;progress.setAttribute('aria-label',`추천 훈련 ${progress.value}/5 완료`);
  node(plan,'p',`${current?.completed||0} / 5 완료 · 원본 연습 2개와 새 적용 3개`);
- node(plan,'p','힌트를 보거나 답안을 살펴봐도 괜찮아요. 실제로 수순을 끝까지 두면 한 과제 완료예요. 같은 과제를 반복해도 횟수는 늘지 않습니다.','subtle');
- for(const task of current?.tasks||report.training_plan||[]){const row=node(plan,'article',null,'growth-task'+(task.completion?' completed':''));node(row,'h4',task.label);node(row,'p',task.reason);if(task.completion)node(row,'p',task.completion.helped?'완료 · 도움을 받아 연습했어요.':'완료 · 이번 과제를 도움 없이 풀었어요.','tag');else{const b=button(row,task.kind==='original'?'설명과 함께 다시 익히기':'새 문제 풀기',()=>train(task));b.dataset.ineligible=String(!current);b.disabled=!current;}}
+ node(plan,'p','5개 완료는 학습량이며 독립 숙련이 아닙니다. 힌트를 보거나 답안을 살펴봐도 괜찮아요. 실제로 수순을 끝까지 두면 한 과제 완료예요. 같은 과제를 반복해도 횟수는 늘지 않습니다.','subtle');
+ for(const task of current?.tasks||report.training_plan||[]){const row=node(plan,'article',null,'growth-task'+(task.completion?' completed':''));node(row,'h4',task.label);node(row,'p',task.kind==='original'?'원본 반복 · 이미 본 위치에서 개념과 후속 수를 연습합니다.':'새 적용 · 같은 관찰 분야와 공통 태그의 미노출 문제입니다. 정교한 구조 유사성을 보장하지 않습니다.');node(row,'p',task.reason);const source=report.items?.find(i=>i.id===task.item_id);if(source){const facts=node(row,'details');node(facts,'summary','왜 이 과제인가 · '+(evidence[source.id]?.label||'저장된 관찰'));if(task===(current?.tasks||[]).find(t=>!t.completion))facts.open=true;window.cmaObservation(facts,source,evidence[source.id]);node(facts,'p','연습할 때: 내 후보 수 뒤 상대 응수를 확인하고 다음 내 수까지 설명해 보세요. 해설은 훈련 보드에서 확인합니다.','subtle');}if(task.completion)node(row,'p',task.completion.helped?'완료 · 도움을 받아 연습했어요.':'완료 · 이번 과제를 도움 없이 풀었어요.','tag');else{const b=button(row,task.kind==='original'?'설명과 함께 다시 익히기':'새 문제 풀기',()=>train(task));b.dataset.ineligible=String(!current);b.disabled=!current;}}
  const again=button(plan,'새 문제로 다시 진단하기',recheck);again.classList.add('primary');again.dataset.ineligible=String(!current?.unlocked);again.disabled=!current?.unlocked;
+ const verify=node(plan,'section',null,'independent-check');node(verify,'h3','독립 확인 · 연습 완료와 구별');node(verify,'p','새 문제 재진단은 같은 조건의 수행 관찰입니다. 기억 유지는 별도의 미노출 전체 수순 검증과 마지막 관련 노출 뒤 7일 조건으로 확인합니다.');
+ const areaSelect=node(verify,'select',null,'field');areaSelect.setAttribute('aria-label','기억 확인 분야');const areas=(report.areas||[]).filter(a=>a.id!=='strategy'&&report.items?.some(i=>i.competency===a.id));for(const a of areas){const o=node(areaSelect,'option',a.label);o.value=a.id;}
+ const status=node(verify,'div');const draw=()=>{status.replaceChildren();const area=areaSelect.value,gate=rechecks[area],seed=report.items?.find(i=>i.competency===area);node(status,'p',gate?.reason||'현재 저장 상태에서 확인 조건을 다시 조회하세요.');if(gate?.ready_at)node(status,'p','가능 시각: '+new Date(gate.ready_at).toLocaleString('ko-KR'));node(status,'p','같은 연결 과제를 다시 보면 마지막 노출 시각부터 대기 기간을 셉니다.','subtle');if(!current||!seed)return;if(gate?.eligible){button(status,'선택 분야 7일 기억 확인',()=>window.cmaJourney.recheck(area));}else if(!gate?.ready_at){button(status,'선택 분야 독립 확인 준비',()=>window.learningRetention(report.id,seed.id));}button(status,'표본이 부족한 분야 추가 확인',()=>additional(area));};areaSelect.onchange=draw;draw();
 };
 const profile=node(document.getElementById('profile'),'section',null,'card growth-profile');profile.id='growthProfile';document.getElementById('profile').prepend(profile);
 let saved=null,chosen='mate',chosenSeries=null;
