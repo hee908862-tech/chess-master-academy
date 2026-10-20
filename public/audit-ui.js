@@ -8,9 +8,9 @@ for(const [id,label] of [['home','홈'],['learn','아카데미'],['diagnosis','�
 const more=make('button','더보기');more.id='moreNavigation';more.setAttribute('aria-haspopup','dialog');nav.append(more);
 const dialog=document.createElement('dialog');dialog.id='moreNavigationDialog';dialog.setAttribute('aria-labelledby','moreNavigationTitle');const title=make('h2','더보기');title.id='moreNavigationTitle';dialog.append(title);
 const close=make('button','닫기');close.className='btn';close.onclick=()=>dialog.close();dialog.append(close);
-for(const [id,label] of [['profile','기록'],['play','AI 대국'],['puzzle','퍼즐'],['opening','오프닝 연구실'],['review','대국 복기'],['help','도움말']]){const b=make('button',label);b.className='btn';b.onclick=()=>{dialog.close();tab(id);document.querySelector('#'+id+' h2')?.scrollIntoView({block:'start'});};dialog.append(b);}
+for(const [id,label] of [['profile','기록'],['play','AI 대국'],['puzzle','퍼즐'],['opening','오프닝 연구실'],['review','대국 복기'],['help','도움말']]){const b=make('button',label);b.className='btn';b.onclick=()=>{dialog.close();tab(id);};dialog.append(b);}
 dialog.addEventListener('keydown',event=>{if(event.key!=='Tab')return;const buttons=[...dialog.querySelectorAll('button:not(:disabled)')];if(!event.shiftKey&&document.activeElement===buttons.at(-1)){event.preventDefault();buttons[0].focus();}else if(event.shiftKey&&document.activeElement===buttons[0]){event.preventDefault();buttons.at(-1).focus();}});
-document.body.append(dialog);more.onclick=()=>dialog.showModal();dialog.addEventListener('close',()=>more.focus());
+document.body.append(dialog);let moreOrigin='';more.onclick=()=>{moreOrigin=document.querySelector('.view.active')?.id;dialog.showModal();};dialog.addEventListener('close',()=>{if(document.querySelector('.view.active')?.id===moreOrigin)more.focus({preventScroll:true});});
 // One hierarchy: anchored nonmodal disclosure on PC, native sheet on mobile.
 const academy=document.createElement('dialog');academy.id='academyNavigationDialog';academy.setAttribute('aria-labelledby','academyNavigationTitle');const ah=make('h2','아카데미에서 할 일 선택');ah.id='academyNavigationTitle';academy.append(ah);let opener=null;
 const ac=make('button','닫기');ac.className='btn';ac.onclick=()=>academy.close();academy.append(ac);

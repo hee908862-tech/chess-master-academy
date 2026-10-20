@@ -33,7 +33,7 @@ function install(){
  for(const id of ['gameBoard','testBoard','v9PuzzleBoard','v9CourseBoard']){const board=document.getElementById(id);if(!board)continue;const wrap=document.createElement('div');wrap.className='board-tools';const label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.checked=enabled;input.setAttribute('aria-label','프리무브 '+id);label.append(input,'프리무브 ON/OFF');const button=document.createElement('button');button.className='btn tiny';button.textContent='예약 취소';button.type='button';const msg=document.createElement('small');msg.setAttribute('role','status');const legend=document.createElement('small');legend.textContent='청록 테두리: 상대 직전 수 · 금색: 마지막 착수/정답 · 초록 점선: 힌트 · 분홍 경로: 예약. 상대 응답 대기 중 1수만 예약하며 승격 기물은 응답 후 선택합니다. 진단 문항 채점 중에는 예약하지 않습니다.';controls.set(id,{input,message:msg});const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='보드 표시·프리무브 안내';details.append(summary,legend);wrap.append(label,button,msg,details);board.after(wrap);
  input.onchange=()=>{enabled=input.checked;try{localStorage.setItem('cma_premove',enabled?'on':'off')}catch(e){}for(const c of controls.values())c.input.checked=enabled;if(!enabled)cancelAll()};button.onclick=()=>cancel(id);cancel(id);
  }
- document.addEventListener('keydown',e=>{if(e.key==='Escape')cancelAll()});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!e.defaultPrevented&&!e.target.closest('dialog'))cancelAll()});
 }
 function unavailable(id){cancel(id);message(id,'이전 세션은 예약 식별 정보가 없어 프리무브를 지원하지 않습니다. 새 대국/문제에서 사용할 수 있습니다.')}
 window.cmaBoardTools={unavailable,begin,take,pick,cancel,cancelAll,decorate,version:()=>generation};
