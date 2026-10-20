@@ -96,3 +96,19 @@ def test_repertoire_history_missing_side_time_not_inferred(runtime):
  assert d['history'][0]['side']=='black' and d['history'][0]['at']
  s=server.get_state('RUNTIME-A');s[RKEY]['history'][0].pop('side');s[RKEY]['history'][0].pop('at');server.save_state('RUNTIME-A',s)
  d=a.get('/api/repertoire').json();assert d['history'][0]['side'] is None and d['history'][0]['at'] is None
+
+
+def test_saved_prior_move_is_legal_context_not_review_answer(runtime):
+ from education_server import prior_context
+ server,(a,b)=runtime;d=start(a)
+ step=d['active']['step'];context=step['prior']
+ board=chess.Board(context['before_fen']);move=chess.Move.from_uci(context['move'])
+ assert move in board.legal_moves and board.san(move)==context['san']
+ board.push(move);assert board.fen()==context['after_fen']==d['active']['fen']
+ assert context['move']=='f8b4' and step['reason'] is None and step['examples']==[]
+ assert 'answers' not in step and 'c3' not in step['prompt']
+ invalid=copy.deepcopy(BY_ID['threat-observe']['steps'][0]);invalid['fen']=chess.STARTING_FEN
+ assert prior_context(invalid) is None
+ invalid['prior_move']='f8f2';assert prior_context(invalid) is None
+ d=post(a,d,'answer',answer='c3').json();d=post(a,d,'next').json()
+ assert d['active']['step']['prior'] is None

@@ -71,4 +71,3 @@ for c in LESSONS:
     for s,p in zip(c['steps'],REVIEW_PROMPTS[c['id']]):s['review_prompt']=p
 BY_ID={c['id']:c for c in LESSONS}
 VERSION=hashlib.sha256(json.dumps(LESSONS,sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:20]
-BUNDLE=['threat-observe','plan-file','ending-opposition']

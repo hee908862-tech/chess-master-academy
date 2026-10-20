@@ -20,12 +20,24 @@ class Action(BaseModel):
     mode:Literal['learn','review']='learn'
     answer:str=Field(default='',max_length=40)
 
+def prior_context(step):
+    """Saved last move is question context, never a suggested answer."""
+    if not step.get('prior_fen') or not step.get('prior_move'):return None
+    try:
+        b=chess.Board(step['prior_fen']);m=chess.Move.from_uci(step['prior_move'])
+        if not b.is_valid() or m not in b.legal_moves:return None
+        san=b.san(m);b.push(m)
+        if b.fen()!=step['fen']:return None
+        return dict(before_fen=step['prior_fen'],move=m.uci(),san=san,after_fen=b.fen())
+    except ValueError:return None
+
 def payload(s):
     r=copy.deepcopy(s.get('active'))
     if r:
         step=r.pop('snapshot')['steps'][r['index']]
         reveal=r['mode']=='learn' or r['hinted'] or r['answered']
         r['step']={k:step[k] for k in ('id','kind','choices') if k in step}
+        r['step']['prior']=prior_context(step)
         r['step']['prompt']=step['prompt'] if reveal else step['review_prompt']
         r['step']['reason']=step['reason'] if r['answered'] or r['hinted'] else None
         r['step']['examples']=step['answers'] if reveal and step['kind']=='move' else []

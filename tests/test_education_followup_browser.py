@@ -16,3 +16,16 @@ def test_old_history_failure_does_not_change_new_screen(page,site,switch):
  else:page.evaluate("tab('home')")
  before=page.locator('#educationStatus').text_content();page.evaluate('rejectHistory()');page.wait_for_timeout(100)
  assert page.locator('#educationStatus').text_content()==before
+
+
+def test_prior_context_in_review_has_two_marked_squares_not_answer(page,site):
+ enter(page,site);start(page)
+ expect(page.locator('#educationBody')).to_contain_text('상대 직전 수: f8 → b4 (Bb4)')
+ expect(page.locator('#educationBoard .opponent-move')).to_have_count(2)
+ assert 'opponent-move' in page.locator('#educationBoard [aria-label^="f8 "]').get_attribute('class').split()
+ assert '상대 직전 수' in page.locator('#educationBoard [aria-label^="b4 "]').get_attribute('aria-label')
+ assert '상대 직전 수' not in page.locator('#educationBoard [aria-label^="c3 "]').get_attribute('aria-label')
+ assert page.get_by_role('button',name='수업 예시 c3a2').count()==0
+ from pathlib import Path
+ Path('docs/qa-education').mkdir(exist_ok=True,parents=True)
+ page.locator('#educationPaths').screenshot(path='docs/qa-education/prior-context-review.png')
