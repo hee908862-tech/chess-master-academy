@@ -1,0 +1,37 @@
+{
+  "conditions": "Docker app 1 CPU/512MiB, PG 1 CPU/512MiB, loopback HTTP, unique temporary accounts, single sample",
+  "memory_before": {
+    "VmHWM": "149352 kB",
+    "VmRSS": "149352 kB"
+  },
+  "cold": {
+    "path": "journey/start",
+    "seconds": 0.8255
+  },
+  "concurrent": [
+    {
+      "path": "me",
+      "seconds": 0.091
+    },
+    {
+      "path": "onboarding",
+      "seconds": 0.0914
+    },
+    {
+      "path": "game/new",
+      "seconds": 0.0995
+    }
+  ],
+  "warm": {
+    "path": "journey/start",
+    "seconds": 0.3241
+  },
+  "memory_after": {
+    "VmHWM": "250916 kB",
+    "VmRSS": "250288 kB"
+  },
+  "lost_response_recovery": "PASS: actual TCP disconnect after commit; GET restores same session; repeat POST 409",
+  "restart_command_seconds": 1.1748,
+  "process_restart_resume": "PASS: same saved diagnostic session/revision after actual image process restart",
+  "training_restart_resume": "PASS: saved hint/session/revision retained; repeated bridge returns same path/task"
+}

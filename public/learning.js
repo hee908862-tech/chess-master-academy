@@ -4,6 +4,14 @@
   const button = (text, fn) => {const b=el('button',text,'btn');b.onclick=fn;return b;};
   let dashboard=null, task=null, selected=null, busy=false, generation=0, playbackIndex=-1, pendingLoad=false;
   const statusNames={unaided_first_success:'무도움 첫 시도 성공',later_unaided_success:'다른 날짜 무도움 성공',revealed_success:'정답 공개 후 성공',hinted_success:'도움 사용 후 성공',retry_success:'오답 후 재시도 성공',not_yet:'아직 미달성',unverified_alternative:'대안 수 미검증 (능력 집계 제외)',unaided_repeat_success:'같은 날짜 무도움 재시도 성공'};
+  function outcomeLabel(a){
+    if(!a)return '';
+    const situation=a.mode?.startsWith('situation');
+    if(a.success&&a.current_helped===false&&a.prior_help_known){
+      return (situation?'이번 시도 도움 없이 기준 충족':'이번 시도 도움 없이 성공')+(a.prior_helped?' · 이전 같은 국면에서 도움 사용':'');
+    }
+    return (statusNames[a.status]||a.status||'기록 확인')+(situation&&a.success?' · 평가 유지 기준 충족 (대국 승리와 별도)':'');
+  }
   const modeNames={practice:'연습',verify:'검증',situation_practice:'상황 연습',situation_verify:'상황 검증'};
   const home=el('div',null,'card learning-home');
   home.innerHTML='<span class="tag">TODAY · 나의 학습 경로</span><h2>기억한 수를, 새로운 상황에서도.</h2><p class="lead" id="learningReason">로그인하면 나의 복습과 오늘의 적용 문제를 안내합니다.</p><div class="learning-path" id="learningPath"></div><div class="btn-row" id="learningHomeActions"></div>';
@@ -28,7 +36,18 @@
     await run(async()=>{const r=await api('/learning/import/'+$('reviewGameSelect').value,'POST');tab('training');await load();$('learningMessage').textContent=r.message;});
   }));
   function clear(){generation++;task=null;dashboard=null;selected=null;busy=false;render();$('learningCards').replaceChildren();$('learningAttempts').replaceChildren();$('learningSkills').replaceChildren();$('learningReason').textContent='로그인하면 나의 학습 경로를 안내합니다.';}
-  async function run(fn){if(busy)return;busy=true;renderControls();lockControls();const identity=token, rev=generation;try{await fn();}catch(e){if(identity===token&&rev===generation)$('learningMessage').textContent=e.message;}finally{if(identity===token){busy=false;renderDashboard();renderControls();lockControls();if(pendingLoad){pendingLoad=false;load();}}}}
+  async function run(fn,waiting='저장 중입니다. 상황 대국은 엔진 응수를 기다려 주세요.'){
+    if(busy)return;
+    busy=true;renderControls();lockControls();
+    $('learningMessage').textContent=waiting;
+    const identity=token,rev=generation;let succeeded=false;
+    try{await fn();succeeded=true;}
+    catch(e){if(identity===token&&rev===generation)$('learningMessage').textContent=e.message;}
+    finally{if(identity===token){busy=false;renderDashboard();renderControls();lockControls();
+      if(succeeded&&(!$('learningMessage').textContent||$('learningMessage').textContent===waiting))$('learningMessage').textContent=task?.message||'준비되었습니다. 보드에서 기물을 선택하세요.';
+      if(pendingLoad){pendingLoad=false;load();}
+    }}
+  }
   async function load(force=false){
     if(busy&&!force){pendingLoad=true;return;}
     if(!token){clear();$('learningRouteStatus').textContent='로그인 후 경로를 시작할 수 있습니다. 아직 수행한 학습은 없습니다.';$('learningRouteActions').replaceChildren(button('로그인 후 경로 준비',()=>ready('training')));$('learningCards').textContent='로그인하면 저장된 위치가 표시됩니다.';$('learningSkills').textContent='학습 기록을 확인하려면 로그인하세요.';$('learningNotice').textContent='로그인하면 나에게 맞는 학습 경로와 기록을 볼 수 있습니다. 시작 버튼에서 로그인한 뒤 이 화면으로 돌아옵니다.';return;}const identity=token, rev=++generation;
@@ -61,13 +80,13 @@
   function renderDashboard(){
     if(!dashboard)return;
     $('learningNotice').textContent=dashboard.notice;
-    $('learningReason').textContent=`${dashboard.reason} · 복습할 위치 ${dashboard.due.length}개`;
+    $('learningReason').textContent=`${dashboard.reason} · 복습할 위치 ${dashboard.due_count??dashboard.due.length}개`;
     $('learningIntervals').value=dashboard.intervals.join(',');
     $('learningPath').replaceChildren();
     const route=dashboard.path;
     const labels=[route?.fresh?'01 · 입문 새 문제':'01 · 복습','02 · 개념','03 · 공통 태그 새 문제','04 · 상황 대국'];
     const states={pending:'대기',active:'진행 중',completed:'완료',skipped:'건너뜀'};
-    labels.forEach((label,i)=>{const step=route?.steps[i];const b=button('',()=>continuePath());b.classList.add('learning-step');b.append(el('strong',label),el('span',step?`${states[step.status]} · ${step.reason}`:'경로 시작 시 항목 선택'));b.disabled=busy||!!route&&(route.done||route.current!==i);$('learningPath').append(b);});
+    labels.forEach((label,i)=>{const step=route?.steps[i];const b=button('',()=>continuePath());b.classList.add('learning-step');b.append(el('strong',label),el('span',step?`${states[step.status]} · ${step.reason}`:'경로 시작 시 항목 선택'));b.disabled=busy||!!route&&(route.done||route.current!==i);b.title=b.disabled?(busy?'기록 저장 중입니다.':route.done?'경로의 모든 시도를 마쳤습니다. 새 경로를 선택하세요.':'현재 단계를 마친 뒤 이어갈 수 있습니다.'):'현재 단계 열기';$('learningPath').append(b);});
     $('learningRouteStatus').textContent=route?`${route.date} · ${route.done?'경로 처리 완료 (성공 여부는 별도)' :`${route.current+1}/4 단계`} · ${route.selection_reason}`:'복습할 카드를 선택해 경로를 저장하고 시작합니다.';
     if(route?.diagnosis)$('learningRouteStatus').textContent+='\n왜 이 훈련인가: 진단에서 '+(route.diagnosis.complete?'전체 수순을 완주한 위치를 복습합니다.':route.diagnosis.first_correct?'첫 수는 맞혔지만 전체 수순 확인이 필요합니다.':'아직 전체 수순을 확인하지 못했습니다.')+' '+(route.diagnosis.reason||'')+' 같은 위치 반복은 새 독립 진단에 합산하지 않습니다.';
     if(route)$('learningRouteStatus').textContent+='\n선택 항목: '+(route.source_title||'없음')+'\n'+route.steps.map((step,i)=>`${labels[i]} · ${states[step.status]}${step.status==='skipped'?' · '+step.reason:''}`).join('\n');
@@ -81,11 +100,12 @@
     for(const c of [...dashboard.cards].reverse()){
       const item=el('div',null,'learning-item');item.append(el('strong',c.title),el('small',`다음 복습 ${c.due.slice(0,10)} · 무도움 성공 ${c.successes}회`));
       const actions=el('div',null,'btn-row');actions.append(button('다시 연습',()=>start({card_id:c.id})),button('검증',()=>start({card_id:c.id,mode:'verify'})),button('공통 태그 새 문제',()=>start({similar_to:c.id,mode:'verify'})));
-      for(const [mode,label] of [['situation_practice','상황 연습'],['situation_verify','상황 검증']]){const b=button(label,()=>start({card_id:c.id,mode}));b.disabled=!dashboard.engine;actions.append(b);}item.append(actions);$('learningCards').append(item);
+      for(const [mode,label] of [['situation_practice','상황 연습'],['situation_verify','상황 검증']]){const b=button(label,()=>start({card_id:c.id,mode}));b.disabled=!dashboard.engine;b.title=dashboard.engine?'':'엔진을 사용할 수 없어 상황 대국을 시작할 수 없습니다.';actions.append(b);}item.append(actions);$('learningCards').append(item);
     }
+    if(dashboard.cards_next!==null&&dashboard.cards_next!==undefined)$('learningCards').append(button('이전 훈련 카드 더 보기',async()=>{const identity=token,rev=generation;try{const d=await api('/learning/dashboard?offset='+dashboard.cards_next);if(identity!==token||rev!==generation)return;dashboard={...dashboard,cards:[...d.cards,...dashboard.cards],cards_next:d.cards_next};renderDashboard();}catch(e){$('learningMessage').textContent=e.message;}}));
     $('learningSkills').replaceChildren();dashboard.skills.forEach(s=>{const box=el('div',null,'learning-item');box.append(el('strong',s.name),el('p',s.measured===false?'미측정 · 검증된 과제 준비 전':s.insufficient?'현재 버전 전체 수순 · 근거 부족':`현재 버전 전체 수순 · 최근 ${s.recent}% (${s.recent_n}/5 국면) · ${s.trend_available?`이전 ${s.previous}% (${s.previous_n}/5 국면)`:'이전 비교 근거 부족 · 추세 미판정'}`),el('small',`전체 참고 기록 ${s.count}회 · 연습 ${s.practice_count}회 / 검증 ${s.verification_count}회 · 태그 전이 성공 ${s.transfer}회`));for(const g of s.groups||[]){const scope={first_move:'첫 수 판단',full_line:'전체 수순',engine_situation:'상황 대국',unrecorded:'측정 범위 미기록'}[g.assessment_scope]||g.assessment_scope;box.append(el('p',`${g.reference_only?'별도 참고':'추천 기준'} · ${g.version==='unrecorded'?'버전 미기록':g.version} · ${scope} · ${g.count}회 / 독립 ${g.distinct}국면 · ${g.insufficient?'근거 부족':`최근 ${g.recent}% (${g.recent_n}/5)`} · ${g.trend_available?`동일 범위 이전 ${g.previous}% (${g.previous_n}/5)`:'추세 미판정'}`));}$('learningSkills').append(box);});
     lockControls();
-    $('learningAttempts').replaceChildren();dashboard.attempts.forEach(a=>$('learningAttempts').append(el('p',`${a.at.slice(0,10)} · ${modeNames[a.mode]} · ${statusNames[a.status]}`,'learning-item')));
+    $('learningAttempts').replaceChildren();dashboard.attempts.forEach(a=>$('learningAttempts').append(el('p',`${a.at.slice(0,10)} · ${modeNames[a.mode]} · ${outcomeLabel(a)}`,'learning-item')));
   }
   function lockControls(){
     for(const b of document.querySelectorAll('#training button, #learningPath button')){
@@ -101,6 +121,7 @@
     $('learningTitle').textContent=t?(t.category||'주제 비공개 · 독립 판단'):concept?'개념 확인 · 진단과 같은 원리':'시작할 문제를 선택하세요';
     $('learningMode').textContent=t?`${modeNames[t.mode]}${t.done?' 완료':''}`:concept?'읽기 전용 · 개념':'준비';
     $('learningGoal').textContent=t?.goal||(concept?'아래 설명과 원본 위치를 확인하고 개념 읽기 확인을 누르세요.':'오답노트에서 다시 풀거나 새 문제로 시작하세요.');
+    if(t?.mode?.startsWith('situation'))$('learningGoal').textContent+=' 100cp는 엔진 평가에서 폰 한 개 정도의 값입니다. 실제 기물 획득이나 대국 승리를 뜻하지 않습니다.';
     $('learningMessage').textContent=t?.message||'';
     $('learningConcept').textContent=concept?.concept||t?.concept||(t&&!t.done&&t.mode.includes('verify')?'검증 중에는 개념을 표시하지 않습니다.':'문제를 선택하면 확인된 개념을 표시합니다.');
     $('learningEvidence').textContent=(t?.source||'문제와 분석의 출처가 여기에 표시됩니다.')+(t?.selection?.overlap?.length?'\n공통 태그: '+t.selection.overlap.join(', ')+' · '+t.selection.evidence:'');
@@ -114,7 +135,7 @@
   }
   function renderControls(){
     const area=$('learningControls');area.replaceChildren();if(dashboard?.path?.current===1&&dashboard.path.steps[1].status==='active'){area.append(el('span','설명을 읽은 뒤 옆 또는 아래 경로의 개념 읽기 확인을 눌러 주세요.','subtle'));return;}if(!task)return;
-    if(task.done){area.append(el('p',statusNames[task.outcome?.status]||'완료','tag'));if(task.path_id){area.append(button('경로 다음 단계',()=>continuePath()));return;}area.append(button('같은 위치 다시',()=>start({card_id:task.card_id,mode:task.mode})),button('다음 새 문제',()=>start({fresh:true,mode:'verify',category:dashboard?.cards.find(c=>c.id===task.card_id)?.category})));return;}
+    if(task.done){area.append(el('p',outcomeLabel(task.outcome)||'완료','tag'));if(task.path_id){area.append(button('경로 다음 단계',()=>continuePath()));return;}area.append(button('같은 위치 다시',()=>start({card_id:task.card_id,mode:task.mode})),button('다음 새 문제',()=>start({fresh:true,mode:'verify',category:dashboard?.cards.find(c=>c.id===task.card_id)?.category})));return;}
     if(!task.mode.includes('verify')){
       for(const [a,label] of [['hint',`힌트 ${Math.min(task.hint_level+1,3)}단계`],['reveal','답안 수순'],['refutation','상대 응수'],['undo','한 수 무르기']]){if(a==='undo'&&!task.mode.startsWith('situation'))continue;const b=button(label,()=>act(a));b.disabled=busy;area.append(b);}
     }else area.append(el('span','검증 중에는 힌트와 무르기를 사용할 수 없습니다.','subtle'));
@@ -152,7 +173,7 @@
         $('learningMessage').textContent=e.message;
         if(e.detail?.code==='active_learning_path')$('learningRouteActions').replaceChildren(button('보존된 경로 이어하기',()=>continuePath()));
       }
-    });
+    },'선택한 진단의 원본 훈련을 여는 중입니다…');
   };
   const oldTab=tab;
   tab=function(id){document.body.classList.toggle('learning-active',id==='training');generation++;selected=null;oldTab(id);if(id==='training'||id==='home')load();};

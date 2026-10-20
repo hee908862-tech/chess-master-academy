@@ -1,0 +1,70 @@
+{
+  "image": "sha256:9892f7a2fb9e6d2cc3c52cece17acc655f21ca00a7cdfbe59b3a3dc42d46af38",
+  "size_bytes": 261307091,
+  "source_match_files": 46,
+  "postgres_tests": {
+    "host": 9,
+    "image": 9,
+    "distinct": 9
+  },
+  "http": {
+    "conditions": "Docker app 1 CPU/512MiB, PG 1 CPU/512MiB, loopback HTTP, unique temporary accounts, single sample",
+    "memory_before": {
+      "VmHWM": "149352 kB",
+      "VmRSS": "149352 kB"
+    },
+    "cold": {
+      "path": "journey/start",
+      "seconds": 0.8255
+    },
+    "concurrent": [
+      {
+        "path": "me",
+        "seconds": 0.091
+      },
+      {
+        "path": "onboarding",
+        "seconds": 0.0914
+      },
+      {
+        "path": "game/new",
+        "seconds": 0.0995
+      }
+    ],
+    "warm": {
+      "path": "journey/start",
+      "seconds": 0.3241
+    },
+    "memory_after": {
+      "VmHWM": "250916 kB",
+      "VmRSS": "250288 kB"
+    },
+    "lost_response_recovery": "PASS: actual TCP disconnect after commit; GET restores same session; repeat POST 409",
+    "restart_command_seconds": 1.1748,
+    "process_restart_resume": "PASS: same saved diagnostic session/revision after actual image process restart",
+    "training_restart_resume": "PASS: saved hint/session/revision retained; repeated bridge returns same path/task"
+  },
+  "corpus_git_blob": "efb19b7b720cc5f3a1c033c41d212c0cd708ec89",
+  "tests": {
+    "passed": 245,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 1,
+    "seconds": 361.74
+  },
+  "syntax": {
+    "python_ast": 54,
+    "javascript": 13,
+    "static_scripts": 6
+  },
+  "browser_widths": [
+    320,
+    360,
+    390,
+    430,
+    768,
+    1280
+  ],
+  "physical_devices_tested": false,
+  "production_reset_executed": false
+}

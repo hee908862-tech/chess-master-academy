@@ -2,12 +2,14 @@ import copy
 import os, json, secrets, hashlib, hmac, sqlite3, random, threading, time
 from datetime import datetime, timezone
 from contextlib import contextmanager
+from contextvars import ContextVar
 from functools import wraps
 from inspect import signature
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Header
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 import chess
 import chess.engine
@@ -61,7 +63,24 @@ def db():
   DB_TIMINGS.append({'kind':'connection','connect_ms':round((connected-started)*1000,3),
                     'transaction_ms':round((time.perf_counter()-connected)*1000,3)})
 
+# Request generation prevents pre-reset work from restoring deleted records.
+_request_generation = ContextVar('account_generation', default=None)
+
+def guard_generation(conn):
+ context = _request_generation.get()
+ if context is None:return
+ code, generation = context
+ if DATABASE_URL:
+  conn.execute('SELECT pg_advisory_xact_lock(hashtext(%s))',('account-reset:'+code,))
+ elif not conn.in_transaction:conn.execute('BEGIN IMMEDIATE')
+ q='SELECT generation FROM account_generations WHERE code='+('%s' if DATABASE_URL else '?')
+ row=conn.execute(q,(code,)).fetchone()
+ if (row['generation'] if row else 0)!=generation:
+  raise HTTPException(409,'기록이 초기화되어 이전 요청을 저장하지 않았습니다. 화면을 새로 불러오세요.')
+
 def execute(conn,query,args=()):
+ if query.lstrip().upper().startswith(('INSERT','UPDATE','DELETE')) or 'pg_advisory_xact_lock' in query:
+  guard_generation(conn)
  if DATABASE_URL: query=query.replace('?','%s')
  started=time.perf_counter()
  try:return conn.execute(query,args)
@@ -73,10 +92,31 @@ def initdb():
  with db() as c:
   execute(c,'CREATE TABLE IF NOT EXISTS accounts (code TEXT PRIMARY KEY, pin_hash TEXT NOT NULL, salt TEXT NOT NULL, created TEXT NOT NULL)')
   execute(c,'CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, code TEXT NOT NULL, created INTEGER NOT NULL)')
+  execute(c,'CREATE TABLE IF NOT EXISTS account_generations (code TEXT PRIMARY KEY, generation INTEGER NOT NULL)')
   execute(c,'CREATE TABLE IF NOT EXISTS progress (code TEXT PRIMARY KEY, state TEXT NOT NULL)')
 
 initdb()
 app=FastAPI(title='Chess Master Academy')
+
+def request_identity(token):
+ with db() as conn:
+  return execute(conn,'SELECT s.code, COALESCE(g.generation,0) AS generation FROM sessions s LEFT JOIN account_generations g ON g.code=s.code WHERE s.token_hash=?',(hashlib.sha256(token.encode()).hexdigest(),)).fetchone()
+
+@app.middleware('http')
+async def account_generation_boundary(request, call_next):
+ marker=None
+ try:
+  header=request.headers.get('authorization','')
+  if header and request.url.path.startswith('/api/'):
+   token=header.removeprefix('Bearer ').strip()
+   row=await run_in_threadpool(request_identity,token)
+   if row:marker=_request_generation.set((row['code'],row['generation']))
+  return await call_next(request)
+ except HTTPException as exc:
+  return JSONResponse({'detail':exc.detail},status_code=exc.status_code,headers=exc.headers)
+ finally:
+  if marker is not None:_request_generation.reset(marker)
+
 
 class AccountBody(BaseModel):
  code:str
@@ -193,7 +233,9 @@ def me(authorization:str|None=Header(default=None)):
  draws=sum(g['result']=='draw' for g in games)
  attempts=state.get('puzzle_results',[])
  solved=sum(bool(r.get('correct')) for r in attempts)
- return {'code':code,'state':{'completed_lessons':state.get('completed_lessons',[]),'assessment':state.get('assessment')},'stats':{'games':len(games),'wins':wins,'losses':losses,'draws':draws,'puzzles':len(attempts),'solved':solved,'first_try_total':sum(1 for a in attempts if a.get('source')=='lichess' and a.get('first_try_correct') is not None),'first_try_correct':sum(1 for a in attempts if a.get('source')=='lichess' and a.get('first_try_correct') is True),'hint_solved':sum(1 for a in attempts if a.get('source')=='lichess' and a.get('hint_used')),'courses_completed':len(state.get('v9_course_history',[])),'courses_mastered':sum(bool(c.get('mastered')) for c in state.get('v9_course_history',[]))},'engine':'stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else 'fallback'}
+ with db() as c:
+  generation=execute(c,'SELECT generation FROM account_generations WHERE code=?',(code,)).fetchone()
+ return {'reset_revision':generation['generation'] if generation else 0,'code':code,'state':{'completed_lessons':state.get('completed_lessons',[]),'assessment':state.get('assessment')},'stats':{'games':len(games),'wins':wins,'losses':losses,'draws':draws,'puzzles':len(attempts),'solved':solved,'first_try_total':sum(1 for a in attempts if a.get('source')=='lichess' and a.get('first_try_correct') is not None),'first_try_correct':sum(1 for a in attempts if a.get('source')=='lichess' and a.get('first_try_correct') is True),'hint_solved':sum(1 for a in attempts if a.get('source')=='lichess' and a.get('hint_used')),'courses_completed':len(state.get('v9_course_history',[])),'courses_mastered':sum(bool(c.get('mastered')) for c in state.get('v9_course_history',[]))},'engine':'stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else 'fallback'}
 
 PIECE_SCORE={chess.PAWN:100,chess.KNIGHT:320,chess.BISHOP:335,chess.ROOK:500,chess.QUEEN:900,chess.KING:0}
 def positional_score(board):
@@ -890,6 +932,7 @@ def academy_play_move(body:AcademyPlayBody,authorization:str|None=Header(default
 class ResetProfile(BaseModel):
  pin:str
  confirmation:str
+ revision:int=Field(ge=0)
 
 @app.post('/api/profile/reset')
 def profile_reset(body:ResetProfile,authorization:str|None=Header(default=None)):
@@ -897,8 +940,19 @@ def profile_reset(body:ResetProfile,authorization:str|None=Header(default=None))
  if body.confirmation!='초기화':raise HTTPException(400,'확인 문구가 정확하지 않습니다.')
  with db() as c:r=execute(c,'SELECT pin_hash,salt FROM accounts WHERE code=?',(code,)).fetchone()
  if not r or not hmac.compare_digest(r['pin_hash'],hash_pin(body.pin,r['salt'])):raise HTTPException(403,'PIN이 일치하지 않습니다.')
- save_state(code,blank_state())
- return {'ok':True,'message':'개인 코드와 로그인은 유지하고 학습·대국·진단 기록을 초기화했습니다.'}
+ with db() as c:
+  if not DATABASE_URL:execute(c,'BEGIN IMMEDIATE')
+  guard_generation(c)
+  row=execute(c,'SELECT generation FROM account_generations WHERE code=?',(code,)).fetchone()
+  generation=row['generation'] if row else 0
+  if generation!=body.revision:raise HTTPException(409,'이미 초기화했거나 다른 화면에서 기록 상태가 바뀌었습니다. 기록을 다시 확인하세요.')
+  execute(c,'INSERT INTO account_generations(code,generation) VALUES(?,0) ON CONFLICT(code) DO NOTHING',(code,))
+  for table in ('progress','journey_progress','learning_progress'):
+   execute(c,f'DELETE FROM {table} WHERE code=?',(code,))
+  execute(c,'INSERT INTO progress(code,state) VALUES(?,?)',(code,json.dumps(blank_state(),ensure_ascii=False)))
+  # Final write: subsequent requests use this new generation; earlier work is rejected.
+  execute(c,'UPDATE account_generations SET generation=? WHERE code=?',(generation+1,code))
+ return {'ok':True,'reset_revision':generation+1,'message':'이 계정의 대국·퍼즐·모든 진단·훈련·노출 이력과 처음 안내를 초기화했습니다. 코드·PIN·로그인은 유지됩니다.'}
 
 @app.post('/api/practice/retry')
 def practice_retry(authorization:str|None=Header(default=None)):

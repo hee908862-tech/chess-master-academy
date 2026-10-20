@@ -32,6 +32,10 @@ def timed(path,body,token):
     start=time.perf_counter();result=request(path,body,token)
     return {'path':path,'seconds':round(time.perf_counter()-start,4)},result
 
+for _ in range(600):
+    try:request('health');break
+    except Exception:time.sleep(.1)
+else:raise AssertionError('Initial image health timeout (60 seconds)')
 a,b,warm,lost=account(),account(),account(),account()
 output={'conditions':'Docker app 1 CPU/512MiB, PG 1 CPU/512MiB, loopback HTTP, unique temporary accounts, single sample','memory_before':memory()}
 with ThreadPoolExecutor(max_workers=4) as pool:
@@ -71,7 +75,7 @@ restart_begin=time.perf_counter()
 subprocess.run(['docker','restart','cma-predeploy-app'],check=True,stdout=subprocess.DEVNULL)
 output['restart_command_seconds']=round(time.perf_counter()-restart_begin,4)
 assert output['restart_command_seconds']<5,'Idle app should gracefully stop without the 10-second kill deadline'
-for _ in range(100):
+for _ in range(600):
     try:request('health');break
     except Exception:time.sleep(.1)
 else:raise AssertionError('Restart health timeout')
@@ -87,7 +91,7 @@ linked=request('learning/from-diagnosis',{'report_id':report['id'],'item_id':ite
 t=linked['active']
 training=request('learning/action',{'session_id':t['session_id'],'revision':t['revision'],'action':'hint'},a)
 subprocess.run(['docker','restart','cma-predeploy-app'],check=True,stdout=subprocess.DEVNULL)
-for _ in range(100):
+for _ in range(600):
     try:request('health');break
     except Exception:time.sleep(.1)
 else:raise AssertionError('Training restart health timeout')

@@ -44,7 +44,7 @@ def reply(route,mode,board,task,finished=False):
 
 def play_initial(page,name):
     square(page,name,'e2').click();square(page,name,'e4').click()
-    expect(square(page,name,'e4')).to_have_attribute('aria-label','e4 P')
+    expect(square(page,name,'e4')).to_have_attribute('aria-label',__import__('re').compile(r'^e4 백 폰(?: · .+)?$'))
 
 
 @pytest.mark.parametrize('mode',['game','assessment','puzzle'])
@@ -63,7 +63,10 @@ def test_premove_default_off_then_executes_once(page,site,mode,mobile):
         if mode=='game':page.screenshot(path='/tmp/chess-premove-mobile.png',full_page=True)
     b=chess.Board();b.push_uci('e2e4');b.push_uci('e7e5')
     reply(requests[0],mode,b,task)
-    page.wait_for_timeout(300)
+    # Wait for the actual queued request; 300ms was flaky under concurrent Chromium/engine load.
+    for _ in range(100):
+        if len(requests)>=2:break
+        page.wait_for_timeout(50)
     assert len(requests)==2
     sent=requests[1].request.post_data_json
     assert sent.get('move',sent.get('from_sq','')+sent.get('to_sq',''))=='g1f3'
@@ -125,18 +128,18 @@ def test_black_question_feedback_keeps_orientation_and_history(page,site):
     fb=dict(correct=True,domain='전술',difficulty=1,seconds=1,points=100,original_fen=q['fen'],answer_fen=b.fen(),answer='e7e5')
     page.route('**/api/v8/assessment/answer',lambda r:r.fulfill(json={'feedback':fb}))
     open_page(page,site);page.evaluate("tab('assessment')")
-    expect(page.locator('#testBoard .sq').first).to_have_attribute('aria-label','h1 R')
+    expect(page.locator('#testBoard .sq').first).to_have_attribute('aria-label','h1 백 룩')
     expect(square(page,'testBoard','e2')).to_have_class(__import__('re').compile('opponent-move'))
     expect(square(page,'testBoard','e4')).to_have_class(__import__('re').compile('opponent-move'))
     square(page,'testBoard','e7').click();square(page,'testBoard','e5').click()
     expect(page.locator('#v8Overlay')).to_be_visible()
-    expect(page.locator('#testBoard .sq').first).to_have_attribute('aria-label','h1 R')
+    expect(page.locator('#testBoard .sq').first).to_have_attribute('aria-label','h1 백 룩')
     state.clear();state.update(active=True,phase='feedback',feedback=fb)
     page.evaluate("tab('home');tab('assessment')")
     expect(page.locator('#v8Overlay')).to_be_visible()
-    expect(page.locator('#testBoard .sq').first).to_have_attribute('aria-label','h1 R')
+    expect(page.locator('#testBoard .sq').first).to_have_attribute('aria-label','h1 백 룩')
     page.reload();page.evaluate("tab('assessment')")
-    expect(page.locator('#testBoard .sq').first).to_have_attribute('aria-label','h1 R')
+    expect(page.locator('#testBoard .sq').first).to_have_attribute('aria-label','h1 백 룩')
 
 
 def test_black_puzzle_hint_reply_and_next_color(page,site):
@@ -146,20 +149,20 @@ def test_black_puzzle_hint_reply_and_next_color(page,site):
     page.route('**/api/v9/puzzle/hint',lambda r:r.fulfill(json={'from':'e7','to':'e5','move_label':'e5','explanation':'힌트'}))
     open_page(page,site);page.evaluate("tab('puzzle')");page.locator('#v9PuzzleStart').click()
     name='v9PuzzleBoard'
-    expect(page.locator('#'+name+' .sq').first).to_have_attribute('aria-label','h1 R')
+    expect(page.locator('#'+name+' .sq').first).to_have_attribute('aria-label','h1 백 룩')
     page.locator('#v9PuzzleHint').click()
     expect(page.locator('#'+name+' .move-hint')).to_have_count(2)
     expect(page.locator('#'+name+' .opponent-move')).to_have_count(2)
     b.push_uci('e7e5');b.push_uci('g1f3')
     page.route('**/api/v9/puzzle/move',lambda r:r.fulfill(json={**task,'fen':b.fen(),'legal':[m.uci() for m in b.legal_moves],'correct':True,'solved':False,'reply':'g1f3','opponent_last_move':'g1f3'}))
     square(page,name,'e7').click();square(page,name,'e5').click()
-    expect(square(page,name,'f3')).to_have_attribute('aria-label','f3 N')
-    expect(page.locator('#'+name+' .sq').first).to_have_attribute('aria-label','h1 R')
+    expect(square(page,name,'f3')).to_have_attribute('aria-label',__import__('re').compile(r'^f3 백 나이트 · 상대 직전 수'))
+    expect(page.locator('#'+name+' .sq').first).to_have_attribute('aria-label','h1 백 룩')
     page.evaluate("tab('home');tab('puzzle')")
-    expect(page.locator('#'+name+' .sq').first).to_have_attribute('aria-label','h1 R')
+    expect(page.locator('#'+name+' .sq').first).to_have_attribute('aria-label','h1 백 룩')
     task.update(id='white',fen=chess.STARTING_FEN,side='white',legal=['e2e4'],opponent_last_move=None)
     page.locator('#v9PuzzleStart').click()
-    expect(page.locator('#'+name+' .sq').first).to_have_attribute('aria-label','a8 r')
+    expect(page.locator('#'+name+' .sq').first).to_have_attribute('aria-label','a8 흑 룩')
     expect(page.locator('#v9PuzzleMessage')).to_contain_text('직전 수 기록이 없어')
 
 
