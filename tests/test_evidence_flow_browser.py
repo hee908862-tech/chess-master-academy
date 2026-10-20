@@ -63,3 +63,22 @@ def test_pc_disclosure_tab_leaves_without_navigation(page,site):
     expect(menu).not_to_be_visible();expect(page.locator('#home')).to_have_class('view active')
     nav.click();page.locator('#journeyHome h1').click()
     expect(menu).not_to_be_visible();expect(nav).to_have_attribute('aria-expanded','false')
+
+
+def test_late_status_refresh_keeps_explicit_history_selection(page,site):
+    report=report_fixture(number=2);data=mock_status(page,report)
+    open_page(page,site);page.evaluate("tab('diagnosis')")
+    expect(page.locator('#journeyRefresh')).to_be_enabled()
+    page.evaluate("""() => {const original=api;api=(path,...args)=>path==='/journey'?new Promise(resolve=>window.releaseHistoryStatus=resolve):original(path,...args);} """)
+    page.locator('#journeyRefresh').click()
+    page.locator('#journeyPast > summary').click()
+    select=page.get_by_role('combobox',name='저장된 진단 선택');select.select_option('1')
+    expect(page.locator('#journeyPastReport .ability-card')).to_have_count(7)
+    page.evaluate('data=>window.releaseHistoryStatus(data)',data)
+    expect(page.locator('#journeyRefresh')).to_be_enabled()
+    expect(page.locator('#journeyPast')).to_have_attribute('open','')
+    expect(select).to_have_value('1')
+    expect(page.locator('#journeyPastReport .ability-card')).to_have_count(7)
+    page.evaluate("document.getElementById('signout').click()")
+    expect(page.locator('#journeyPastReport')).to_be_empty()
+    expect(page.locator('#journeyPast')).not_to_have_attribute('open','')
