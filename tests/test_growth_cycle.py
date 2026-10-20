@@ -137,14 +137,14 @@ def test_engine_evidence_is_optional_bounded_and_releases_slot(monkeypatch,tmp_p
             return {'score':chess.engine.PovScore(chess.engine.Cp(300 if not board.move_stack else 0),chess.WHITE),'depth':12}
         def quit(self):pass
     monkeypatch.setattr(chess.engine.SimpleEngine,'popen_uci',lambda *a,**k:Engine())
-    assert growth.verify_loss('invalid','e2e4',str(path)) is None
+    assert growth.verify_loss('invalid','e2e4',str(path))['reason']=='engine_failure'
     evidence=growth.verify_loss(chess.STARTING_FEN,'e2e4',str(path))
     assert evidence['loss_cp']==300 and evidence['depth']==12
     Engine.analyse=lambda *a:{'score':chess.engine.PovScore(chess.engine.Mate(1),chess.WHITE),'depth':12}
-    assert growth.verify_loss(chess.STARTING_FEN,'e2e4',str(path)) is None
+    assert growth.verify_loss(chess.STARTING_FEN,'e2e4',str(path))['status']=='unverified'
     Engine.analyse=lambda *a:{'score':chess.engine.PovScore(chess.engine.Cp(0),chess.WHITE),'depth':4}
-    assert growth.verify_loss(chess.STARTING_FEN,'e2e4',str(path)) is None
-    assert growth.verify_loss(chess.STARTING_FEN,'e2e4',str(tmp_path/'absent')) is None
+    assert growth.verify_loss(chess.STARTING_FEN,'e2e4',str(path))['status']=='unverified'
+    assert growth.verify_loss(chess.STARTING_FEN,'e2e4',str(tmp_path/'absent'))['reason']=='engine_unavailable'
 
 
 @pytest.mark.parametrize('loss,expected',[(300,'verified_error'),(50,'unverified_alternative')])
@@ -166,4 +166,4 @@ def test_alternative_move_uses_only_verified_large_loss(setup,monkeypatch,loss,e
     result=act(c,s,'move',candidates[0])
     assert result['feedback']['outcome']==expected
     stored=saved(db)['active']['items'][index]
-    assert ('engine_evidence' in stored)==(loss>=200)
+    assert stored['engine_evidence']['loss_cp']==loss

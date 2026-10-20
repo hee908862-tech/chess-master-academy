@@ -199,6 +199,7 @@ def attach_journey(app, ns):
         _,learning=external_snapshot(code)
         path=learning.get('path');active_training=learning.get('active')
         return {'preparing':_inventory_lock.locked(),'training':{'path_id':path['id'] if path else None,'path_done':path.get('done',False) if path else False,'active':bool(active_training and not active_training.get('done')),'has_path':bool(path)},
+                'activity':{'diagnoses':len(state['results']),'answered':sum(bool(i.get('submitted')) for r in state['results'] for i in r.get('items',[])), 'recommended_completed':sum(len(c.get('completed',{})) for c in learning.get('cycles',{}).values())},
                 'cycle':cycle_status(latest_cycle_report(state['results']),learning),
                 'growth':[{'id':r.get('id'),'at':r.get('at'),'snapshot':r.get('snapshot'),'version':r.get('version')} for r in state['results']],
                 'rechecks':{c:recheck_gate(learning,c,now()) for c,v in COMPETENCIES.items() if v['measured']},
@@ -273,7 +274,7 @@ def attach_journey(app, ns):
                     submitted=copy.deepcopy(s['submitted']),expected=item['line'][::2],reason=reason,skipped=skipped,completed_at=now().isoformat())
         item['outcome']=outcome or ('completed' if complete else 'partial_execution' if skipped and s['submitted'] else 'not_answered' if skipped else 'unverified_alternative')
         item['feedback']={k:copy.deepcopy(item[k]) for k in ('first_correct','complete','correct_plies','total_plies','submitted','expected','reason','outcome')}
-        item['feedback'].update(fen=s['fen'],continuation=frames)
+        item['feedback'].update(fen=s['fen'],continuation=frames,engine_evidence=item.get('engine_evidence'))
         if complete and chess.Board(s['fen']).is_checkmate():
             item['feedback']['mate_explanation']=explain_mate(chess.Board(s['fen']))
         s['phase']='feedback'
@@ -288,7 +289,7 @@ def attach_journey(app, ns):
         code=auth(authorization)
         engine_evidence=None
         initial=read(code).get('active')
-        if initial and initial.get('mode') in MODES and initial['revision']==body.revision and initial['session_id']==body.session_id and initial['phase']=='question' and body.action=='move':
+        if initial and initial['revision']==body.revision and initial['session_id']==body.session_id and initial['phase']=='question' and body.action=='move':
             row=initial['items'][initial['index']]
             if body.move!=row['line'][initial['offset']]:
                 engine_evidence=verify_loss(initial['fen'],body.move,ns.get('STOCKFISH_PATH',''))
@@ -326,11 +327,14 @@ def attach_journey(app, ns):
                     b.push(m); s['played'].append(body.move); s['fen']=b.fen()
                     state['reserved'].append({'puzzle_id':item['puzzle_id'],'fen':b.fen()})
                     if body.move!=expected and not b.is_checkmate():
-                        if engine_evidence and engine_evidence['loss_cp']>=200:
+                        if engine_evidence:item['engine_evidence']=engine_evidence
+                        if engine_evidence and engine_evidence.get('loss_cp',0)>=200:
                             item['engine_evidence']=engine_evidence
                             finish_item(s,False,'이 수에서 유리함을 놓친 것으로 분석됐어요. 상대의 위협과 후보 수를 비교해 보세요.',outcome='verified_error')
                         elif item['competency']=='mate' and b.is_stalemate():
                             finish_item(s,False,'스테일메이트로 끝났습니다. 체크메이트 목표와 다른 결과임을 규칙으로 확인했습니다.',outcome='verified_non_mate')
+                        elif engine_evidence and engine_evidence.get('status')=='equivalent_alternative':
+                            finish_item(s,False,'짧은 엔진 탐색에서 평가가 비슷한 대안으로 확인했어요. 전체 수순 완주나 유일 정답을 뜻하지 않으며 수행 점수에서는 제외합니다.',outcome='equivalent_alternative')
                         else:finish_item(s,False,'기준 수순과 다른 합법 수입니다. 미검증 대안으로 판단을 보류하며 실패나 약점 근거에 넣지 않습니다.',outcome='unverified_alternative')
                     else:
                         s['correct']+=1; s['offset']+=1

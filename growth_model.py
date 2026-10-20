@@ -95,26 +95,30 @@ def credit_cycle(state,session,attempt):
 
 
 def verify_loss(fen,move,path):
-    """Conservative short engine evidence, optional and never a guessed wrong answer."""
+    """Bounded evidence, including why an alternative could not be judged."""
     import chess
     import chess.engine
     from pathlib import Path
-    if not path or not Path(path).is_file():return None
-    if not _diagnostic_slot.acquire(blocking=False):return None
+    evidence={'status':'unverified','reason':'engine_unavailable','policy':'alternative-v2',
+              'settings':{'threads':1,'hash_mb':16,'seconds_per_position':.3,'max_depth':16,'minimum_depth':10}}
+    if not path or not Path(path).is_file():return evidence
+    if not _diagnostic_slot.acquire(blocking=False):return {**evidence,'reason':'diagnosis_busy'}
     try:
-        board=chess.Board(fen);side=board.turn
-        m=chess.Move.from_uci(move)
-        if m not in board.legal_moves:return None
-        engine=open_engine(path,timeout=3)
-        try:
+        board=chess.Board(fen);side=board.turn;m=chess.Move.from_uci(move)
+        if not board.is_valid() or m not in board.legal_moves:return {**evidence,'reason':'invalid_position_or_move'}
+        with open_engine(path,timeout=3) as engine:
             engine.configure({'Threads':1,'Hash':16})
-            first=engine.analyse(board,chess.engine.Limit(time=.12,depth=14));board.push(m)
-            second=engine.analyse(board,chess.engine.Limit(time=.12,depth=14))
-            if min(first.get('depth',0),second.get('depth',0))<10:return None
-            # Mating scores need proof rather than an arbitrary centipawn substitution.
-            a=first['score'].pov(side).score();b=second['score'].pov(side).score()
-            if a is None or b is None:return None
-            return {'loss_cp':max(0,a-b),'depth':min(first['depth'],second['depth']),'engine':engine.id.get('name'),'policy':'loss>=200cp-depth>=10-v1'}
-        finally:engine.quit()
-    except (ValueError,KeyError,OSError,chess.engine.EngineError,TimeoutError):return None
+            first=engine.analyse(board,chess.engine.Limit(time=.3,depth=16));board.push(m)
+            second=engine.analyse(board,chess.engine.Limit(time=.3,depth=16)) if not board.is_game_over() else {'score':chess.engine.PovScore(chess.engine.Cp(0),side),'depth':first.get('depth',0)}
+            depths=[first.get('depth',0),second.get('depth',0)]
+            a=first['score'].pov(side);b=second['score'].pov(side)
+            evidence.update(engine=engine.id.get('name'),depths=depths,depth=min(depths),before_cp=a.score(),after_cp=b.score(),before_mate=a.mate(),after_mate=b.mate())
+            if min(depths)<10:return {**evidence,'reason':'insufficient_depth'}
+            if a.score() is None or b.score() is None:return {**evidence,'reason':'mate_requires_proof'}
+            loss=max(0,a.score()-b.score());evidence['loss_cp']=loss
+            return {**evidence,'status':'verified_error' if loss>=200 else 'equivalent_alternative' if loss<=35 else 'unverified',
+                    'reason':'large_loss' if loss>=200 else 'similar_evaluation' if loss<=35 else 'uncertain_difference'}
+    except EngineBusy:return {**evidence,'reason':'engine_busy'}
+    except (ValueError,KeyError,OSError,chess.engine.EngineError,TimeoutError) as exc:
+        return {**evidence,'reason':'engine_failure','error_type':type(exc).__name__}
     finally:_diagnostic_slot.release()

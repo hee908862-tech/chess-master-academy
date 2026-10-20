@@ -146,6 +146,7 @@ def test_concept_uses_real_source_and_locks_pending_transition(route_page,site,w
     page.screenshot(path=f'/tmp/learning-concept-v2-{width}.png',full_page=True)
     pending=[]
     page.route('**/api/learning/path',lambda route:pending.append(route))
+    page.locator('#learningRoute > summary').click()
     page.get_by_role('button',name='개념 읽기 확인',exact=True).click()
     expect(page.locator('#learningFresh')).to_be_disabled()
     expect(page.get_by_role('button',name='개념 읽기 확인',exact=True)).to_be_disabled()

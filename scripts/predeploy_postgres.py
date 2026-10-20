@@ -290,3 +290,16 @@ def test_internal_rating_real_engine_persists_and_legacy_is_not_rewritten():
     server.initdb()
     assert server.get_state(code)==saved
     assert c.get('/api/games/analysis').json()['app_rating']['series']['bullet']['games']==1
+
+
+def test_opening_bookmark_and_readonly_branch_pg():
+    c,code=account();before=server.get_state(code)
+    response=post(c,'study/position',{'moves':['e2e4','c7c5'],'engine':True})
+    assert response['reply'] and server.get_state(code)==before
+    data={'course_id':'sicilian-najdorf','moves':['e2e4','c7c5'],'mode':'recall','orientation':'black','revision':0}
+    saved=post(c,'study/openings/save',data)
+    assert saved['revision']==1
+    assert c.post('/api/study/openings/save',json={**data,'moves':[]}).status_code==409
+    server.initdb()
+    assert c.get('/api/study/openings').json()['saved']==saved
+    after=server.get_state(code);after.pop('opening_study');assert after==before

@@ -73,10 +73,11 @@ def build_report(session, previous, current):
         evidence={'independent':sum(i.get('independent',False) for i in known.values()),'tracked':len(known),
                   'first_success':sum(i.get('first_correct',False) for i in known.values()),'full_success':sum(i.get('complete',False) for i in known.values()),
                   'version':session['version'],'measurement_scope':scope,'latest_at':max((i['completed_at'] for i in known.values()),default=None)}
-        public_keys=('id','puzzle_id','fen','tags','submitted','expected','first_correct','complete','correct_plies','total_plies','reason','competency','rating','band','independent','shown_at','completed_at','helped','first_attempt','outcome','app_new','prior_exposure_unknown')
+        public_keys=('id','puzzle_id','fen','tags','submitted','expected','first_correct','complete','correct_plies','total_plies','reason','competency','rating','band','independent','shown_at','completed_at','helped','first_attempt','outcome','engine_evidence','app_new','prior_exposure_unknown')
         areas.append({'id':competency,'label':spec['label'],'count':len(rows),'evidence':evidence,
             'independent':sum(i.get('independent',False) for i in assessed),'app_new_attempts':len(tracked),
             'first_success':sum(i.get('first_correct',False) for i in rows),'full_success':sum(i.get('complete',False) for i in rows),
+            'equivalent':sum(outcome(i)=='equivalent_alternative' for i in rows),
             'partial':sum(outcome(i)=='partial_execution' for i in rows),'unverified':sum(outcome(i)=='unverified_alternative' for i in rows),
             'unanswered':sum(outcome(i)=='not_answered' for i in rows),'verified_not_completed':sum(outcome(i)=='verified_non_mate' for i in rows),
             'assessed_denominator':len(assessed),'confidence':'관찰 범위를 더 넓혀 보세요.' if len(known)<5 else '앱 내 여러 국면에서 관찰했습니다. 실전·외부 실력과는 다릅니다.',

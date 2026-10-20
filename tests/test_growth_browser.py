@@ -43,7 +43,7 @@ def test_results_growth_and_long_korean_layout(page,site,width):
     open_page(page,site);page.evaluate("tab('diagnosis')")
     expect(page.locator('.ability-card')).to_have_count(7)
     expect(page.get_by_role('button',name='새 문제로 다시 진단하기',exact=True)).to_be_disabled()
-    expect(page.locator('.ability-card').last).to_contain_text('측정 전')
+    expect(page.locator('.ability-card').last).to_contain_text('미측정')
     directory=Path(__file__).resolve().parents[1]/'docs/qa-growth';directory.mkdir(exist_ok=True)
     for view in ['home','diagnosis','profile','training','help','review']:
         page.evaluate('tab('+repr(view)+')')
@@ -62,7 +62,7 @@ def test_empty_result_error_loading_and_double_size(page,site):
     page.route('**/api/games/analysis',lambda r:r.fulfill(status=503,json={'detail':'분석 기록을 잠시 불러오지 못했어요.'}))
     open_page(page,site);page.evaluate("tab('diagnosis')")
     expect(page.locator('.growth-intro')).to_contain_text('아직 직접 둔 수가 없어요')
-    expect(page.locator('.ability-card').first).to_contain_text('측정 전')
+    expect(page.locator('.ability-card').first).to_contain_text('아직 응답 없음')
     page.evaluate("document.documentElement.style.zoom='200%'")
     for view in ('home','diagnosis','profile'):
         page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(150)
@@ -106,7 +106,7 @@ def test_additional_reports_do_not_displace_comparable_growth_points(page,site):
     open_page(page,site);page.evaluate("tab('profile')")
     expect(page.locator('#growthProfile circle')).to_have_count(2)
     expect(page.locator('#growthProfile line[stroke="#8fe5c8"]')).to_have_count(1)
-    expect(page.locator('#growthProfile summary')).to_contain_text('26개 기록')
+    expect(page.locator('#growthProfile summary').filter(has_text='이전·분야 추가 진단')).to_have_text('이전·분야 추가 진단 26개 기록')
 
 
 def test_internal_rating_chart_separates_clock_modes_and_shows_exclusions(page,site):
