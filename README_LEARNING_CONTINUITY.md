@@ -35,6 +35,36 @@
 
 ## 검증
 
-최종 전체 검사 및 원격 확인 결과는 아래에 기록한다. 최초 회귀 검사 45통과/13실패, 수정 후 관련 묶음 37통과/1실패를 확인했으며 이 중 테스트의 기존 무확인 전환·가로 메뉴 기대값을 새 명시적 전환·더보기 계약으로 바꿨다. 실패를 숨기기 위해 보호 규칙을 제거하지 않았다. 마지막 남은 테스트는 불완전한 합성 attempt fixture를 보완했다. 새로운 미확인 전환 거부·도움 보존·오래된 요청 거부 검사를 별도로 추가했다.
+최종 애플리케이션 코드 커밋 `73c5f9958515efbeac8d4348042fb01a858535cd`에서 다음을 확인했다. 이후 커밋은 실행 증거와 재현 스크립트만 추가한다.
 
-수동 화면 확인: Chromium 400px에서 참고 오프닝의 비활성 저장/설명, 강의 복귀, 입문 진단의 보드·차례·메뉴를 실제 캡처로 확인했다. 실제 휴대폰/Safari와 보조기술의 실기 검증은 별도다. 운영 실사용은 검토·배포 이후 클라우드 브라우저의 테스트 계정으로 확인한다.
+| 검사 | 결과 |
+|---|---|
+| 전체 pytest (실제 Chromium·Stockfish 포함) | **350 통과**, 실패/건너뛰기 0, 586.13초 |
+| 격리 PostgreSQL17 통합 검사 | **14 통과**, 36.07초; 동시 선택 CAS·훈련 전환·도움 보존·지연 요청 포함 |
+| 최종 관련 브라우저/API 재검사 | 25 통과; 카드 페이지네이션 4 통과 |
+| 배포 Dockerfile 빌드 | 통과; 이미지 `sha256:20e147a74bced16615fa9db9a94251e1316c988b96272ced9db57917d68f82b6` |
+| 새 이미지 실제 HTTP, 1 CPU/512MiB/임시 PostgreSQL | 기초→입문, 진단/훈련/과정 재시작 복원, 도움 보존, 허위 완료 없음 통과 |
+| 기존 복기·오프닝 실제 HTTP | Stockfish 응수, 원본 비변경, 저장 위치 재시작 복원, OZElq/Qc3 판정 통과; OOM 없음, 해당 실행 메모리 최고 398,675,968바이트 |
+| 구문·공백 | Python AST 77파일, `node --check` 19파일, `git diff --check` 통과 |
+| 별도 타입/린트 도구 | 프로젝트에 전용 설정이 없어 미실행. 위 구문 검사를 타입 검사로 표시하지 않음 |
+| 원격 CI | 커밋 상태 및 PR 트리거 Actions 조회에 실행 기록 없음. CI 성공으로 표시하지 않음 |
+
+중간 전체 실행의 335통과/11실패는 새 명시적 전환·더보기·입문 경로·접힌 지표와 맞지 않는 기존 기대값 및 테스트 계정의 미완료 세션 전환에서 발생했다. 테스트를 새 계약으로 갱신하고 미확인 전환 거부 검사를 별도로 유지했다. 더보기 포커스 이탈과 같은 문제 재개의 불필요한 전환 확인도 관련 검사에서 수정했다. 위 **최종 전체 재실행**이 모두 통과했다. 경고 1개는 Starlette의 httpx TestClient 사용 중단 예고이며 실패가 아니다.
+
+실행 재현:
+
+```sh
+CMA_JOURNEY_INDEX=/tmp/chess-journey-index.json.gz python build_journey_index.py
+DATABASE_URL='' SQLITE_FILE=/tmp/cma-audit-final.sqlite STOCKFISH_PATH=/path/to/stockfish CMA_JOURNEY_INDEX=/tmp/chess-journey-index.json.gz PYTHONPATH=. python -m pytest -q
+# disposable loopback cma_predeploy DB만 허용하는 검사:
+CMA_TEST_PG_URL="$LOCAL_TEST_PG_URL" STOCKFISH_PATH=/path/to/stockfish CMA_JOURNEY_INDEX=/tmp/chess-journey-index.json.gz python -m pytest -q scripts/predeploy_postgres.py
+# 이름·이미지·메모리·loopback DB를 검증하는 전용 로컬 컨테이너 검사:
+python scripts/predeploy_study_http.py
+python scripts/predeploy_continuity_http.py
+```
+
+[전체 검사 로그](docs/qa-continuity/pytest-final.txt), [PostgreSQL 로그](docs/qa-continuity/postgres.txt), [기존 기능 HTTP](docs/qa-continuity/container-study.json), [새 흐름 HTTP](docs/qa-continuity/container-continuity.json), [실행 버전](docs/qa-continuity/runtime.json)을 보존했다.
+
+수동 화면 확인: 실제 Chromium 400px 캡처의 [참고 오프닝](docs/qa-continuity/reference-mobile.png) 저장 비활성/설명과 강의 복귀, [입문 진단](docs/qa-continuity/entry-mobile.png)의 보드·차례·메뉴를 직접 읽었다. [데스크톱 복기](docs/qa-continuity/review-desktop.png)는 테스트용 2반수 기보로 보드 상단 정렬과 탐색 액션을 확인한 화면이며 운영 실사용 증거가 아니다.
+
+실제 휴대폰/Safari와 보조기술은 미검증이다. 운영 당시 전체 요청 로그가 없어 과거 현상의 원인을 모두 단정하지 않는다. 운영 실사용은 독립 리뷰·배포 이후 클라우드 브라우저의 별도 테스트 계정으로 확인한다. 여기서는 Render 배포나 main 병합을 실행하지 않았다.
