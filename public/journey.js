@@ -66,7 +66,7 @@ function renderHome(){const primary=by('journeyHomeOpen'),status=by('journeyHome
  if(needsRefresh){set('저장 상태 다시 확인','자료나 저장 상태를 확인하지 못했습니다. 기존 진행을 바꾸지 않고 다시 조회하세요.',null,load);return;}
  if(session&&session.phase!=='complete'||state?.active){set('저장된 진단 이어하기','이미 시작한 진단이 있어 새 문제보다 저장된 착수부터 이어갑니다.','한 문항 2–5분');}
  else if(state?.training?.active||state?.training?.has_path&&!state?.training?.path_done){set('진행 중인 훈련 이어하기','착수와 도움 이력이 있는 훈련이 남아 있어 먼저 이어갑니다.','한 단계 3–8분',()=>tab('training'));}
- else if(foundationHomeState?.rules_first&&foundationHomeState.completed<foundationHomeState.total){set('기초 아카데미 이어하기','선택한 룰부터 배우기 경로입니다. 설명과 보드 연습 후 입문 관찰을 선택할 수 있어요.','한 단계 2–5분',()=>window.cmaFoundations.openRecommended());}
+ else if((foundationHomeState?.active&&!foundationHomeState.active.done)||(foundationHomeState?.rules_first&&foundationHomeState.completed<foundationHomeState.total)){set('기초 아카데미 이어하기',foundationHomeState.active?`${foundationHomeState.active.course_title} · ${foundationHomeState.active.step+1}/${foundationHomeState.active.total}단계 · ${foundationHomeState.active.title}`:'선택한 룰부터 배우기 경로입니다. 설명과 보드 연습 후 입문 관찰을 선택할 수 있어요.','한 단계 2–5분',()=>window.cmaFoundations.openRecommended());}
  else if(Object.values(state?.rechecks||{}).some(g=>g.eligible)){set('7일 기억 유지 확인 보기','연결된 독립 검증과 대기 조건을 충족한 분야가 있습니다. 결과에서 분야를 선택하세요.','한 문항 2–5분');}
  else if(state?.latest?.mode==='gentle'&&!state?.cycle){set('입문 결과 · 다음 연습 선택','입문 관찰에서 고른 수순의 개념을 익히고 새 문제로 확인하세요. 표준 점수와 비교하지 않습니다.','한 연습 3–8분');}
  else if(state?.latest){set(state.cycle?.unlocked?'새 문제로 다시 진단하기':'추천 훈련 이어가기',state.cycle?.unlocked?'추천 5개는 학습량입니다. 새 문제에서 도움 없이 수행을 다시 관찰하세요.':state.cycle?.message||'표본 부족은 약점 확정이 아닙니다. 실제 수행 근거와 추가 확인을 살펴보세요.',state.cycle?.unlocked?'24문항 30–60분':'한 과제 3–8분');}

@@ -7,7 +7,7 @@ from test_study_browser import login
 
 def test_reference_save_reset_and_mobile_more(page,site):
     login(page,site);page.set_viewport_size({'width':400,'height':860})
-    page.locator('.mobile-nav').get_by_role('button',name='더보기',exact=True).click()
+    page.locator('.mobile-nav [data-tab=profile]').click();page.locator('#moreNavigation').click()
     expect(page.locator('#moreNavigationDialog')).to_be_visible()
     page.locator('#moreNavigationDialog').get_by_role('button',name='오프닝 연구실',exact=True).click()
     expect(page.locator('#studyOpeningBoard .sq')).to_have_count(64)
@@ -57,7 +57,8 @@ def test_rules_level_board_completion_and_reload(page,site):
 
 def test_more_keyboard_focus_and_disabled_no_game_actions(page,site):
     login(page,site);page.set_viewport_size({'width':400,'height':860})
-    more=page.locator('.mobile-nav').get_by_role('button',name='더보기',exact=True)
+    page.locator('.mobile-nav [data-tab=profile]').click()
+    more=page.locator('#moreNavigation')
     more.focus();page.keyboard.press('Enter')
     dialog=page.locator('#moreNavigationDialog');expect(dialog).to_be_visible()
     for _ in range(10):

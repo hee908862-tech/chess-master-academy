@@ -1,0 +1,22 @@
+.first-entry{display:grid;gap:12px;max-width:900px}
+.first-entry h1{font-size:clamp(24px,4vw,34px);margin:0}
+.first-entry>button{min-height:52px;text-align:left;white-space:normal}
+.first-entry #firstTry{font-size:19px;padding:18px}
+#entryChoices{display:grid;gap:10px}#entryChoices[hidden]{display:none}
+body.entry-guest #home>:not(#firstEntry):not(.feature-toolbar){display:none!important}
+body.entry-guest #onboardingInvitation,body.entry-trial #onboardingInvitation{display:none!important}
+#home .hero-grid .eyebrow{display:none}
+#rookTrial{gap:10px}#rookTrial .feature-toolbar h2{font-size:22px;margin:0}
+#trialBoard{width:min(100%,440px);margin:0 auto}
+#rookTrial button:not(.sq){min-height:44px;white-space:normal}
+#rookTrial p{margin:0;overflow-wrap:anywhere}
+#trialContinue[hidden]{display:none}
+#navigationTools{margin-top:8px}#navigationTools summary{min-height:44px;padding:10px;font-size:14px;cursor:pointer}
+#navigationTools button{width:100%}
+#entryLoginNotice[hidden],#entryReturn[hidden],#firstEntry[hidden]{display:none}
+#entryReturn{margin:8px 0}
+@media(max-width:850px){.mobile-nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}.mobile-nav button{min-width:0;font-size:12px;padding:10px 2px;white-space:normal;min-height:44px}body.entry-trial .topbar{display:none}body.entry-trial .mobile-nav{position:static!important;inset:auto!important;width:100%;margin-top:10px}body.entry-trial .app{padding:8px!important}#rookTrial .feature-toolbar{flex-wrap:wrap}}
+body.entry-login #profile>:not(.entry-auth-layout){display:none!important}
+body.entry-login .entry-auth-layout{display:block!important;max-width:640px}
+body.entry-login .entry-auth-layout>:not(.entry-auth-card){display:none!important}
+#entrySavedBasics[hidden]{display:none}
