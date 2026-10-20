@@ -17,6 +17,8 @@ def api(tmp_path, monkeypatch):
     app.router.routes.extend(r for r in server.app.routes if getattr(r, 'path', '') in ('/api/register', '/api/login'))
     # The isolated DB must include the additive journey schema now queried
     # by onboarding's active-session guard.
+    from learning_server import attach_learning
+    attach_learning(app, vars(server))
     from journey_server import attach_journey
     attach_journey(app, vars(server))
     attach_onboarding(app, dict(vars(server)))

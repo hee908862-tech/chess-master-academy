@@ -1,0 +1,8 @@
+{
+  "python": "3.12.14",
+  "fastapi": "0.152.0",
+  "pytest": "9.1.1",
+  "playwright": "1.64.0",
+  "chromium": "Chromium 154.0.8037.57 built on Debian GNU/Linux 13 (trixie)",
+  "engine": "Stockfish 17.1"
+}

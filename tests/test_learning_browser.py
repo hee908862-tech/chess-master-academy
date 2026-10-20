@@ -9,6 +9,7 @@ from v9_server import LIB
 def test_learning_responsive_real_persistence(page,site,width,height):
     page.set_viewport_size({'width':width,'height':height})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+    page.on('dialog',lambda d:d.accept())
     open_page(page,site)
     page.evaluate("tab('training')")
     page.locator('#learningFresh').click()
@@ -28,9 +29,9 @@ def test_learning_responsive_real_persistence(page,site,width,height):
     page.reload();page.evaluate("tab('training')")
     expect(page.locator('#learningMode')).to_have_text('연습 완료')
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
-    if width<=1100:
-        expect(page.locator('.mobile-nav')).to_be_hidden()
-        expect(page.locator('.learning-mobile-nav')).to_be_visible()
+    if width<=850:
+        expect(page.locator('.mobile-nav')).to_be_visible()
+        expect(page.locator('.learning-mobile-nav')).to_be_hidden()
     page.screenshot(path=f'/tmp/learning-{width}x{height}.png',full_page=True)
     page.locator('#learningVerify').click()
     expect(page.locator('#learningTitle')).to_have_text('주제 비공개 · 독립 판단')
@@ -57,6 +58,7 @@ def route_page(site):
 def test_saved_route_review_concept_transfer_resume(route_page,site,width,height):
     page=route_page
     page.set_viewport_size({'width':width,'height':height})
+    page.on('dialog',lambda d:d.accept())
     open_page(page,site)
     page.evaluate("api('/learning/start','POST',{fresh:true})")
     page.evaluate("tab('home')")

@@ -17,10 +17,10 @@
   home.innerHTML='<summary>이전 4단계 학습 경로 · 선택 연습</summary><span class="tag">TODAY · 나의 학습 경로</span><h2>배운 수를 새로운 상황에 적용해 보세요.</h2><p class="lead" id="learningReason">로그인하면 나의 복습과 오늘의 적용 문제를 안내합니다.</p><div class="learning-path" id="learningPath"></div><div class="btn-row" id="learningHomeActions"></div>';
   $('home').prepend(home);
   const view=el('section',null,'view');view.id='training';
-  view.innerHTML=`<div class="card"><div class="row"><div><span class="tag">LEARNING STUDIO</span><h2 class="heading">나의 훈련실</h2></div><button class="btn" id="learningRefresh">기록 새로고침</button></div><details><summary>기록 범위와 측정 기준</summary><p id="learningNotice" class="lead">기존 기록은 그대로 유지됩니다.</p></details><div class="btn-row"><button class="btn primary" id="learningFresh">새 적용 문제</button><button class="btn" id="learningVerify">미출제 검증</button><button class="btn" id="learningReview">내 대국 복기</button></div></div>
-  <details class="card" id="learningRoute"><summary>이전 4단계 경로 · 선택 연습</summary><h3>저장된 경로</h3><p id="learningRouteStatus" class="lead"></p><div class="btn-row" id="learningRouteActions"></div></details><div class="learning-layout"><div class="card learning-position"><div class="row"><strong id="learningTitle">시작할 문제를 선택하세요</strong><span class="tag" id="learningMode">준비</span></div><p id="learningGoal" class="lead">아래 오답노트에서 다시 풀거나 새 문제로 시작하세요.</p><div id="learningBoard" class="board"></div><p id="learningMessage" class="notice" role="status" aria-live="polite"></p><div class="btn-row" id="learningControls"></div><p class="subtle">이 훈련은 한 수씩 판단합니다. 프리무브는 사용하지 않습니다.</p></div>
+  view.innerHTML=`<div class="card"><div class="row"><div><span class="tag">LEARNING STUDIO</span><h2 class="heading">나의 훈련실</h2></div><button class="btn" id="learningRefresh">기록 새로고침</button></div><details><summary>기록 범위와 측정 기준</summary><p id="learningNotice" class="lead">기존 기록은 그대로 유지됩니다.</p></details><div class="btn-row"><button class="btn primary" id="learningFresh">새 첫 수 연습</button><button class="btn" id="learningVerify">미출제 첫 수 검증</button><button class="btn" id="learningReview">내 대국 복기</button></div></div>
+  <div class="card" id="learningSaved"></div><details class="card" id="learningRoute"><summary>이전 4단계 경로 · 선택 연습</summary><h3>저장된 경로</h3><p id="learningRouteStatus" class="lead"></p><div class="btn-row" id="learningRouteActions"></div></details><div class="learning-layout"><div class="card learning-position"><div class="row"><strong id="learningTitle">시작할 문제를 선택하세요</strong><span class="tag" id="learningMode">준비</span></div><p id="learningGoal" class="lead">아래 오답노트에서 다시 풀거나 새 문제로 시작하세요.</p><div id="learningBoard" class="board"></div><p id="learningMessage" class="notice" role="status" aria-live="polite"></p><div class="btn-row" id="learningControls"></div><p class="subtle">이 훈련은 한 수씩 판단합니다. 프리무브는 사용하지 않습니다.</p></div>
   <aside class="learning-aside"><details class="card" id="learningDetails" open><summary>개념 · 근거 · 수순</summary><p id="learningConcept" class="lead"></p><details><summary>자료 출처와 기술 근거</summary><p id="learningEvidence" class="lead"></p></details><p id="learningExplanation" class="lead"></p><div id="learningPlayback" class="btn-row"></div></details><details class="card" open><summary>오답노트 · 다시 풀기</summary><div id="learningCards" class="learning-list"></div></details></aside></div>
-  <div class="card"><h3>근거로 보는 능력 지도</h3><p class="lead">같은 버전·같은 측정 범위의 도움 없이 근거만 비교합니다. 최근·이전 각 5개 독립 국면이 없으면 추세를 판단하지 않습니다. 같은 위치 반복은 국면 수를 늘리지 않습니다. 실제 레이팅이 아닙니다.</p><div id="learningSkills" class="learning-skills"></div></div>
+  <details class="card"><summary>전체 수순 훈련의 능력 지도 · 진단 점수와 별도</summary><h3>근거로 보는 능력 지도</h3><p class="lead">같은 버전·같은 측정 범위의 도움 없이 근거만 비교합니다. 최근·이전 각 5개 독립 국면이 없으면 추세를 판단하지 않습니다. 같은 위치 반복은 국면 수를 늘리지 않습니다. 실제 레이팅이 아닙니다.</p><div id="learningSkills" class="learning-skills"></div></details>
   <details class="card"><summary>최근 학습 기록 · 복습 간격</summary><p class="lead">초기 간격 1·3·7일은 조정 가능한 시작값이며 최적 학습 간격을 뜻하지 않습니다. 변경은 다음 완료 기록부터 적용됩니다.</p><label for="learningIntervals">복습 간격 (일, 쉼표 구분)</label><input id="learningIntervals" class="field" value="1,3,7" inputmode="numeric"><button class="btn" id="learningSaveIntervals">간격 저장</button><div id="learningAttempts" class="learning-list"></div></details>`;
   document.querySelector('main').append(view);
   view.querySelector('.learning-aside').prepend($('learningRoute'));
@@ -51,23 +51,24 @@
   async function load(force=false){
     if(busy&&!force){pendingLoad=true;return;}
     if(!token){clear();$('learningRouteStatus').textContent='로그인 후 경로를 시작할 수 있습니다. 아직 수행한 학습은 없습니다.';$('learningRouteActions').replaceChildren(button('로그인 후 경로 준비',()=>ready('training')));$('learningCards').textContent='로그인하면 저장된 위치가 표시됩니다.';$('learningSkills').textContent='학습 기록을 확인하려면 로그인하세요.';$('learningNotice').textContent='로그인하면 나에게 맞는 학습 경로와 기록을 볼 수 있습니다. 시작 버튼에서 로그인한 뒤 이 화면으로 돌아옵니다.';return;}const identity=token, rev=++generation;
-    try{const d=await api('/learning/dashboard');if(identity!==token||rev!==generation)return;dashboard=d;task=d.active;selected=null;playbackIndex=-1;renderDashboard();render();}
+    try{const d=await api('/learning/dashboard');if(identity!==token||rev!==generation)return;dashboard=d;task=d.active;selected=null;playbackIndex=-1;renderDashboard();render();if(task&&$('training').classList.contains('active')){await api('/learning/exposure','POST',{session_id:task.session_id,active_revision:task.revision});}}
     catch(e){if(identity===token&&rev===generation)$('learningMessage').textContent=e.message;}
   }
   async function continuePath(action='continue'){
-    if(!ready())return;
+    if(!ready()||busy)return;
+    let pause={};if(task&&!task.done&&task.path_id!==dashboard?.path?.id){if(!confirm('현재 훈련을 저장하고 선택 경로로 전환할까요? 저장된 훈련에서 다시 이어갈 수 있습니다.'))return;pause={pause_session_id:task.session_id,pause_revision:task.revision};}
     // Navigation starts an asynchronous dashboard read. Invalidate it before applying the path result.
     if(!$('training').classList.contains('active'))tab('training');
     generation++;
     await run(async()=>{
       const identity=token,rev=generation,path=dashboard?.path;
-      const r=await api('/learning/path','POST',{action,path_id:path?.id,revision:path?.revision});
+      const r=await api('/learning/path','POST',{action,path_id:path?.id,revision:path?.revision,...pause});
       if(identity!==token||rev!==generation)return;
       task=r.active;selected=null;playbackIndex=-1;await updateStats();render();
       if(r.path.current===1)$('learningDetails').open=true;
     });
   }
-  async function start(options){if(!ready())return;await run(async()=>{
+  async function start(options){if(!ready()||busy)return;const same=task&&options.card_id===task.card_id&&(options.mode||'practice')===task.mode&&!options.fresh&&!options.similar_to;if(task&&!task.done&&!same){if(!confirm('현재 착수와 도움 사용을 저장해 두고 다른 문제로 전환할까요? 저장된 훈련에서 이어갈 수 있습니다.'))return;options={...options,pause_session_id:task.session_id,pause_revision:task.revision};}await run(async()=>{
     const identity=token, rev=generation;const r=await api('/learning/start','POST',options);
     if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;render();await updateStats();
   });}
@@ -94,6 +95,10 @@
   function renderDashboard(){
     if(!dashboard)return;
     $('learningNotice').textContent=dashboard.notice;
+    $('learningSaved').replaceChildren(el('h3','저장된 훈련 이어하기'));
+    if(task&&!task.done){$('learningSaved').append(el('p','현재 훈련은 착수·도움 사용과 함께 저장됩니다. 새 문제로 전환하려면 보존 확인이 필요합니다.'),button('현재 훈련 이어하기',()=>{$('learningBoard').scrollIntoView({block:'center'});}));}
+    for(const saved of dashboard.paused||[]){$('learningSaved').append(button(`${saved.category||'검증'} · ${saved.card_id.slice(-8)} · ${saved.turns}수 진행 이어하기`,()=>run(async()=>{const identity=token,rev=generation;const r=await api('/learning/resume','POST',{session_id:saved.session_id,active_id:task?.session_id,active_revision:task?.revision});if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;await updateStats();render();})));}
+    if(!task&&!dashboard.paused?.length)$('learningSaved').append(el('p','아직 진행 중인 훈련이 없습니다.'));
     $('learningReason').textContent=`${dashboard.reason} · 복습할 위치 ${dashboard.due_count??dashboard.due.length}개`;
     $('learningIntervals').value=dashboard.intervals.join(',');
     $('learningPath').replaceChildren();
@@ -113,12 +118,12 @@
     $('learningCards').replaceChildren();
     if(!dashboard.cards.length)$('learningCards').append(el('p','아직 저장한 위치가 없습니다. 새 문제 또는 내 대국 복기로 시작하세요.','lead'));
     for(const c of [...dashboard.cards].reverse()){
-      const item=el('div',null,'learning-item');item.append(el('strong',c.title),el('small',`다음 복습 ${c.due.slice(0,10)} · 도움 없이 성공 ${c.successes}회`));
-      const actions=el('div',null,'btn-row');actions.append(button('다시 연습',()=>start({card_id:c.id})),button('검증',()=>start({card_id:c.id,mode:'verify'})),button('같은 원리의 새 문제',()=>start({similar_to:c.id,mode:'verify'})));
-      for(const [mode,label] of [['situation_practice','상황 연습'],['situation_verify','상황 검증']]){const b=button(label,()=>start({card_id:c.id,mode}));b.disabled=!dashboard.engine;b.title=dashboard.engine?'':'엔진을 사용할 수 없어 상황 대국을 시작할 수 없습니다.';actions.append(b);}item.append(actions);$('learningCards').append(item);
+      const item=el('div',null,'learning-item');item.append(el('strong',`${c.category_label||c.category} · ${c.puzzle_id||c.id.slice(-8)} · ${c.title}`),el('p',`${c.full_line?'전체 수순':'첫 수 판단'} · ${c.source} · ${c.created_at?.slice(0,10)||'시작일 미기록'}${c.rating?' · 자료 난도 '+c.rating:''}`),el('p',c.last_outcome?`최근 ${c.last_outcome.at.slice(0,10)} · ${statusNames[c.last_outcome.status]||c.last_outcome.status}`:'최근 결과 미기록'),el('small',`다음 복습 ${c.due.slice(0,10)} · 도움 없이 성공 ${c.successes}회`));
+      item.append(button('다시 연습',()=>start({card_id:c.id})));const extra=el('details');extra.append(el('summary','다른 연습 방식'));const actions=el('div',null,'btn-row');actions.append(button('검증',()=>start({card_id:c.id,mode:'verify'})),button('같은 원리의 새 문제',()=>start({similar_to:c.id,mode:'verify'})));
+      for(const [mode,label] of [['situation_practice','상황 연습'],['situation_verify','상황 검증']]){const b=button(label,()=>start({card_id:c.id,mode}));b.disabled=!dashboard.engine;b.title=dashboard.engine?'':'엔진을 사용할 수 없어 상황 대국을 시작할 수 없습니다.';actions.append(b);}extra.append(actions);item.append(extra);$('learningCards').append(item);
     }
     if(dashboard.cards_next!=null){const more=button(cardsRequest?'이전 카드 불러오는 중…':'이전 훈련 카드 더 보기',loadMoreCards);more.disabled=!!cardsRequest;$('learningCards').append(more);}
-    $('learningSkills').replaceChildren();dashboard.skills.forEach(s=>{const box=el('div',null,'learning-item');box.append(el('strong',s.name),el('p',s.measured===false?'미측정 · 검증된 과제 준비 전':s.insufficient?'현재 버전 전체 수순 · 근거 부족':`현재 버전 전체 수순 · 최근 ${s.recent}% (${s.recent_n}/5 국면) · ${s.trend_available?`이전 ${s.previous}% (${s.previous_n}/5 국면)`:'이전 비교 근거 부족 · 추세 미판정'}`),el('small',`전체 참고 기록 ${s.count}회 · 연습 ${s.practice_count}회 / 검증 ${s.verification_count}회 · 같은 원리 적용 성공 ${s.transfer}회`));const technical=el('details');technical.append(el('summary','자세한 측정 근거'));box.append(technical);for(const g of s.groups||[]){const scope={first_move:'첫 수 판단',full_line:'전체 수순',engine_situation:'상황 대국',unrecorded:'측정 범위 미기록'}[g.assessment_scope]||g.assessment_scope;technical.append(el('p',`${g.reference_only?'별도 참고':'추천 기준'} · ${g.version==='unrecorded'?'버전 미기록':g.version} · ${scope} · ${g.count}회 / 독립 ${g.distinct}국면 · ${g.insufficient?'근거 부족':`최근 ${g.recent}% (${g.recent_n}/5)`} · ${g.trend_available?`동일 범위 이전 ${g.previous}% (${g.previous_n}/5)`:'추세 미판정'}`));}$('learningSkills').append(box);});
+    $('learningSkills').replaceChildren();dashboard.skills.forEach(s=>{const box=el('div',null,'learning-item');box.append(el('strong',s.name),el('p',s.measured===false?'미측정 · 검증된 과제 준비 전':s.insufficient?'현재 버전 전체 수순 · 근거 부족':`현재 버전 전체 수순 · 최근 ${s.recent}% (${s.recent_n}/5 국면) · ${s.trend_available?`이전 ${s.previous}% (${s.previous_n}/5 국면)`:'이전 비교 근거 부족 · 추세 미판정'}`),el('small',`전체 수순 ${s.full_line_count||0}회 · 첫 수 판단 ${s.first_move_count||0}회(별도 참고) · 전체 참고 기록 ${s.count}회 · 연습 ${s.practice_count}회 / 검증 ${s.verification_count}회 · 같은 원리 적용 성공 ${s.transfer}회`));const technical=el('details');technical.append(el('summary','자세한 측정 근거'));box.append(technical);for(const g of s.groups||[]){const scope={first_move:'첫 수 판단',full_line:'전체 수순',engine_situation:'상황 대국',unrecorded:'측정 범위 미기록'}[g.assessment_scope]||g.assessment_scope;technical.append(el('p',`${g.reference_only?'별도 참고':'추천 기준'} · ${g.version==='unrecorded'?'버전 미기록':g.version} · ${scope} · ${g.count}회 / 독립 ${g.distinct}국면 · ${g.insufficient?'근거 부족':`최근 ${g.recent}% (${g.recent_n}/5)`} · ${g.trend_available?`동일 범위 이전 ${g.previous}% (${g.previous_n}/5)`:'추세 미판정'}`));}$('learningSkills').append(box);});
     lockControls();
     $('learningAttempts').replaceChildren();dashboard.attempts.forEach(a=>$('learningAttempts').append(el('p',`${a.at.slice(0,10)} · ${modeNames[a.mode]} · ${outcomeLabel(a)}`,'learning-item')));
   }
@@ -135,7 +140,7 @@
     const t=concept?null:task;
     $('learningTitle').textContent=t?(t.category||'주제 비공개 · 독립 판단'):concept?'개념 확인 · 진단과 같은 원리':'시작할 문제를 선택하세요';
     $('learningMode').textContent=t?`${modeNames[t.mode]}${t.done?' 완료':''}`:concept?'읽기 전용 · 개념':'준비';
-    $('learningGoal').textContent=t?.goal||(concept?'아래 설명과 원본 위치를 확인하고 개념 읽기 확인을 누르세요.':'오답노트에서 다시 풀거나 새 문제로 시작하세요.');
+    $('learningGoal').textContent=t?`${t.goal} ${t.assessment_scope==='first_move'?'이 활동은 첫 수 판단으로 저장되며 아래 전체 수순 능력 지도에 합산하지 않습니다.':'전체 수순 수행으로 저장하며 독립 근거 조건을 충족할 때만 능력 지도에 반영합니다.'}`:(concept?'아래 설명과 원본 위치를 확인하고 개념 읽기 확인을 누르세요.':'오답노트에서 다시 풀거나 새 문제로 시작하세요.');
     if(t?.mode?.startsWith('situation'))$('learningGoal').textContent+=' 100cp는 엔진 평가에서 폰 한 개 정도의 값입니다. 실제 기물 획득이나 대국 승리를 뜻하지 않습니다.';
     $('learningMessage').textContent=t?.message||'';
     $('learningConcept').textContent=concept?.concept||t?.concept||(t&&!t.done&&t.mode.includes('verify')?'검증 중에는 개념을 표시하지 않습니다.':'문제를 선택하면 확인된 개념을 표시합니다.');
@@ -151,7 +156,8 @@
   function renderControls(){
     const area=$('learningControls');area.replaceChildren();if(!task?.growth_task&&dashboard?.path?.current===1&&dashboard.path.steps[1].status==='active'){area.append(el('span','설명을 읽은 뒤 옆 또는 아래 경로의 개념 읽기 확인을 눌러 주세요.','subtle'));return;}if(!task)return;
     if(task.done&&task.growth_task){area.append(el('p',outcomeLabel(task.outcome),'tag'),button('추천 훈련과 진행률 보기',()=>tab('diagnosis')));return;}
-    if(task.done){area.append(el('p',outcomeLabel(task.outcome)||'완료','tag'));if(task.path_id){area.append(button('경로 다음 단계',()=>continuePath()));return;}area.append(button('같은 위치 다시',()=>start({card_id:task.card_id,mode:task.mode})),button('다음 새 문제',()=>start({fresh:true,mode:'verify',category:task.outcome.category})));return;}
+    if(task.done){area.append(el('p',outcomeLabel(task.outcome)||'완료','tag'));if(task.path_id){area.append(button('경로 다음 단계',()=>continuePath()));return;}area.append(button('같은 위치 다시',()=>start({card_id:task.card_id,mode:task.mode})),button('다음 첫 수 검증',()=>start({fresh:true,mode:'verify',category:task.outcome.category})));return;}
+    if(task.growth_task&&task.selection?.source_card&&task.rating){area.append(button('너무 어려워요 · 더 낮은 난도 찾기',()=>{if(!confirm('현재 착수는 보존하고 같은 과제 슬롯을 더 낮은 난도의 미노출 문제로 바꿀까요? 완료 횟수는 늘지 않습니다.'))return;run(async()=>{const identity=token,rev=generation;const r=await api('/learning/cycle/easier','POST',{report_id:task.growth_task.report_id,item_id:task.growth_task.task_id,card_id:task.card_id,session_id:task.session_id,revision:task.revision});if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;await updateStats();render();});}));}
     if(!task.mode.includes('verify')){
       for(const [a,label] of [['hint',`힌트 ${Math.min(task.hint_level+1,3)}단계`],['reveal','답안 수순'],['refutation','상대 응수'],['undo','한 수 무르기']]){if(a==='undo'&&!task.mode.startsWith('situation'))continue;const b=button(label,()=>act(a));b.disabled=busy;area.append(b);}
     }else area.append(el('span','검증 중에는 힌트와 무르기를 사용할 수 없습니다.','subtle'));
@@ -169,6 +175,7 @@
   $('learningReview').onclick=()=>tab('review');
   $('learningRefresh').onclick=load;
   $('learningSaveIntervals').onclick=()=>run(async()=>{const intervals=$('learningIntervals').value.split(',').map(Number);await api('/learning/settings','POST',{intervals});$('learningMessage').textContent='다음 완료부터 사용할 복습 간격을 저장했습니다.';});
+  window.learningRetention=async(report_id,item_id)=>{if(!ready('training')||busy)return;tab('training');generation++;await run(async()=>{const identity=token,rev=generation;const r=await api('/learning/retention/start','POST',{report_id,item_id});if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;await updateStats();render();},'7일 기억 확인을 위한 미노출 전체 수순 검증을 준비합니다…');};
   window.learningCycle=async(report_id,item_id)=>{if(!ready('training')||busy)return;tab('training');generation++;await run(async()=>{const identity=token,rev=generation;const result=await api('/learning/cycle/start','POST',{report_id,item_id});if(identity!==token||rev!==generation)return;task=result;selected=null;playbackIndex=-1;await updateStats();render();},'추천 훈련을 준비하고 있어요…');};
   window.learningFromDiagnosis=async(report_id,item_id)=>{
     if(!ready('training')||busy)return;

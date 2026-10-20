@@ -1,0 +1,29 @@
+{
+  "code_commit": "55a4597b956b37c6493656e85e8b4cb293ae4d51",
+  "base_commit": "4da24ba3d55460891521a47c4bde150a28019981",
+  "recorded_at_utc": "2026-10-20T13:43:02.785943+00:00",
+  "pr": "https://github.com/hee908862-tech/chess-master-academy/pull/11",
+  "pytest": {
+    "passed": 359,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 552.67
+  },
+  "postgres": {
+    "passed": 14,
+    "seconds": 50.4
+  },
+  "syntax": {
+    "python_ast_files": 79,
+    "node_check_files": 19,
+    "diff_check": "PASS"
+  },
+  "image": "sha256:703475556f87e37cb080d2b68ff0cdd24d5c107323ad5ac5ba8b866e75e24c12",
+  "production_mutations": false,
+  "remaining": [
+    "Independent review before merge/deploy",
+    "Production browser QA on separate account",
+    "Physical mobile/Safari and assistive technology testing"
+  ],
+  "previous_failure": "358 passed/1 failed; transient previous cycle panel on new standard completion fixed; full suite rerun passed"
+}

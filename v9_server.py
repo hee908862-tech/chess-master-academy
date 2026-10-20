@@ -53,6 +53,10 @@ class ModeBody(BaseModel):
 class CourseStartBody(BaseModel):
  theme:str
  level:str
+ replace_token:str|None=None
+class NextBody(BaseModel):
+ session_id:str|None=None
+
 class MoveBody(BaseModel):
  move:str
  session_id:str|None=None
@@ -83,10 +87,17 @@ def attach_v9(app,ns):
   return {'session_id':task.get('session_id'),'type':task['type'],'theme':task.get('theme'),'level':task.get('level'),
           'index':task['index'],'total':len(task['ids']),'correct_count':task['correct_count'],
           'attempted':task['attempted'],**public(p,task['offset'])}
- def start_for(code,theme,level,typ):
+ def course_token(task):
+  import hashlib,json
+  return hashlib.sha256(json.dumps(task,sort_keys=True).encode()).hexdigest()
+ def start_for(code,theme,level,typ,replace_token=None):
   if level not in LEVELS:raise HTTPException(400,'난이도가 올바르지 않습니다.')
   if theme!='random' and theme not in THEMES:raise HTTPException(400,'해당 과목이 없습니다.')
   state=get_state(code)
+  previous=state.get('v9_'+typ)
+  if typ=='course' and previous and not previous.get('done'):
+   if replace_token!=course_token(previous):raise HTTPException(409,'저장된 과정이 있습니다. 이어하기 또는 진행 보존 후 새 과정 시작을 선택하세요.')
+   state.setdefault('v9_course_paused',[]).append(previous)
   if theme=='random':
    # Balance major puzzle themes: pure material-capture puzzles must not dominate.
    groups=['mateIn1','mateIn2','mateIn3','mateIn4','fork','pin','skewer',
@@ -125,22 +136,40 @@ def attach_v9(app,ns):
   return start_for(account(authorization),body.theme,body.level,'puzzle')
  @app.post('/api/v9/course/start')
  def start_course(body:CourseStartBody,authorization:str|None=Header(default=None)):
-  return start_for(account(authorization),body.theme,body.level,'course')
+  return start_for(account(authorization),body.theme,body.level,'course',body.replace_token)
  @app.get('/api/v9/session/{kind}')
  def session(kind:str,authorization:str|None=Header(default=None)):
   if kind not in ('course','puzzle'):raise HTTPException(400,'잘못된 종류')
   state=get_state(account(authorization));task=state.get('v9_'+kind)
   return {'active':bool(task),'done':task.get('done',False) if task else False,
           'session_id':task.get('session_id') if task else None,
+          'theme':task.get('theme') if task else None,'level':task.get('level') if task else None,
+          'index':task.get('index',0) if task else 0,'total':len(task.get('ids',[])) if task else 0,
+          'replace_token':course_token(task) if task else None,
+          'paused':[{'session_id':t['session_id'],'theme':t['theme'],'level':t['level'],'index':t['index'],'total':len(t['ids'])} for t in state.get('v9_course_paused',[]) ] if kind=='course' else [],
           'result':task.get('last_result') if task and (task.get('done') or task.get('awaiting_next')) else None,
           **(task_payload(task) if task and not task['done'] and not task.get('awaiting_next') else {})}
+ @app.post('/api/v9/course/resume/{session_id}')
+ def resume_course(session_id:str,body:CourseStartBody,authorization:str|None=Header(default=None)):
+  code=account(authorization);state=get_state(code);active=state.get('v9_course')
+  if active and active.get('session_id')==session_id:return {'restored':True}
+  if active and body.replace_token!=course_token(active):raise HTTPException(409,'과정이 변경되었습니다. 저장 상태를 다시 확인하세요.')
+  paused=state.get('v9_course_paused',[]);chosen=next((t for t in paused if t['session_id']==session_id),None)
+  if not chosen:raise HTTPException(404,'보존된 과정이 없습니다.')
+  state['v9_course_paused']=[t for t in paused if t['session_id']!=session_id]
+  if active and not active.get('done'):state['v9_course_paused'].append(active)
+  # A resumed course keeps moves/help but rejects requests sent before it was paused.
+  chosen['session_id']=secrets.token_hex(16)
+  state['v9_course']=chosen;save_state(code,state);return {'restored':True}
  @app.get('/api/v9/{kind}/hint')
- def hint(kind:str,authorization:str|None=Header(default=None)):
+ def hint(kind:str,session_id:str|None=None,expected_fen:str|None=None,authorization:str|None=Header(default=None)):
   if kind not in ('course','puzzle'):raise HTTPException(400,'잘못된 종류')
   code=account(authorization);state=get_state(code);task=get_session(state,kind)
-  if task.get('done'):raise HTTPException(409,'이미 끝난 문제입니다.')
+  if task.get('done') or task.get('awaiting_next'):raise HTTPException(409,'이미 끝난 문제입니다.')
+  if session_id is not None and session_id!=task.get('session_id'):raise HTTPException(409,'문제 세션이 변경되었습니다. 저장 상태를 확인하세요.')
   p=LIB[task['ids'][task['index']]];b=chess.Board(p['fen'])
   for u in p['moves'][:task['offset']]:b.push_uci(u)
+  if expected_fen is not None and expected_fen!=b.fen():raise HTTPException(409,'문제 위치가 변경되었습니다. 저장 상태를 확인하세요.')
   u=p['moves'][task['offset']];m=chess.Move.from_uci(u)
   if m not in b.legal_moves:raise HTTPException(500,'문제 데이터의 수순이 잘못되었습니다.')
   label=b.san(m)
@@ -197,9 +226,10 @@ def attach_v9(app,ns):
   save_state(code,state)
   return result
  @app.post('/api/v9/{kind}/next')
- def next_task(kind:str,authorization:str|None=Header(default=None)):
+ def next_task(kind:str,body:NextBody|None=None,authorization:str|None=Header(default=None)):
   if kind not in ('course','puzzle'):raise HTTPException(400,'잘못된 종류')
   code=account(authorization);s=get_state(code);t=get_session(s,kind)
+  if body and body.session_id is not None and body.session_id!=t.get('session_id'):raise HTTPException(409,'문제 세션이 변경되었습니다. 저장 상태를 확인하세요.')
   if t.get('done'):return {'done':True,'correct_count':t['correct_count'],'total':len(t['ids'])}
   if not t.get('awaiting_next'):raise HTTPException(409,'현재 문제의 정답 수순을 먼저 완료하세요.')
   t['awaiting_next']=False;save_state(code,s)

@@ -110,9 +110,9 @@ def test_balanced_scores_and_higher_followup_preserve_cycle(setup):
     assert r['insights']['balanced'] and not r['insights']['priorities']
     extra=post(c,'start',{'mode':'targeted','competency':'mate'})
     assert all(row['band']==[1800,2400] or tuple(row['band'])==(1800,2400) for row in saved(db)['active']['items'])
-    finish_diagnosis(c,extra,db)
+    extra_report=finish_diagnosis(c,extra,db)
     status=c.get('/api/journey').json()
-    assert status['latest']['id']==r['id'] and status['cycle']['completed']==0
+    assert status['latest']['id']==extra_report['id'] and status['cycle_report']['id']==r['id'] and status['cycle']['completed']==0
 
 
 def test_insufficient_balanced_pool_preserves_saved_state(setup,monkeypatch):

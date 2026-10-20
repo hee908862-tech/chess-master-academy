@@ -69,7 +69,7 @@ function renderWinrates(){if(!token||!$('gameModeStats'))return;
  }).catch(e=>{$('gameModeStats').textContent=e.message});
 }
 function showGame(board,msg){game=board;selectedGame=null;drawGame();notice('gameStatus',msg|| (board.is_over?'대국이 종료됐습니다.':board.turn===playerColor?'당신의 차례입니다.':'AI가 생각하고 있습니다.'),board.is_over?'ok':'');$('turnIndicator').textContent=board.is_over?('대국 종료 · '+board.result):(board.turn===playerColor?'당신의 차례 ('+(playerColor==='white'?'백':'흑')+')':'AI 차례')}
-function drawGame(){$('gameMatchup').textContent=game?(playerColor==='black'?'흑 ♚ vs AI ♔':'백 ♔ vs AI ♚'):'플레이 색상 선택 후 새 대국을 시작하세요.';if(!game){drawBoard('gameBoard',fromFen(chessStart),{flip:playerColor==='black'});return}drawBoard('gameBoard',game.squares,{flip:playerColor==='black',selected:selectedGame,targets:selectedGame?game.legal.filter(m=>m.from===selectedGame):[],last:game.last_move?[game.last_move.slice(0,2),game.last_move.slice(2,4)]:[],onClick:onGameSquare})}
+function drawGame(){window.cmaGameActions?.();$('gameMatchup').textContent=game?(playerColor==='black'?'흑 ♚ vs AI ♔':'백 ♔ vs AI ♚'):'플레이 색상 선택 후 새 대국을 시작하세요.';if(!game){drawBoard('gameBoard',fromFen(chessStart),{flip:playerColor==='black'});return}drawBoard('gameBoard',game.squares,{flip:playerColor==='black',selected:selectedGame,targets:selectedGame?game.legal.filter(m=>m.from===selectedGame):[],last:game.last_move?[game.last_move.slice(0,2),game.last_move.slice(2,4)]:[],onClick:onGameSquare})}
 const chessStart='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 async function resumeGame(){const identity=token;if(gameBusy)return;window.cmaBoardTools?.cancel('gameBoard');try{const r=await api('/game');if(token!==identity)return;if(r.player_color){playerColor=r.player_color;$('playerColor').value=playerColor;}if(r.active){playerColor=r.player_color||'white';$('playerColor').value=playerColor;showGame({...r.board,session_id:r.session_id},'진행 중인 대국을 불러왔습니다.');setGameClock(r.clock);}else if(r.timeout){game=r.board?{...r.board,is_over:true,result:r.result}:null;setGameClock(r.clock);if(game)showGame({...game,is_over:true,result:r.result},'시간 초과로 대국이 종료됐습니다. · '+(r.result==='win'?'승리':'패배'));else notice('gameStatus','시간 초과로 대국이 종료됐습니다.','ok');$('turnIndicator').textContent='대국 종료 · 시간패';await refreshSummaryOnly();renderWinrates();}else {game=null;drawGame();$('turnIndicator').textContent='새 대국을 시작하세요.';notice('gameStatus','색상과 시간을 선택하고 새 대국을 시작하세요.')}}catch(e){if(token===identity)notice('gameStatus',e.message,'err')}}
 // Smooth piece translation: the static board updates immediately while a moving overlay bridges old and new cells.
@@ -135,10 +135,10 @@ async function onGameSquare(s){
  if(selectedGame===s){selectedGame=null;drawGame();return;}
  const chosen=selectedGame;
  if(chosen&&game.legal.some(m=>m.from===chosen&&m.to===s)){
-  const from=chosen,prior=game,request=++gameRequest,accountToken=token,viewVersion=window.cmaBoardTools.version();gameBusy=true;
+  const from=chosen,prior=game,request=++gameRequest,accountToken=token,viewVersion=window.cmaBoardTools.version();gameBusy=true;window.cmaGameActions?.();
   const promotion=await choosePromotion(from,s,prior.squares[from],prior.legal);
-  if(promotion===null||prior!==game||accountToken!==token||viewVersion!==window.cmaBoardTools.version()){gameBusy=false;return;}
-  if(playerClockExpired()){gameBusy=false;window.cmaBoardTools.cancel('gameBoard');await resumeGame();return;}
+  if(promotion===null||prior!==game||accountToken!==token||viewVersion!==window.cmaBoardTools.version()){gameBusy=false;window.cmaGameActions?.();return;}
+  if(playerClockExpired()){gameBusy=false;window.cmaGameActions?.();window.cmaBoardTools.cancel('gameBoard');await resumeGame();return;}
   selectedGame=null;
   const capture=Boolean(prior.squares[s]) || ((prior.squares[from]||'').toLowerCase()==='p'&&from[0]!==s[0]);
   // Optimistic board state: the learner sees their piece moving before the server calculates its reply.
@@ -167,7 +167,7 @@ async function onGameSquare(s){
    if(r.ai_move){const aFrom=r.ai_move.slice(0,2),aTo=r.ai_move.slice(2,4);animateBoardTransition('gameBoard',aFrom,aTo,updateFinal);playMoveSound('move');}else updateFinal();
    await refreshSummaryOnly();if(r.finished)renderWinrates();
   }catch(err){window.cmaBoardTools.cancel('gameBoard');game=prior;drawGame();notice('gameStatus',err.message,'err')}
-  finally{gameBusy=false}
+  finally{gameBusy=false;window.cmaGameActions?.();}
   const queued=window.cmaBoardTools.take('gameBoard',request,game?.legal,accountToken===token&&request===gameRequest&&game?.session_id===prior.session_id&&game?.turn===playerColor&&!game?.is_over&&!playerClockExpired());
   if(queued){selectedGame=queued.from;await onGameSquare(queued.to);}
   return;
@@ -179,17 +179,17 @@ let summaryRequest=0;
 async function refreshSummaryOnly(){if(!token)return;const request=++summaryRequest,accountToken=token;try{const data=await api('/me');if(request!==summaryRequest||token!==accountToken)return;user=data;renderSummary();}catch(e){}}
 $('newGame').onclick=async()=>{
  if(!ready()||gameBusy)return;
- window.cmaBoardTools.cancel('gameBoard');cancelPromotion();const request=++gameRequest,accountToken=token;gameBusy=true;ensureAudio();
+ window.cmaBoardTools.cancel('gameBoard');cancelPromotion();const request=++gameRequest,accountToken=token;gameBusy=true;window.cmaGameActions?.();ensureAudio();
  try{const requestedColor=$('playerColor').value;const r=await api('/game/new','POST',{color:requestedColor,difficulty:Number($('aiLevel')?.value||5),time_mode:$('timeMode')?.value||'unlimited'});
  if(request!==gameRequest||accountToken!==token)return;
  playerColor=r.player_color||requestedColor;showGame({...r.board,session_id:r.session_id},r.message);setGameClock(r.clock);
- }catch(e){notice('gameStatus',e.message,'err')}finally{if(request===gameRequest)gameBusy=false}
+ }catch(e){notice('gameStatus',e.message,'err')}finally{if(request===gameRequest)gameBusy=false;window.cmaGameActions?.();}
 };
 $('resign').onclick=async()=>{
  if(!ready()||!game||game.is_over||gameBusy)return;if(!confirm('현재 대국을 기권하시겠습니까?'))return;
- window.cmaBoardTools.cancel('gameBoard');gameBusy=true;
+ window.cmaBoardTools.cancel('gameBoard');gameBusy=true;window.cmaGameActions?.();
  try{await api('/game/resign','POST');game=null;setGameClock(null);drawGame();$('turnIndicator').textContent='대국 종료 · 기권';notice('gameStatus','기권으로 대국이 종료됐습니다.');await refreshSummaryOnly();renderWinrates()}
- catch(e){notice('gameStatus',e.message,'err')}finally{gameBusy=false}
+ catch(e){notice('gameStatus',e.message,'err')}finally{gameBusy=false;window.cmaGameActions?.();}
 };
 function currentPuzzle(){return puzzleItems[puzzleIdx]}
 async function loadPuzzles(){try{puzzleItems=await api('/puzzles');$('puzzleSelect').innerHTML='';puzzleItems.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${i+1}. ${p.theme} · ${p.difficulty}`;$('puzzleSelect').appendChild(o)});showPuzzle()}catch(e){notice('puzzleStatus',e.message,'err')}}

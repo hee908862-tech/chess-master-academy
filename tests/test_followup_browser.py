@@ -60,7 +60,10 @@ def test_guest_return_and_board_layout(site,width,height):
         page=browser.new_page(viewport={'width':width,'height':height})
         errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
         page.goto(site[0]);page.wait_for_timeout(700)
-        page.locator('[data-tab="puzzle"]:visible').first.click()
+        if width<=850:
+            page.locator('.mobile-nav').get_by_role('button',name='더보기',exact=True).click()
+            page.locator('#moreNavigationDialog').get_by_role('button',name='퍼즐',exact=True).click()
+        else:page.locator('[data-tab="puzzle"]:visible').first.click()
         expect(page.locator('#puzzle')).to_have_class('view active')
         page.locator('#v9PuzzleStart').click()
         expect(page.locator('#accountStatus')).to_contain_text('로그인이 필요')
@@ -68,13 +71,13 @@ def test_guest_return_and_board_layout(site,width,height):
         page.locator('#codeField').fill('BROWSER-QA');page.locator('#pinField').fill('test-pin-9384')
         # First-login introduction is now intentional. Close it before exercising
         # the original guest-return and board-layout contract.
-        with page.expect_response('**/api/onboarding') as notice:
+        with page.expect_response('**/api/starting-level') as notice:
             page.locator('#signin').click()
         intro=notice.value.json()
-        if intro['status'] not in ('completed','skipped') and not intro['defer_auto']:
-            expect(page.locator('#onboardingDialog')).to_be_visible()
-            page.locator('#onboardingSkip').click()
-            expect(page.locator('#onboardingDialog')).not_to_be_visible()
+        if not intro['choice'] and not intro['defer_auto']:
+            expect(page.locator('#startingLevelDialog')).to_be_visible()
+            page.locator('#startingLevelClose').click()
+            expect(page.locator('#startingLevelDialog')).not_to_be_visible()
         expect(page.locator('#puzzle')).to_have_class('view active')
         assert page.locator('#v9PuzzleBoard .sq').count()==0
         page.evaluate("tab('training')")

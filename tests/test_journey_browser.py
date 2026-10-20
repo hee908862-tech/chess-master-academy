@@ -125,7 +125,7 @@ def test_real_journey_complete_skipped_then_training(site,width,height,label):
         browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
         page=browser.new_page(viewport={'width':width,'height':height})
         page.add_init_script(f"localStorage.setItem('chess_token',{json.dumps(account['token'])});")
-        page.goto(site[0]);page.locator('#journeyHomeOpen').click();page.locator('#journeyStart').click()
+        page.goto(site[0]);page.evaluate("api('/starting-level','POST',{choice:'experienced',revision:0})");page.locator('#journeyHomeOpen').click();page.locator('#journeyStart').click()
         expect(page.locator('#journeyBoard .sq')).to_have_count(64,timeout=30000)
         board=page.locator('#journeyBoard').bounding_box()
         nav=page.locator('.mobile-nav')

@@ -29,7 +29,7 @@ def test_old_active_card_keeps_completed_category(setup):
 
 def test_older_card_next_problem_uses_completed_category(page,site):
     open_page(page,site)
-    page.evaluate("api('/learning/start','POST',{fresh:true})")
+    page.evaluate("async()=>{const s=(await api('/learning/dashboard')).active;return api('/learning/start','POST',{fresh:true,...(s&&!s.done?{pause_session_id:s.session_id,pause_revision:s.revision}:{})});}")
     data=page.evaluate("api('/learning/dashboard')")
     card=next(c for c in data['cards'] if c['id']==data['active']['card_id'])
     newer=[dict(card,id=f'newer-{i}',title=f'Newer {i}') for i in range(62)]
@@ -48,7 +48,7 @@ def test_older_card_next_problem_uses_completed_category(page,site):
     move=LIB[card['id'].removeprefix('puzzle-')]['moves'][1]
     square(page,'learningBoard',move[:2]).click();square(page,'learningBoard',move[2:4]).click()
     if len(move)==5:page.locator('#cmaPromotionModal').get_by_role('button',name={'q':'퀸','r':'룩','b':'비숍','n':'나이트'}[move[4]]).click()
-    next_button=page.get_by_role('button',name='다음 새 문제',exact=True)
+    next_button=page.get_by_role('button',name='다음 첫 수 검증',exact=True)
     expect(next_button).to_be_enabled()
     with page.expect_request('**/api/learning/start') as request:next_button.click()
     assert request.value.post_data_json=={'fresh':True,'mode':'verify','category':card['category']}
@@ -84,7 +84,7 @@ FUNCTION
 
 def test_more_button_double_click_and_late_page_after_refresh(page,site):
     open_page(page,site)
-    page.evaluate("api('/learning/start','POST',{fresh:true})")
+    page.evaluate("async()=>{const s=(await api('/learning/dashboard')).active;return api('/learning/start','POST',{fresh:true,...(s&&!s.done?{pause_session_id:s.session_id,pause_revision:s.revision}:{})});}")
     data=page.evaluate("api('/learning/dashboard')")
     template=data['cards'][0]
     cards=[dict(template,id=f'card-{i}',title=f'Card {i}') for i in range(50)]
