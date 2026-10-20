@@ -1,0 +1,10 @@
+{
+  "image": "sha256:70c7c670cec2415ff368be8d31f84da67d4f98808b943e50d4a9b8d68e21af2f",
+  "cpus": 1,
+  "memory": 536870912,
+  "actual_balanced_total": 24,
+  "completed_first_and_skipped_rest": true,
+  "observation_get_storage_unchanged": true,
+  "training_source_link": true,
+  "legacy_state_unchanged": true
+}

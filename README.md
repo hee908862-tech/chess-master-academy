@@ -1,3 +1,5 @@
+> 수행 근거·학습 연결·홈과 계층 탐색 첫 단계: [구현 범위](README_EVIDENCE_LEARNING_FLOW.md) · [최종 검증](docs/qa-evidence-flow/README.md).
+
 > 기능 탐색·오프닝 55강·선택형 퍼즐 도전: [개편 및 검증 안내](README_NAVIGATION_CHALLENGES.md).
 
 > PR #8 이후 진단·복기·오프닝 수정: [대화형 학습 및 검증 안내](README_INTERACTIVE_STUDY.md).
