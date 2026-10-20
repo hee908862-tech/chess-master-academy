@@ -89,7 +89,7 @@ def inventory():
 
 
 class Start(BaseModel):
-    mode: Literal['basic','targeted','recheck','balanced','quick'] = 'basic'
+    mode: Literal['basic','targeted','recheck','balanced','quick','entry','gentle'] = 'basic'
     competency: str | None = None
 
 
@@ -184,6 +184,8 @@ def attach_journey(app, ns):
             for field in ('competency','label','rating','total_plies'):q.pop(field,None)
             q['goal']='이 국면에서 유효하다고 생각하는 수를 선택하고 상대 응수 뒤에도 계속 두세요.'
         out['measurement_scope']=s.get('measurement_scope','legacy_cued_execution')
+        if s.get('mode')=='gentle':q['goal']='백 차례예요. 말을 누른 뒤 이동할 칸을 누르세요.' if b.turn else '흑 차례예요. 말을 누른 뒤 이동할 칸을 누르세요.'
+        out['starting_conditions']=copy.deepcopy(s.get('starting_conditions'))
         out['question']=q
         if s['phase']=='feedback': out['feedback']=copy.deepcopy(item['feedback'])
         return out
@@ -218,13 +220,18 @@ def attach_journey(app, ns):
             raise HTTPException(409,'이후 진단은 균형 또는 간이 진단으로 시작해 주세요.')
         pools=inventory() # Always outside a user transaction, including cold fallback.
         snapshot=external_snapshot(code)
+        starting=snapshot[0].get('learner_start',{})
+        if body.mode=='entry':
+            if starting.get('choice')=='rules' and starting.get('rules_step',0)<4:
+                raise HTTPException(409,'말 이동·잡기·체크·왕 안전 안내를 먼저 마치거나 시작 수준을 바꿔 주세요.')
+            body=Start(mode='balanced' if starting.get('choice')=='experienced' else 'gentle')
         ids,positions,uncertain,learning=external(code,snapshot)
         state=read(code)
         before=copy.deepcopy(state)
         cycle=cycle_status(latest_cycle_report(state['results']),learning)
-        if body.mode in ('basic',*MODES) and cycle and not cycle['unlocked']:
+        if body.mode in ('basic','gentle',*MODES) and cycle and not cycle['unlocked']:
             raise HTTPException(409,cycle['message'])
-        if body.mode not in ('basic',*MODES) and (body.competency not in COMPETENCIES or not COMPETENCIES[body.competency]['measured']):
+        if body.mode not in ('basic','gentle',*MODES) and (body.competency not in COMPETENCIES or not COMPETENCIES[body.competency]['measured']):
             raise HTTPException(409,'검증된 자료가 없는 영역은 측정하지 않습니다.')
         if body.mode=='recheck':
             gate=recheck_gate(learning,body.competency,now())
@@ -238,9 +245,9 @@ def attach_journey(app, ns):
             previous=latest_cycle_report(state['results'])
             area=next((a for a in previous['areas'] if a['id']==body.competency),{})
             focused_band=(1800,2400) if area.get('full_success',0)>=2 else (900,1500) if area.get('first_success',0) else (600,1200)
-        for c in (list(pools) if body.mode in ('basic',*MODES) else [body.competency]):
-            for lo,hi in ([(600,1200),(1200,1800)]*(2 if body.mode=='balanced' else 1) if body.mode in ('basic',*MODES) else [focused_band or additional_plan(state['results'],c,measurement_scope)['band']]*3):
-                choices=[p for p in pools[c] if p['puzzle_id'] not in ids and lo<=p['rating']<hi and not positions.intersection(footprint(p))]
+        for c in (list(pools) if body.mode in ('basic','gentle',*MODES) else [body.competency]):
+            for lo,hi in ([(600,1000)] if body.mode=='gentle' else [(600,1200),(1200,1800)]*(2 if body.mode=='balanced' else 1) if body.mode in ('basic','gentle',*MODES) else [focused_band or additional_plan(state['results'],c,measurement_scope)['band']]*3):
+                choices=[p for p in pools[c] if p['puzzle_id'] not in ids and lo<=p['rating']<hi and (body.mode!='gentle' or len(p['line'])<=5) and not positions.intersection(footprint(p))]
                 if not choices: continue
                 p=copy.deepcopy(secrets.choice(choices)); p.update(id=secrets.token_hex(8),competency=c,band=[lo,hi],independent=not uncertain,app_new=True,prior_exposure_unknown=True,legacy_exposure_unknown=uncertain,helped=False,first_attempt=True)
                 ids.add(p['puzzle_id']); positions.add(key(p['fen'])); items.append(p)
@@ -251,7 +258,8 @@ def attach_journey(app, ns):
             raise HTTPException(409,'균형 있게 확인할 새 문제가 부족합니다. 저장된 결과와 훈련은 유지되며 분야별 추가 확인을 이용할 수 있어요.')
         if not items: raise HTTPException(409,'조건에 맞는 미노출 국면이 없습니다. 기존 훈련을 이용하세요.')
         if body.mode in MODES:secrets.SystemRandom().shuffle(items)
-        s={'session_id':secrets.token_hex(16),'revision':0,'version':'journey-v4' if body.mode in MODES else JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':measurement_scope,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
+        s={'session_id':secrets.token_hex(16),'revision':0,'version':'journey-v4' if body.mode in MODES else 'journey-entry-v1' if body.mode=='gentle' else JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':measurement_scope,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
+        s['starting_conditions']={'self_choice':starting.get('choice','unselected'),'mode':body.mode,'assessment_scope':'full_line','bands':sorted({tuple(i['band']) for i in items}),'helped':False}
         if body.mode in MODES:s['corpus_sha256']=hashlib.sha256(DATA_FILE.read_bytes()).hexdigest()
         begin_item(s); state['active']=s
         for item in items:
@@ -281,6 +289,7 @@ def attach_journey(app, ns):
 
     def finish(s, previous):
         result=build_report(s,previous,now())
+        result['starting_conditions']=copy.deepcopy(s.get('starting_conditions'))
         if s.get('corpus_sha256'):result['corpus_sha256']=s['corpus_sha256']
         return decorate(result)
 

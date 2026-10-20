@@ -128,7 +128,7 @@ def test_delayed_save_ack_after_move_updates_revision_without_replacing_board(pa
     assert len(pending)==1
     click_move(page,'studyOpeningBoard','e7e5');expect(page.locator('#studyMessage')).to_contain_text('등록된')
     current=page.locator('#studyOpeningBoard').inner_html()
-    save.click();assert len(posts)==1  # One in-flight save; board remains usable.
+    expect(save).to_be_disabled();assert len(posts)==1  # One in-flight save; board remains usable.
     with page.expect_response(lambda r:r.url.endswith('/study/openings/save')) as first:
         pending[0].continue_()
     assert first.value.status==200 and first.value.json()['revision']==1

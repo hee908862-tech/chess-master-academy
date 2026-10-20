@@ -35,6 +35,12 @@ def setup(tmp_path):
 
 
 def post(client, path, data):
+    # Older scenario tests explicitly authorize preserving/switching activities.
+    # Rejection without these fields is covered in test_learning_continuity.
+    if path in ('start','path'):
+        current=client.get('/api/learning/dashboard').json().get('active')
+        if current and not current['done']:
+            data={'pause_session_id':current['session_id'],'pause_revision':current['revision'],**data}
     r=client.post('/api/learning/'+path,json=data)
     assert r.status_code==200,r.text
     return r.json()
@@ -104,7 +110,7 @@ def test_no_engine_and_no_repeat(setup):
     old['games']=[{'moves':['f2f3','e7e5','g2g4','d8h4'],'color':'white'}]
     assert c.post('/api/learning/import/0').status_code==503
     s=post(c,'start',{'fresh':True})
-    assert c.post('/api/learning/start',json={'card_id':s['card_id'],'mode':'situation_verify'}).status_code==503
+    assert c.post('/api/learning/start',json={'card_id':s['card_id'],'mode':'situation_verify','pause_session_id':s['session_id'],'pause_revision':s['revision']}).status_code==503
     assert c.get('/api/learning/dashboard').json()['active']['session_id']==s['session_id']
     next_s=post(c,'start',{'fresh':True})
     assert next_s['card_id']!=s['card_id']
@@ -339,7 +345,7 @@ def test_next_route_prioritizes_failed_verification(setup,monkeypatch):
     with sqlite3.connect(path) as conn:
         state=json.loads(conn.execute('SELECT state FROM learning_progress').fetchone()[0])
         state['cards'][second['card_id']]['full_line']=True
-        state['attempts'].append({'card_id':second['card_id'],'mode':'verify','success':False,
+        state['attempts'].append({'card_id':second['card_id'],'mode':'verify','success':False,'category':'mate','helped':False,'fresh':False,'status':'failed','at':learning.now().isoformat(),
                                   'competency_version':learning.COMPETENCY_VERSION,'assessment_scope':'full_line'})
         conn.execute('UPDATE learning_progress SET state=?',(json.dumps(state),))
     route=path_request(c)

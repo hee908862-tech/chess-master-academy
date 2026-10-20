@@ -69,6 +69,7 @@ def test_empty_result_error_loading_and_double_size(page,site):
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),view
     assert page.locator('#profile input').first.bounding_box()['width']>=200
     expect(page.locator('#gamePerformance')).to_contain_text('분석 기록을 잠시')
+    page.get_by_text('대국 지표 · 내 수 품질과 앱 내부 레이팅',exact=True).click()
     expect(page.get_by_role('button',name='다시 확인',exact=True)).to_be_enabled()
     page.screenshot(path=str(Path(__file__).resolve().parents[1]/'docs/qa-growth/empty-error-200percent.png'),full_page=True)
 
@@ -119,6 +120,7 @@ def test_internal_rating_chart_separates_clock_modes_and_shows_exclusions(page,s
     expect(page.locator('.app-rating circle')).to_have_count(2)
     expect(page.locator('.app-rating')).to_contain_text('잠정')
     page.screenshot(path=str(Path(__file__).resolve().parents[1]/'docs/qa-growth/internal-rating-unlimited.png'),full_page=True)
+    page.get_by_text('대국 지표 · 내 수 품질과 앱 내부 레이팅',exact=True).click()
     page.get_by_label('내부 레이팅 시계 형식').select_option('bullet')
     expect(page.locator('.app-rating circle')).to_have_count(1)
     expect(page.locator('#gamePerformance')).to_contain_text('실제 AI 설정 기록 불완전')

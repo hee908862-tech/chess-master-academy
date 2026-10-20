@@ -20,7 +20,7 @@ def recheck_gate(learning, competency, current):
     base={'competency':competency,'eligible':False,'ready_at':None,
           'practice_effect':'연결된 같은 과제를 다시 보면 그 마지막 노출부터 7일을 셉니다.',
           'while_waiting':'다른 영역의 새 문제나 자유 대국을 할 수 있습니다. 같은 과제 복습도 가능하지만 날짜가 늦춰집니다.'}
-    if not linked:return {**base,'reason':'진단 원본 연습 뒤 연결된 새 적용 문제를 먼저 시도해 주세요.'}
+    if not linked:return {**base,'reason':'추천 5개 연습과 별개입니다. 진단에 연결된 미노출 전체 수순을 검증 모드에서 도움 없이 시도하면 7일 대기가 시작됩니다.'}
     sources={a['selection']['source_card'] for a in linked}
     related={cid for cid,card in cards.items() if cid in sources or (card.get('selection') or {}).get('source_card') in sources}
     def stamp(value):

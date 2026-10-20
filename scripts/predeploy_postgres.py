@@ -303,3 +303,24 @@ def test_opening_bookmark_and_readonly_branch_pg():
     server.initdb()
     assert c.get('/api/study/openings').json()['saved']==saved
     after=server.get_state(code);after.pop('opening_study');assert after==before
+
+
+def test_starting_choice_cas_and_learning_switch_preserve_pg_records():
+    c,code=account()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results=list(pool.map(lambda choice:c.post('/api/starting-level',json={'choice':choice,'revision':0}),['beginner','experienced']))
+    assert sorted(r.status_code for r in results)==[200,409]
+    assert c.get('/api/starting-level').json()['revision']==1
+    a=post(c,'learning/start',{'fresh':True})
+    a=post(c,'learning/action',{'session_id':a['session_id'],'revision':a['revision'],'action':'hint'})
+    body={'fresh':True,'pause_session_id':a['session_id'],'pause_revision':a['revision']}
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results=list(pool.map(lambda _:c.post('/api/learning/start',json=body),range(2)))
+    assert sorted(r.status_code for r in results)==[200,409]
+    b=c.get('/api/learning/dashboard').json()['active']
+    restored=post(c,'learning/resume',{'session_id':a['session_id'],'active_id':b['session_id'],'active_revision':b['revision']})
+    assert restored['fen']==a['fen'] and restored['hint_level']==a['hint_level']
+    assert restored['revision']>a['revision']
+    assert c.post('/api/learning/action',json={'session_id':a['session_id'],'revision':a['revision'],'action':'hint'}).status_code==409
+    assert len(state('learning_progress',code)['paused'])==1
+    assert c.get('/api/starting-level').json()['revision']==1

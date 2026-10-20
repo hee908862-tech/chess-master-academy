@@ -146,7 +146,7 @@ def test_black_puzzle_hint_reply_and_next_color(page,site):
     b=chess.Board();b.push_uci('e2e4')
     task=dict(id='black',session_id='s1',fen=b.fen(),legal=[m.uci() for m in b.legal_moves],side='black',rating=1400,themes=['전술'],ply=1,index=0,total=1,opponent_last_move='e2e4')
     page.route('**/api/v9/puzzle/start',lambda r:r.fulfill(json=task))
-    page.route('**/api/v9/puzzle/hint',lambda r:r.fulfill(json={'from':'e7','to':'e5','move_label':'e5','explanation':'힌트'}))
+    page.route('**/api/v9/puzzle/hint*',lambda r:r.fulfill(json={'from':'e7','to':'e5','move_label':'e5','explanation':'힌트'}))
     open_page(page,site);page.evaluate("tab('puzzle')");page.locator('#v9PuzzleStart').click()
     name='v9PuzzleBoard'
     expect(page.locator('#'+name+' .sq').first).to_have_attribute('aria-label','h1 백 룩')

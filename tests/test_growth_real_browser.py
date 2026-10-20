@@ -29,7 +29,7 @@ def test_solved_partial_diagnosis_five_tasks_resume_and_concept_path(page,site,t
         assert response.value.status==200
         return response.value.json()
     def api(path,body=None):return page.evaluate('([path,body])=>body===null?api(path):api(path,"POST",body)',[path,body])
-    page.goto(site[0]);page.locator('#journeyHomeOpen').click();page.locator('#journeyStart').click()
+    page.goto(site[0]);api('/starting-level',{'choice':'experienced','revision':0});page.locator('#journeyHomeOpen').click();page.locator('#journeyStart').click()
     expect(page.locator('#journeyBoard .sq')).to_have_count(64)
     rows=stored('journey_progress')['active']['items'];assert len(rows)==24
     partial=False

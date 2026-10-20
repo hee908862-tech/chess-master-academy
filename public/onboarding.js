@@ -113,7 +113,7 @@
   auth = async function(...args) {
     const hadPin = !!byId('pinField')?.value;
     await originalAuth(...args);
-    if (hadPin && token && !byId('pinField')?.value) await check(true);
+    if (hadPin && token && !byId('pinField')?.value) await check(!window.cmaStartingLevel);
   };
   byId('signout')?.addEventListener('click', () => { generation++; banner.hidden = true; close(); state = null; });
   window.cmaOnboarding = {open, check};

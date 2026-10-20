@@ -31,6 +31,15 @@ CONCEPTS = {
  'defense': '체크 중이면 킹 이동·공격 기물 포획·가로막기 중 합법적인 대응을 확인하세요.'}
 
 
+def training_band(report, competency):
+    rows=[i for i in report.get('items',[]) if i.get('competency')==competency and i.get('submitted') and i.get('rating') and i.get('outcome') in ('completed','partial_execution','verified_error','verified_non_mate')]
+    if len(rows)<2:return (600,1200)
+    solved=[i['rating'] for i in rows if i.get('complete')]
+    anchor=sorted(solved)[len(solved)//2] if solved else min(i['rating'] for i in rows)-200
+    anchor=max(800,min(1600,anchor))
+    return (max(600,anchor-300),min(1800,anchor+150))
+
+
 def now():
     return datetime.now(timezone.utc)
 
@@ -59,6 +68,7 @@ def frames(board, moves):
 def explain(board, move):
     """Only facts proven by the rules; no inferred tactical narrative."""
     facts = []
+    if board.is_check():facts.append('현재 체크: '+', '.join(chess.square_name(s) for s in board.checkers())+'의 공격에 대응합니다')
     if board.is_capture(move): facts.append('기물을 포획합니다' + (' (앙파상)' if board.is_en_passant(move) else ''))
     if board.is_castling(move): facts.append('캐슬링으로 킹과 룩을 이동합니다')
     if move.promotion: facts.append(chess.piece_name(move.promotion) + '으로 승격합니다')
@@ -76,6 +86,14 @@ class Start(BaseModel):
     fresh: bool = False
     category: str | None = None
     similar_to: str | None = None
+    pause_session_id: str | None = None
+    pause_revision: int | None = None
+
+
+class Resume(BaseModel):
+    session_id: str
+    active_id: str | None = None
+    active_revision: int | None = None
 
 
 class Action(BaseModel):
@@ -86,6 +104,8 @@ class Action(BaseModel):
 
 
 class PathAction(BaseModel):
+    pause_session_id: str | None = None
+    pause_revision: int | None = None
     action: Literal['continue', 'acknowledge', 'new'] = 'continue'
     path_id: str | None = None
     revision: int | None = None
@@ -94,6 +114,12 @@ class PathAction(BaseModel):
 class DiagnosisSource(BaseModel):
     report_id: str
     item_id: str
+
+
+class ReplaceTask(DiagnosisSource):
+    card_id: str
+    session_id: str
+    revision: int
 
 
 class Settings(BaseModel):
@@ -137,6 +163,13 @@ def attach_learning(app, ns):
     execute, db, auth = ns['execute'], ns['db'], ns['auth']
     with db() as conn:
         execute(conn, 'CREATE TABLE IF NOT EXISTS learning_progress (code TEXT PRIMARY KEY, state TEXT NOT NULL)')
+
+    def learning_active(code):
+        with db() as conn:
+            row=execute(conn,'SELECT state FROM learning_progress WHERE code=?',(code,)).fetchone()
+        active=json.loads(row['state']).get('active') if row else None
+        return bool(active and not active.get('done'))
+    ns['learning_active']=learning_active
 
     def normalize_cards(state):
         for card in state['cards'].values():
@@ -189,7 +222,7 @@ def attach_learning(app, ns):
                 'fen': item['fen'], 'line': list(item['line']), 'category': item['competency'],
                 'tags': sorted(set(item.get('tags', []))), 'tag_evidence': '진단에 보존된 원본 태그',
                 'source': '완료 진단의 검증된 위치·수순', 'context': '이 위치는 진단에서 이미 노출되었습니다. 반복 성공은 새 독립 진단이 아닙니다.',
-                'diagnosis': provenance, 'full_line': True, 'prior_exposed': True,
+                'rating':item.get('rating'), 'created_at':now().isoformat(), 'diagnosis': provenance, 'full_line': True, 'prior_exposed': True,
                 'due': now().isoformat(), 'successes': 0}
         state['cards'][key] = card
         return card
@@ -240,6 +273,8 @@ def attach_learning(app, ns):
             cycle=state.setdefault('cycles',{}).setdefault(report['id'],{'cards':{},'completed':{}})
             active=state.get('active')
             reference={'report_id':report['id'],'task_id':task['id']}
+            paused=next((v for v in state.get('paused',{}).values() if v.get('growth_task')==reference),None)
+            if paused:raise HTTPException(409,'보존된 추천 훈련이 있습니다. 훈련실의 저장된 훈련 이어하기를 선택하세요.')
             if active and not active['done']:
                 if active.get('growth_task')==reference:return payload(state)
                 raise HTTPException(409,'진행 중인 훈련을 먼저 마쳐 주세요. 착수는 저장되어 있습니다.')
@@ -248,11 +283,53 @@ def attach_learning(app, ns):
             if not card:
                 item=next(i for i in report['items'] if i['id']==task['item_id'])
                 source=diagnosis_card(state,report,item)
-                card=source if task['kind']=='original' else new_puzzle(state,task['competency'],context(code),source['id'])
+                card=source if task['kind']=='original' else new_puzzle(state,task['competency'],context(code),source['id'],rating_band=training_band(report,task['competency']))
                 card['full_line']=True
                 cycle['cards'][task['id']]=card['id']
             begin(state,card,'practice',fresh=task['kind']=='application')
             state['active']['growth_task']=reference
+            return payload(state)
+
+    @app.post('/api/learning/retention/start')
+    def retention_start(body: DiagnosisSource, authorization: str | None = Header(default=None)):
+        code=auth(authorization)
+        with store(code) as state:
+            if state.get('active') and not state['active']['done']:
+                raise HTTPException(409,'진행 중인 훈련을 보존했습니다. 먼저 이어서 마쳐 주세요.')
+            report=ns.get('journey_report',lambda *_:None)(code,body.report_id)
+            item=next((i for i in (report or {}).get('items',[]) if i['id']==body.item_id),None)
+            if not item:raise HTTPException(404,'진단 근거를 찾을 수 없습니다.')
+            source=diagnosis_card(state,report,item)
+            card=new_puzzle(state,item['competency'],context(code),source['id'],rating_band=training_band(report,item['competency']))
+            card['full_line']=True
+            return begin(state,card,'verify',fresh=True)
+
+    @app.post('/api/learning/cycle/easier')
+    def easier(body: ReplaceTask, authorization: str | None = Header(default=None)):
+        code=auth(authorization)
+        with store(code) as state:
+            report=ns.get('journey_cycle_report',lambda *_:None)(code)
+            cycle=state.get('cycles',{}).get(body.report_id)
+            task=next((t for t in (report or {}).get('training_plan',[]) if t['id']==body.item_id),None)
+            active=state.get('active')
+            if not report or report['id']!=body.report_id or not cycle or not task or task['kind']!='application':
+                raise HTTPException(409,'현재 추천의 새 적용 과제만 교체할 수 있습니다.')
+            if body.item_id in cycle.get('completed',{}):raise HTTPException(409,'완료 과제는 교체할 수 없습니다.')
+            if not active or active['done'] or active['id']!=body.session_id or active['revision']!=body.revision or active['card_id']!=body.card_id or active.get('growth_task')!={'report_id':body.report_id,'task_id':body.item_id}:
+                raise HTTPException(409,'훈련 위치가 변경되었습니다. 저장 상태를 다시 확인하세요.')
+            old=state['cards'][body.card_id]
+            source_id=old.get('selection',{}).get('source_card')
+            rating=old.get('rating')
+            if not source_id or not rating:raise HTTPException(409,'난도 근거가 없어 안전하게 교체하지 않았습니다.')
+            try:card=new_puzzle(state,task['competency'],context(code),source_id,rating_band=(max(400,rating-500),rating-1))
+            except HTTPException as exc:
+                if exc.status_code!=409:raise
+                raise HTTPException(409,'같은 학습 목표의 더 낮은 난도 미노출 문제가 없어 교체하지 않았습니다. 현재 착수와 도움 기록은 그대로입니다.') from exc
+            card['full_line']=True
+            cycle.setdefault('replacements',[]).append({'task_id':body.item_id,'at':now().isoformat(),'session':copy.deepcopy(active)})
+            cycle['cards'][body.item_id]=card['id']
+            begin(state,card,'practice',fresh=True)
+            state['active']['growth_task']={'report_id':body.report_id,'task_id':body.item_id}
             return payload(state)
 
     @contextmanager
@@ -290,7 +367,7 @@ def attach_learning(app, ns):
         return tags
 
     def public_card(card):
-        return {**{k: card[k] for k in ('id', 'title', 'category', 'source', 'due', 'successes', 'tags', 'tag_evidence')}, 'diagnosis': card.get('diagnosis')}
+        return {**{k: card[k] for k in ('id', 'title', 'category', 'source', 'due', 'successes', 'tags', 'tag_evidence')}, 'diagnosis': card.get('diagnosis'), 'rating':card.get('rating'), 'puzzle_id':card.get('puzzle_id'), 'created_at':card.get('created_at'), 'last_outcome':card.get('last_outcome'), 'full_line':bool(card.get('full_line')), 'category_label':COMPETENCIES.get(card['category'],{}).get('label',card['category'])}
 
     def payload(state):
         s = state['active']
@@ -300,7 +377,7 @@ def attach_learning(app, ns):
         verify = 'verify' in s['mode']
         return {'session_id': s['id'], 'revision': s['revision'], 'card_id': card['id'],
                 'fen': s['fen'], 'legal': [] if s['done'] else [m.uci() for m in b.legal_moves],
-                'side': s['side'], 'mode': s['mode'], 'done': s['done'], 'turns': s['turns'],
+                'assessment_scope':'full_line' if card.get('full_line') else 'first_move', 'rating':None if verify and not s['done'] else card.get('rating'), 'side': s['side'], 'mode': s['mode'], 'done': s['done'], 'turns': s['turns'],
                 'category': None if verify and not s['done'] else CATEGORIES[card['category']],
                 'concept': None if verify and not s['done'] else CONCEPTS[card['category']],
                 'source': card['source'], 'goal': s['goal'], 'message': s.get('message', ''),
@@ -343,6 +420,7 @@ def attach_learning(app, ns):
             elif delayed and not any(a['at'][:10] == day for a in prior): independent_kind = 'delayed'
         attempt['independent_kind'] = independent_kind
         state['attempts'].append(attempt)
+        card['last_outcome']={'at':attempt['at'],'status':attempt['status'],'success':success,'scope':attempt['assessment_scope']}
         credited_today = card.get('credited_date') == day
         eligible = not card.get('prior_exposed') and bool(success) and status in ('unaided_first_success', 'later_unaided_success') and not credited_today
         if eligible:
@@ -385,7 +463,7 @@ def attach_learning(app, ns):
         return {'competency_version': COMPETENCY_VERSION, 'due': due[:50], 'due_count':len(due), 'cards': [public_card(c) for c in list(state['cards'].values())[::-1][offset:offset+50]][::-1],
                 'cards_total':len(state['cards']), 'cards_next':offset+50 if offset+50<len(state['cards']) else None,
                 'attempts': state['attempts'][-50:][::-1], 'skills': skills, 'intervals': state['intervals'],
-                'active': payload(state), 'path': public_path(state), 'recommended': weakest['id'] if weakest else None,
+                'active': payload(state), 'paused':[payload({**state,'active':v}) for v in state.get('paused',{}).values()], 'path': public_path(state), 'recommended': weakest['id'] if weakest else None,
                 'reason': '최근 풀이에서 끝까지 잇지 못한 수순을 먼저 연습해요.' if weakest else '아직 뚜렷한 차이가 없어요. 새로운 문제로 여러 분야를 고르게 연습해 보세요.',
                 'engine': bool(ns['STOCKFISH_PATH'] and Path(ns['STOCKFISH_PATH']).is_file()),
                 'notice': '공통 역량 이름을 사용하지만 이 지도는 훈련 기록입니다. 성공률과 추천은 같은 버전·같은 측정 범위 안에서만 계산합니다. 구형·미기록 버전과 첫 수 판단은 별도 참고이며 전체 수순 근거로 합산하지 않습니다. 각 비교 구간에 독립 국면 5개가 없으면 추세를 표시하지 않습니다. 미출제는 기록된 문제 ID와 전체 원본 수순의 국면 기준이며, 식별 기록이 없는 과거·외부 노출까지 보장하지 않습니다. 기존 진단·대국 통계는 기록 메뉴에 보존됩니다. 실제 레이팅이 아닙니다.'}
@@ -437,7 +515,7 @@ def attach_learning(app, ns):
                 state['cards'].setdefault(c['id'], c)
         return {'count': len(candidates), 'message': f'{len(candidates)}개 실수 위치를 오답노트에 준비했습니다.' if candidates else '분석 기준에 맞는 내 실수를 찾지 못했습니다. 임의로 만들지 않습니다.'}
 
-    def new_puzzle(state, wanted, legacy, similar_to=None, beginner=False):
+    def new_puzzle(state, wanted, legacy, similar_to=None, beginner=False, rating_band=None):
         source = state['cards'].get(similar_to) if similar_to else None
         if similar_to and not source: raise HTTPException(404, '비교할 학습 항목이 없습니다.')
         tags = set(source.get('tags', [])) if source else set()
@@ -468,6 +546,7 @@ def attach_learning(app, ns):
         choices = []
         for p in LIB.values():
             if p['id'] in seen: continue
+            if rating_band and not rating_band[0] <= p['rating'] <= rating_band[1]:continue
             if beginner and not (600 <= p['rating'] <= 1200 and 'mateIn1' in p['themes']): continue
             b = chess.Board(p['fen']); b.push_uci(p['moves'][0])
             if seen_positions.intersection(line_positions(b.fen(),p['moves'][1:])): continue
@@ -487,9 +566,9 @@ def attach_learning(app, ns):
         c = {'id': key, 'title': '새 실전 적용 문제', 'fen': b.fen(), 'line': p['moves'][1:],
              'context': '상대 직전 수: ' + explain(chess.Board(p['fen']), chess.Move.from_uci(p['moves'][0])),
              'tags': sorted(set(p['themes']) & set(THEMES)), 'tag_evidence': 'Lichess 원본 학습 태그',
-             'selection': {'source_card': similar_to, 'overlap': overlap, 'method': 'shared_learning_tags' if source else 'independent',
+             'selection': {'source_card': similar_to, 'overlap': overlap, 'method': 'shared_learning_tags' if source else 'independent', 'rating_band':list(rating_band) if rating_band else None,
                            'evidence': source['tag_evidence'] + ' ↔ Lichess 원본 학습 태그' if source else '독립 새 문제 · 유사 문제 집계 제외'},
-             'full_line': bool(source and source.get('full_line')),
+             'full_line': bool(source and source.get('full_line')), 'rating':p['rating'], 'puzzle_id':p['id'], 'created_at':now().isoformat(),
              'prior': p['moves'][0], 'category': cat, 'source': 'Lichess CC0 검증 수순 · 대안은 메이트 또는 엔진 확인',
              'due': now().isoformat(), 'successes': 0}
         state['cards'][key] = c; state['seen'].append(p['id'])
@@ -499,12 +578,34 @@ def attach_learning(app, ns):
     def start(body: Start, authorization: str | None = Header(default=None)):
         code = auth(authorization)
         with store(code) as state:
+            active=state.get('active')
+            if active and not active['done']:
+                if body.card_id==active['card_id'] and body.mode==active['mode'] and not body.fresh and not body.similar_to:return payload(state)
+                if body.pause_session_id!=active['id'] or body.pause_revision!=active['revision']:
+                    raise HTTPException(409,'진행 중인 훈련을 보존했습니다. 이어서 완료하거나 저장 후 전환을 확인하세요.')
+                state.setdefault('paused',{})[active['id']]={**copy.deepcopy(active),'revision':active['revision']+1}
+                state['active']=None
             legacy = context(code)
             if body.fresh or body.similar_to or not body.card_id: card = new_puzzle(state, body.category, legacy, body.similar_to)
             else:
                 card = state['cards'].get(body.card_id)
                 if not card: raise HTTPException(404, '학습 항목을 찾을 수 없습니다.')
             return begin(state, card, body.mode, body.fresh or not body.card_id or bool(body.similar_to))
+
+    @app.post('/api/learning/resume')
+    def resume(body: Resume, authorization: str | None = Header(default=None)):
+        with store(auth(authorization)) as state:
+            active=state.get('active')
+            if active and active['id']==body.session_id:return payload(state)
+            if (active and (active['id']!=body.active_id or active['revision']!=body.active_revision)) or (not active and body.active_id):
+                raise HTTPException(409,'현재 훈련이 변경되었습니다. 저장 상태를 확인하세요.')
+            saved=state.get('paused',{}).get(body.session_id)
+            if not saved:raise HTTPException(404,'보존된 훈련을 찾을 수 없습니다.')
+            if active and not active['done']:state.setdefault('paused',{})[active['id']]={**copy.deepcopy(active),'revision':active['revision']+1}
+            state['active']=state['paused'].pop(body.session_id)
+            state['active']['revision']+=1
+            sync_path(state)
+            return payload(state)
 
     def begin(state, card, mode, fresh=False):
         b = chess.Board(card['fen'])
@@ -600,6 +701,12 @@ def attach_learning(app, ns):
         with store(code) as state:
             legacy = context(code)
             path = state.get('path')
+            active=state.get('active')
+            if active and not active['done'] and (not path or active.get('path_id')!=path['id']):
+                if body.pause_session_id!=active['id'] or body.pause_revision!=active['revision']:
+                    raise HTTPException(409,'진행 중인 훈련을 보존했습니다. 저장 후 전환을 확인하세요.')
+                state.setdefault('paused',{})[active['id']]={**copy.deepcopy(active),'revision':active['revision']+1}
+                state['active']=None
             if body.path_id is not None and (not path or body.path_id != path['id'] or body.revision != path['revision']):
                 raise HTTPException(409, '학습 경로가 변경되었습니다. 새로고침 후 이어가세요.')
             if body.action == 'new':
@@ -633,7 +740,10 @@ def attach_learning(app, ns):
                     path['revision'] += 1
                     return {'path': public_path(state), 'active': None}
                 if step.get('session'):
-                    state['active'] = copy.deepcopy(step['session'])
+                    stored=state.get('paused',{}).pop(step['session']['id'],None)
+                    state['active'] = copy.deepcopy(stored or step['session'])
+                    state['active']['revision']+=1
+                    sync_path(state)
                     return {'path': public_path(state), 'active': payload(state)}
                 if index == 2:
                     try: card = new_puzzle(state, None, legacy, path['source_card'])
@@ -722,6 +832,8 @@ def attach_learning(app, ns):
                     s['moves'].append(m.uci()); s['line_index'] += 1; s['turns'] += 1
                     if not b.is_game_over() and s['line_index'] < len(card['line']):
                         reply_move = card['line'][s['line_index']]
+                        response=chess.Move.from_uci(reply_move)
+                        s['explanation']+=' · 원본 상대 응수 '+b.san(response)+': '+explain(b,response)
                         b.push_uci(reply_move); s['moves'].append(reply_move); s['line_index'] += 1
                         s['opponent_last_move'] = reply_move
                     s['fen'] = b.fen()
