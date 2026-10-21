@@ -21,7 +21,7 @@
   <div class="card" id="learningSaved"></div><details class="card" id="learningRoute"><summary>이전 4단계 경로 · 선택 연습</summary><h3>저장된 경로</h3><p id="learningRouteStatus" class="lead"></p><div class="btn-row" id="learningRouteActions"></div></details><div class="learning-layout"><div class="card learning-position"><div class="row"><strong id="learningTitle">시작할 문제를 선택하세요</strong><span class="tag" id="learningMode">준비</span></div><p id="learningLink" class="notice"></p><p id="learningGoal" class="lead">아래 오답노트에서 다시 풀거나 새 문제로 시작하세요.</p><div id="learningBoard" class="board"></div><p id="learningMessage" class="notice" role="status" aria-live="polite"></p><div class="btn-row" id="learningControls"></div><p class="subtle">이 훈련은 한 수씩 판단합니다. 프리무브는 사용하지 않습니다.</p></div>
   <aside class="learning-aside"><details class="card" id="learningDetails" open><summary>개념 · 근거 · 수순</summary><p id="learningConcept" class="lead"></p><details><summary>자료 출처와 기술 근거</summary><p id="learningEvidence" class="lead"></p></details><p id="learningExplanation" class="lead"></p><div id="learningPlayback" class="btn-row"></div></details><details class="card" open><summary>오답노트 · 다시 풀기</summary><div id="learningCards" class="learning-list"></div></details></aside></div>
   <details class="card"><summary>전체 수순 훈련의 능력 지도 · 진단 점수와 별도</summary><h3>근거로 보는 능력 지도</h3><p class="lead">같은 버전·같은 측정 범위의 도움 없이 근거만 비교합니다. 최근·이전 각 5개 독립 국면이 없으면 추세를 판단하지 않습니다. 같은 위치 반복은 국면 수를 늘리지 않습니다. 실제 레이팅이 아닙니다.</p><div id="learningSkills" class="learning-skills"></div></details>
-  <details class="card"><summary>최근 학습 기록 · 복습 간격</summary><p class="lead">초기 간격 1·3·7일은 조정 가능한 시작값이며 최적 학습 간격을 뜻하지 않습니다. 변경은 다음 완료 기록부터 적용됩니다.</p><label for="learningIntervals">복습 간격 (일, 쉼표 구분)</label><input id="learningIntervals" class="field" value="1,3,7" inputmode="numeric"><button class="btn" id="learningSaveIntervals">간격 저장</button><div id="learningAttempts" class="learning-list"></div></details>`;
+  <details class="card"><summary>최근 학습 기록 · 복습 간격</summary><p class="lead">초기 간격 1·3·7일은 조정 가능한 시작값이며 최적 학습 간격을 뜻하지 않습니다. 변경은 다음 완료 기록부터 적용됩니다.</p><label for="learningIntervals">복습 간격 (일, 쉼표 구분)</label><input id="learningIntervals" class="field" value="1,3,7" inputmode="numeric"><button class="btn" id="learningSaveIntervals">간격 저장</button><p id="learningSettingsStatus" role="status"></p><div id="learningAttempts" class="learning-list"></div></details>`;
   document.querySelector('main').append(view);
   view.querySelector('.learning-aside').prepend($('learningRoute'));
   const compactNav=el('nav',null,'learning-mobile-nav');compactNav.setAttribute('aria-label','훈련실 이동');
@@ -35,16 +35,16 @@
     if(!ready()||busy)return;
     await run(async()=>{const r=await api('/learning/import/'+$('reviewGameSelect').value,'POST');tab('training');await load();$('learningMessage').textContent=r.message;});
   }));
-  function clear(){needsRefresh=false;generation++;task=null;dashboard=null;selected=null;busy=false;render();$('learningCards').replaceChildren();$('learningAttempts').replaceChildren();$('learningSkills').replaceChildren();$('learningReason').textContent='로그인하면 나의 학습 경로를 안내합니다.';}
-  async function run(fn,waiting='저장 중입니다. 상황 대국은 엔진 응수를 기다려 주세요.'){
-    if(busy)return;
+  function clear(){$('learningSettingsStatus').textContent='';needsRefresh=false;generation++;task=null;dashboard=null;selected=null;busy=false;render();$('learningCards').replaceChildren();$('learningAttempts').replaceChildren();$('learningSkills').replaceChildren();$('learningReason').textContent='로그인하면 나의 학습 경로를 안내합니다.';}
+  async function run(fn,waiting='저장 중입니다. 상황 대국은 엔진 응수를 기다려 주세요.',affectsBoard=true){
+    if(busy)return;const notice=$(affectsBoard?'learningMessage':'learningSettingsStatus');
     busy=true;renderControls();lockControls();
-    $('learningMessage').textContent=waiting; // Board actions publish their own pending state; settings do not replace a board verdict.
+    notice.textContent=waiting; // Board actions publish their own pending state; settings do not replace a board verdict.
     const identity=token,rev=generation;let succeeded=false;
     try{await fn();succeeded=true;}
-    catch(e){if(identity===token&&rev===generation){$('learningMessage').textContent=e.message;window.cmaFeedback.set('learningBoard',{title:'처리 결과 미확인 · 저장 상태 확인',save:'저장 여부 미확인',kind:'error',detail:e.message+' 기록 새로고침으로 확인하세요.',facts:null});}}
+    catch(e){if(identity===token&&rev===generation){notice.textContent=e.message;if(affectsBoard)window.cmaFeedback.set('learningBoard',{title:'처리 결과 미확인 · 저장 상태 확인',save:'저장 여부 미확인',kind:'error',detail:e.message+' 기록 새로고침으로 확인하세요.',facts:null});}}
     finally{if(identity===token){busy=false;renderDashboard();renderControls();lockControls();
-      if(succeeded&&(!$('learningMessage').textContent||$('learningMessage').textContent===waiting))$('learningMessage').textContent=task?.message||'준비되었습니다. 보드에서 기물을 선택하세요.';
+      if(succeeded&&(!notice.textContent||notice.textContent===waiting))notice.textContent=task?.message||'준비되었습니다. 보드에서 기물을 선택하세요.';
       if(pendingLoad){pendingLoad=false;load();}
     }}
   }
@@ -182,7 +182,7 @@
   $('learningVerify').onclick=()=>start({fresh:true,mode:'verify',category:dashboard?.recommended});
   $('learningReview').onclick=()=>tab('review');
   $('learningRefresh').onclick=load;
-  $('learningSaveIntervals').onclick=()=>run(async()=>{const intervals=$('learningIntervals').value.split(',').map(Number);await api('/learning/settings','POST',{intervals});$('learningMessage').textContent='다음 완료부터 사용할 복습 간격을 저장했습니다.';});
+  $('learningSaveIntervals').onclick=()=>run(async()=>{const intervals=$('learningIntervals').value.split(',').map(Number);await api('/learning/settings','POST',{intervals});$('learningSettingsStatus').textContent='다음 완료부터 사용할 복습 간격을 저장했습니다.';},'복습 간격을 저장하고 있습니다.',false);
   window.learningRetention=async(report_id,item_id)=>{if(!ready('training')||busy)return;tab('training');generation++;await run(async()=>{const identity=token,rev=generation;const r=await api('/learning/retention/start','POST',{report_id,item_id});if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;await updateStats();render();},'7일 기억 확인을 위한 미노출 전체 수순 검증을 준비합니다…');};
   window.learningCycle=async(report_id,item_id)=>{if(!ready('training')||busy)return;tab('training');generation++;await run(async()=>{const identity=token,rev=generation;const result=await api('/learning/cycle/start','POST',{report_id,item_id});if(identity!==token||rev!==generation)return;task=result;selected=null;playbackIndex=-1;await updateStats();render();},'추천 훈련을 준비하고 있어요…');};
   window.learningFromDiagnosis=async(report_id,item_id)=>{

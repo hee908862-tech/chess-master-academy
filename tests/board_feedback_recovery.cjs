@@ -26,5 +26,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
  feedback.set('learningBoard',{title:'첫 수 판단 완료',kind:'complete'});
  await ctx.runLearning(async()=>{node('learningMessage').textContent='간격 저장 완료'});
  assert.equal(feedback.get('learningBoard').kind,'complete');assert.equal(node('learningMessage').textContent,'간격 저장 완료');
+ await ctx.runLearning(async()=>{throw Error('settings offline')},'settings wait',false);assert.equal(feedback.get('learningBoard').kind,'complete');assert.equal(node('learningSettingsStatus').textContent,'settings offline');
+ await ctx.runLearning(async()=>{node('learningSettingsStatus').textContent='settings saved'},'settings wait',false);assert.equal(feedback.get('learningBoard').kind,'complete');assert.equal(node('learningSettingsStatus').textContent,'settings saved');
  console.log('PASS: study initial failure/retry x2; legacy feedback/game/result/start/restore recovery; learning settings preserve verdict');
 })().catch(e=>{console.error(e);process.exitCode=1});
