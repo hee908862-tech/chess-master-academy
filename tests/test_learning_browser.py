@@ -12,6 +12,7 @@ def test_learning_responsive_real_persistence(page,site,width,height):
     page.on('dialog',lambda d:d.accept())
     open_page(page,site)
     page.evaluate("tab('training')")
+    if page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).is_visible():page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).click()
     page.locator('#learningFresh').click()
     expect(page.locator('#learningMode')).to_have_text('연습')
     expect(page.locator('#learningBoard .sq')).to_have_count(64)
@@ -33,6 +34,7 @@ def test_learning_responsive_real_persistence(page,site,width,height):
         expect(page.locator('.mobile-nav')).to_be_visible()
         expect(page.locator('.learning-mobile-nav')).to_be_hidden()
     page.screenshot(path=f'/tmp/learning-{width}x{height}.png',full_page=True)
+    page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).click()
     page.locator('#learningVerify').click()
     expect(page.locator('#learningTitle')).to_have_text('주제 비공개 · 독립 판단')
     assert page.get_by_role('button',name='힌트 1단계',exact=True).count()==0

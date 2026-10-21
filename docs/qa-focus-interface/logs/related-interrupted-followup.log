@@ -1,0 +1,313 @@
+.........................FFF
+=================================== FAILURES ===================================
+____________ test_responsive_boards_long_copy_and_last_result[360] _____________
+
+site = ('http://127.0.0.1:38499', '1mXBZCTG77dzocSoMv_dtsEmY2pqjrggtswLbY2uYVApF-E-')
+width = 360
+
+    @pytest.mark.parametrize('width',[320,360,390,430,768,900,1024,1280])
+    def test_responsive_boards_long_copy_and_last_result(site,width):
+        with sync_playwright() as p:
+            browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+            page=browser.new_page(viewport={'width':width,'height':900},is_mobile=width<768,has_touch=width<768)
+            errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+            page.add_init_script("localStorage.setItem('chess_token',"+repr(site[1])+");")
+            task=question();task['question']['goal']='상대 응수를 확인하고 이어서 직접 두세요. '+('d7d8n-e8f7-'*12)
+            task['question']['label']='메이트 수순 · 한국어 설명과 긴 날짜 2026-10-19T23:59:59.999999+00:00'
+            page.route('**/api/onboarding',lambda r:r.fulfill(json={'status':'completed','version':1}))
+            page.route('**/api/journey',lambda r:r.fulfill(json={'active':task,'latest':None,'results':[],'competencies':[]}))
+            page.goto(site[0]);page.evaluate("tab('diagnosis')")
+            try:expect(page.locator('#journeyBoard .sq')).to_have_count(64)
+            except AssertionError as error:
+                page.screenshot(path=f'/tmp/cma-responsive-failure-{width}.png',full_page=True)
+                message=page.locator('#journeyMessage').text_content()
+                raise AssertionError(f'{error}; journey status={message}; page errors={errors}') from error
+            expect(page.locator('#journeyBoard [aria-label^="e3 "]')).to_have_attribute('aria-label','e3 흑 룩')
+            for view in ['diagnosis','profile','help']:
+                page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(100)
+                assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),(width,view,page.evaluate('document.documentElement.scrollWidth'))
+            page.evaluate("tab('diagnosis')")
+            directory=Path(__file__).resolve().parents[1]/'docs/qa-responsive';directory.mkdir(exist_ok=True)
+            page.screenshot(path=str(directory/f'diagnosis-{width}.png'),full_page=True)
+            page.locator('#journeyBoard [aria-label^="e3 "]').focus()
+            assert page.locator('#journeyBoard [aria-label^="e3 "]').evaluate("e=>getComputedStyle(e).outlineStyle")!='none'
+            # Final feedback exposes a clear result action, not another-question wording.
+            task.update(index=1,phase='feedback',feedback={'submitted':['e3h3'],'expected':['e3h3'],'correct_plies':1,'total_plies':1})
+            page.locator('#journeyRefresh').click();expect(page.locator('#journeyNext')).to_have_text('결과 보기')
+            page.evaluate("tab('training')")
+            if not page.locator('#learningFresh').is_visible():
+                page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).click()
+            page.locator('#learningFresh').click()
+            expect(page.locator('#learningBoard .sq')).to_have_count(64)
+            expect(page.locator('#learningFresh')).to_be_enabled()
+            page.evaluate("document.getElementById('learningExplanation').textContent='긴 수순 '+'Nxf7+ d8=Q# '.repeat(20);document.getElementById('userBadge').textContent='QA20261019ABCDEFGHIJKLMNOP';")
+            page.locator('#learningDetails').evaluate('e=>e.open=true')
+            expected='긴 수순 '+('Nxf7+ d8=Q# '*20)
+            actual=page.locator('#learningExplanation').text_content()
+            assert actual==expected and len(actual)==len(expected) and 'NaN' not in actual
+>           expect(page.locator('#learningExplanation')).to_be_visible()
+E           AssertionError: Locator expected to be visible
+E           Actual value: hidden 
+E           Call log:
+E             - Expect "to_be_visible" locator("#learningExplanation") with timeout 5000ms
+E             - waiting for locator("#learningExplanation")
+E               14 × locator resolved to <p class="lead" id="learningExplanation">긴 수순 Nxf7+ d8=Q# Nxf7+ d8=Q# Nxf7+ d8=Q# Nxf7+ d8…</p>
+E                  - unexpected value "hidden"
+E           
+E           Aria snapshot:
+E           - main:
+E             - strong: CHESS MASTER ACADEMY
+E             - text: QA20261019ABCDEFGHIJKLMNOP
+E             - button "계정 연결"
+E             - region "나의 훈련실":
+E               - text: 훈련실
+E               - button "사용 방법"
+E               - button "기록 새로고침"
+E               - button "현재 훈련으로"
+E               - navigation "화면 내 바로가기":
+E                 - button "보드와 현재 문제"
+E                 - button "개념·해설과 수순"
+E                 - button "현재 할 수 있는 행동"
+E                 - button "오답노트"
+E               - region "훈련 선택과 기록":
+E                 - group: 이전 4단계 경로 · 선택 연습
+E                 - status
+E                 - group: 기록 범위와 측정 기준
+E                 - button "새 첫 수 연습"
+E                 - button "미출제 첫 수 검증"
+E                 - button "내 대국 복기"
+E                 - heading "저장된 훈련 이어하기" [level=3]
+E                 - paragraph: 현재 훈련은 착수·도움 사용과 함께 저장됩니다. 새 문제로 전환하려면 보존 확인이 필요합니다.
+E                 - button "현재 훈련 이어하기"
+E                 - group:
+E                   - text: 오답노트 · 다시 풀기
+E                   - strong: 방어 수순 · 039F6 · 새 실전 적용 문제
+E                   - paragraph: 첫 수 판단 · Lichess CC0 검증 수순 · 대안은 메이트 또는 엔진 확인 · 2026-10-21 · 자료 난도 1827
+E                   - paragraph: 최근 결과 미기록
+E                   - text: 다음 복습 2026-10-21 · 도움 없이 성공 0회
+E                   - button "다시 연습"
+E                   - group: 다른 연습 방식
+E                 - group: 전체 수순 훈련의 능력 지도 · 진단 점수와 별도
+E                 - group: 최근 학습 기록 · 복습 간격
+E                 - heading "나의 다음 추천 훈련" [level=3]
+E                 - paragraph: 진행 중인 진단을 먼저 이어서 마쳐 주세요.
+E                 - button "진단 이어하기"
+E           - navigation "주요 메뉴":
+E             - button "홈"
+E             - button "배우기"
+E             - button "실력 진단"
+E             - button "대국"
+E             - button "내 정보"
+
+tests/test_responsive_qa.py:48: AssertionError
+____________ test_responsive_boards_long_copy_and_last_result[390] _____________
+
+site = ('http://127.0.0.1:38499', '1mXBZCTG77dzocSoMv_dtsEmY2pqjrggtswLbY2uYVApF-E-')
+width = 390
+
+    @pytest.mark.parametrize('width',[320,360,390,430,768,900,1024,1280])
+    def test_responsive_boards_long_copy_and_last_result(site,width):
+        with sync_playwright() as p:
+            browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+            page=browser.new_page(viewport={'width':width,'height':900},is_mobile=width<768,has_touch=width<768)
+            errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+            page.add_init_script("localStorage.setItem('chess_token',"+repr(site[1])+");")
+            task=question();task['question']['goal']='상대 응수를 확인하고 이어서 직접 두세요. '+('d7d8n-e8f7-'*12)
+            task['question']['label']='메이트 수순 · 한국어 설명과 긴 날짜 2026-10-19T23:59:59.999999+00:00'
+            page.route('**/api/onboarding',lambda r:r.fulfill(json={'status':'completed','version':1}))
+            page.route('**/api/journey',lambda r:r.fulfill(json={'active':task,'latest':None,'results':[],'competencies':[]}))
+            page.goto(site[0]);page.evaluate("tab('diagnosis')")
+            try:expect(page.locator('#journeyBoard .sq')).to_have_count(64)
+            except AssertionError as error:
+                page.screenshot(path=f'/tmp/cma-responsive-failure-{width}.png',full_page=True)
+                message=page.locator('#journeyMessage').text_content()
+                raise AssertionError(f'{error}; journey status={message}; page errors={errors}') from error
+            expect(page.locator('#journeyBoard [aria-label^="e3 "]')).to_have_attribute('aria-label','e3 흑 룩')
+            for view in ['diagnosis','profile','help']:
+                page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(100)
+                assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),(width,view,page.evaluate('document.documentElement.scrollWidth'))
+            page.evaluate("tab('diagnosis')")
+            directory=Path(__file__).resolve().parents[1]/'docs/qa-responsive';directory.mkdir(exist_ok=True)
+            page.screenshot(path=str(directory/f'diagnosis-{width}.png'),full_page=True)
+            page.locator('#journeyBoard [aria-label^="e3 "]').focus()
+            assert page.locator('#journeyBoard [aria-label^="e3 "]').evaluate("e=>getComputedStyle(e).outlineStyle")!='none'
+            # Final feedback exposes a clear result action, not another-question wording.
+            task.update(index=1,phase='feedback',feedback={'submitted':['e3h3'],'expected':['e3h3'],'correct_plies':1,'total_plies':1})
+            page.locator('#journeyRefresh').click();expect(page.locator('#journeyNext')).to_have_text('결과 보기')
+            page.evaluate("tab('training')")
+            if not page.locator('#learningFresh').is_visible():
+                page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).click()
+            page.locator('#learningFresh').click()
+            expect(page.locator('#learningBoard .sq')).to_have_count(64)
+            expect(page.locator('#learningFresh')).to_be_enabled()
+            page.evaluate("document.getElementById('learningExplanation').textContent='긴 수순 '+'Nxf7+ d8=Q# '.repeat(20);document.getElementById('userBadge').textContent='QA20261019ABCDEFGHIJKLMNOP';")
+            page.locator('#learningDetails').evaluate('e=>e.open=true')
+            expected='긴 수순 '+('Nxf7+ d8=Q# '*20)
+            actual=page.locator('#learningExplanation').text_content()
+            assert actual==expected and len(actual)==len(expected) and 'NaN' not in actual
+>           expect(page.locator('#learningExplanation')).to_be_visible()
+E           AssertionError: Locator expected to be visible
+E           Actual value: hidden 
+E           Call log:
+E             - Expect "to_be_visible" locator("#learningExplanation") with timeout 5000ms
+E             - waiting for locator("#learningExplanation")
+E               14 × locator resolved to <p class="lead" id="learningExplanation">긴 수순 Nxf7+ d8=Q# Nxf7+ d8=Q# Nxf7+ d8=Q# Nxf7+ d8…</p>
+E                  - unexpected value "hidden"
+E           
+E           Aria snapshot:
+E           - main:
+E             - strong: CHESS MASTER ACADEMY
+E             - text: QA20261019ABCDEFGHIJKLMNOP
+E             - button "계정 연결"
+E             - region "나의 훈련실":
+E               - text: 훈련실
+E               - button "사용 방법"
+E               - button "기록 새로고침"
+E               - button "현재 훈련으로"
+E               - navigation "화면 내 바로가기":
+E                 - button "보드와 현재 문제"
+E                 - button "개념·해설과 수순"
+E                 - button "현재 할 수 있는 행동"
+E                 - button "오답노트"
+E               - region "훈련 선택과 기록":
+E                 - group: 이전 4단계 경로 · 선택 연습
+E                 - status
+E                 - group: 기록 범위와 측정 기준
+E                 - button "새 첫 수 연습"
+E                 - button "미출제 첫 수 검증"
+E                 - button "내 대국 복기"
+E                 - heading "저장된 훈련 이어하기" [level=3]
+E                 - paragraph: 현재 훈련은 착수·도움 사용과 함께 저장됩니다. 새 문제로 전환하려면 보존 확인이 필요합니다.
+E                 - button "현재 훈련 이어하기"
+E                 - group:
+E                   - text: 오답노트 · 다시 풀기
+E                   - strong: 방어 수순 · 039F6 · 새 실전 적용 문제
+E                   - paragraph: 첫 수 판단 · Lichess CC0 검증 수순 · 대안은 메이트 또는 엔진 확인 · 2026-10-21 · 자료 난도 1827
+E                   - paragraph: 최근 결과 미기록
+E                   - text: 다음 복습 2026-10-21 · 도움 없이 성공 0회
+E                   - button "다시 연습"
+E                   - group: 다른 연습 방식
+E                 - group: 전체 수순 훈련의 능력 지도 · 진단 점수와 별도
+E                 - group: 최근 학습 기록 · 복습 간격
+E                 - heading "나의 다음 추천 훈련" [level=3]
+E                 - paragraph: 진행 중인 진단을 먼저 이어서 마쳐 주세요.
+E                 - button "진단 이어하기"
+E           - navigation "주요 메뉴":
+E             - button "홈"
+E             - button "배우기"
+E             - button "실력 진단"
+E             - button "대국"
+E             - button "내 정보"
+
+tests/test_responsive_qa.py:48: AssertionError
+____________ test_responsive_boards_long_copy_and_last_result[430] _____________
+
+site = ('http://127.0.0.1:38499', '1mXBZCTG77dzocSoMv_dtsEmY2pqjrggtswLbY2uYVApF-E-')
+width = 430
+
+    @pytest.mark.parametrize('width',[320,360,390,430,768,900,1024,1280])
+    def test_responsive_boards_long_copy_and_last_result(site,width):
+        with sync_playwright() as p:
+            browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+            page=browser.new_page(viewport={'width':width,'height':900},is_mobile=width<768,has_touch=width<768)
+            errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+            page.add_init_script("localStorage.setItem('chess_token',"+repr(site[1])+");")
+            task=question();task['question']['goal']='상대 응수를 확인하고 이어서 직접 두세요. '+('d7d8n-e8f7-'*12)
+            task['question']['label']='메이트 수순 · 한국어 설명과 긴 날짜 2026-10-19T23:59:59.999999+00:00'
+            page.route('**/api/onboarding',lambda r:r.fulfill(json={'status':'completed','version':1}))
+            page.route('**/api/journey',lambda r:r.fulfill(json={'active':task,'latest':None,'results':[],'competencies':[]}))
+            page.goto(site[0]);page.evaluate("tab('diagnosis')")
+            try:expect(page.locator('#journeyBoard .sq')).to_have_count(64)
+            except AssertionError as error:
+                page.screenshot(path=f'/tmp/cma-responsive-failure-{width}.png',full_page=True)
+                message=page.locator('#journeyMessage').text_content()
+                raise AssertionError(f'{error}; journey status={message}; page errors={errors}') from error
+            expect(page.locator('#journeyBoard [aria-label^="e3 "]')).to_have_attribute('aria-label','e3 흑 룩')
+            for view in ['diagnosis','profile','help']:
+                page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(100)
+                assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),(width,view,page.evaluate('document.documentElement.scrollWidth'))
+            page.evaluate("tab('diagnosis')")
+            directory=Path(__file__).resolve().parents[1]/'docs/qa-responsive';directory.mkdir(exist_ok=True)
+            page.screenshot(path=str(directory/f'diagnosis-{width}.png'),full_page=True)
+            page.locator('#journeyBoard [aria-label^="e3 "]').focus()
+            assert page.locator('#journeyBoard [aria-label^="e3 "]').evaluate("e=>getComputedStyle(e).outlineStyle")!='none'
+            # Final feedback exposes a clear result action, not another-question wording.
+            task.update(index=1,phase='feedback',feedback={'submitted':['e3h3'],'expected':['e3h3'],'correct_plies':1,'total_plies':1})
+            page.locator('#journeyRefresh').click();expect(page.locator('#journeyNext')).to_have_text('결과 보기')
+            page.evaluate("tab('training')")
+            if not page.locator('#learningFresh').is_visible():
+                page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).click()
+            page.locator('#learningFresh').click()
+            expect(page.locator('#learningBoard .sq')).to_have_count(64)
+            expect(page.locator('#learningFresh')).to_be_enabled()
+            page.evaluate("document.getElementById('learningExplanation').textContent='긴 수순 '+'Nxf7+ d8=Q# '.repeat(20);document.getElementById('userBadge').textContent='QA20261019ABCDEFGHIJKLMNOP';")
+            page.locator('#learningDetails').evaluate('e=>e.open=true')
+            expected='긴 수순 '+('Nxf7+ d8=Q# '*20)
+            actual=page.locator('#learningExplanation').text_content()
+            assert actual==expected and len(actual)==len(expected) and 'NaN' not in actual
+>           expect(page.locator('#learningExplanation')).to_be_visible()
+E           AssertionError: Locator expected to be visible
+E           Actual value: hidden 
+E           Call log:
+E             - Expect "to_be_visible" locator("#learningExplanation") with timeout 5000ms
+E             - waiting for locator("#learningExplanation")
+E               14 × locator resolved to <p class="lead" id="learningExplanation">긴 수순 Nxf7+ d8=Q# Nxf7+ d8=Q# Nxf7+ d8=Q# Nxf7+ d8…</p>
+E                  - unexpected value "hidden"
+E           
+E           Aria snapshot:
+E           - main:
+E             - strong: CHESS MASTER ACADEMY
+E             - text: QA20261019ABCDEFGHIJKLMNOP
+E             - button "계정 연결"
+E             - region "나의 훈련실":
+E               - text: 훈련실
+E               - button "사용 방법"
+E               - button "기록 새로고침"
+E               - button "현재 훈련으로"
+E               - navigation "화면 내 바로가기":
+E                 - button "보드와 현재 문제"
+E                 - button "개념·해설과 수순"
+E                 - button "현재 할 수 있는 행동"
+E                 - button "오답노트"
+E               - region "훈련 선택과 기록":
+E                 - group: 이전 4단계 경로 · 선택 연습
+E                 - status
+E                 - group: 기록 범위와 측정 기준
+E                 - button "새 첫 수 연습"
+E                 - button "미출제 첫 수 검증"
+E                 - button "내 대국 복기"
+E                 - heading "저장된 훈련 이어하기" [level=3]
+E                 - paragraph: 현재 훈련은 착수·도움 사용과 함께 저장됩니다. 새 문제로 전환하려면 보존 확인이 필요합니다.
+E                 - button "현재 훈련 이어하기"
+E                 - group:
+E                   - text: 오답노트 · 다시 풀기
+E                   - strong: 방어 수순 · 039F6 · 새 실전 적용 문제
+E                   - paragraph: 첫 수 판단 · Lichess CC0 검증 수순 · 대안은 메이트 또는 엔진 확인 · 2026-10-21 · 자료 난도 1827
+E                   - paragraph: 최근 결과 미기록
+E                   - text: 다음 복습 2026-10-21 · 도움 없이 성공 0회
+E                   - button "다시 연습"
+E                   - group: 다른 연습 방식
+E                 - group: 전체 수순 훈련의 능력 지도 · 진단 점수와 별도
+E                 - group: 최근 학습 기록 · 복습 간격
+E                 - heading "나의 다음 추천 훈련" [level=3]
+E                 - paragraph: 진행 중인 진단을 먼저 이어서 마쳐 주세요.
+E                 - button "진단 이어하기"
+E           - navigation "주요 메뉴":
+E             - button "홈"
+E             - button "배우기"
+E             - button "실력 진단"
+E             - button "대국"
+E             - button "내 정보"
+
+tests/test_responsive_qa.py:48: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_responsive_qa.py::test_responsive_boards_long_copy_and_last_result[360]
+FAILED tests/test_responsive_qa.py::test_responsive_boards_long_copy_and_last_result[390]
+FAILED tests/test_responsive_qa.py::test_responsive_boards_long_copy_and_last_result[430]
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! KeyboardInterrupt !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+/tmp/chess-venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11021: KeyboardInterrupt
+(to show a full traceback on KeyboardInterrupt use --full-trace)
+3 failed, 25 passed in 123.86s (0:02:03)
+Future exception was never retrieved
+future: <Future finished exception=TargetClosedError('Target page, context or browser has been closed')>
+playwright._impl._errors.TargetClosedError: Target page, context or browser has been closed

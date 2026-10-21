@@ -34,8 +34,18 @@ def test_responsive_boards_long_copy_and_last_result(site,width):
         # Final feedback exposes a clear result action, not another-question wording.
         task.update(index=1,phase='feedback',feedback={'submitted':['e3h3'],'expected':['e3h3'],'correct_plies':1,'total_plies':1})
         page.locator('#journeyRefresh').click();expect(page.locator('#journeyNext')).to_have_text('결과 보기')
-        page.evaluate("tab('training')")
-        page.locator('#learningFresh').click()
+        with page.expect_response(lambda r:r.url.endswith('/learning/dashboard')) as restored:
+            page.evaluate("tab('training')")
+        current=restored.value.json()
+        expect(page.locator('#learningNotice')).to_have_text(current['notice'])
+        if current['active']:
+            expect(page.locator('#learningBoard')).to_be_visible()
+        if not page.locator('#learningFresh').is_visible():
+            page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).click()
+        page.once('dialog',lambda d:d.accept())
+        with page.expect_response(lambda r:r.url.endswith('/learning/start') and r.request.method=='POST'):
+            page.locator('#learningFresh').click()
+        expect(page.locator('#learningBoard')).to_be_visible()
         expect(page.locator('#learningBoard .sq')).to_have_count(64)
         expect(page.locator('#learningFresh')).to_be_enabled()
         page.evaluate("document.getElementById('learningExplanation').textContent='긴 수순 '+'Nxf7+ d8=Q# '.repeat(20);document.getElementById('userBadge').textContent='QA20261019ABCDEFGHIJKLMNOP';")
@@ -61,7 +71,7 @@ def test_reset_failure_recovers_button_and_cancel_sends_nothing(site):
             requests.append(route.request.post_data_json)
             route.fulfill(status=503,json={'detail':'기록 저장소가 지연되고 있습니다.'})
         page.route('**/api/profile/reset',fail)
-        page.goto(site[0]);page.evaluate("tab('profile')")
+        page.goto(site[0]);page.evaluate("tab('profile/data')")
         page.locator('#resetPinV5').fill('fake-test-only');page.locator('#resetConfirmV5').fill(' 초기화 ')
         page.once('dialog',lambda d:d.dismiss());page.locator('#resetProfileV5').click()
         expect(page.locator('#resetStatusV5')).to_contain_text('취소');assert not requests

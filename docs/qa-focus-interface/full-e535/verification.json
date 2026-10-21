@@ -1,0 +1,34 @@
+{
+  "head": "e535fa3d0681a0293208e59bbeb891444446bd28",
+  "expected": 660,
+  "executed": 660,
+  "counts": {
+    "passed": 648,
+    "failed": 12
+  },
+  "suites": [
+    {
+      "file": "suite-0.xml",
+      "passed": 183,
+      "failed": 7
+    },
+    {
+      "file": "suite-1.xml",
+      "passed": 132,
+      "failed": 3
+    },
+    {
+      "file": "suite-2.xml",
+      "passed": 204,
+      "failed": 1
+    },
+    {
+      "file": "suite-3.xml",
+      "passed": 129,
+      "failed": 1
+    }
+  ],
+  "duplicates": [],
+  "missing": [],
+  "unexpected": []
+}

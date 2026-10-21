@@ -1,0 +1,82 @@
+/* The active board gets the available space; short/zoomed views retain document scrolling. */
+body.focus-activity .topbar,body.focus-activity #onboardingInvitation{display:none}
+body.focus-activity .main{padding-top:8px}
+body.focus-activity .feature-toolbar{margin:0 0 6px;min-height:44px}
+body.focus-activity .learning-route-nav{margin:0 0 6px}
+body.focus-foundation #foundationAcademy{padding:0!important}
+body.focus-foundation .foundation-work{grid-template-columns:minmax(0,1.4fr) minmax(280px,1fr);gap:18px}
+body.focus-foundation #foundationStepTitle{font-size:18px;margin:0 0 4px;line-height:1.4}
+body.focus-foundation #foundationInstruction,body.focus-foundation #foundationTurn{font-size:15px;line-height:1.5;margin:4px 0}
+body.focus-foundation #foundationBoard{width:100%;max-width:min(560px,max(320px,calc(100dvh - 190px)))}
+body.focus-foundation #foundationLive{margin:0;min-height:76px;padding:10px}
+body.focus-foundation #foundationLive p{margin:0;line-height:1.5;min-height:1.5em}
+body.focus-foundation #foundationSave{font-size:13px}
+body.focus-foundation .foundation-actions{display:flex;flex-direction:column;gap:8px;min-width:0}
+body.focus-foundation #foundationNext .btn{margin:0 6px 6px 0}
+.focus-reason{margin:0;line-height:1.5;font-size:15px;overflow-wrap:anywhere}
+.focus-details{border:1px solid var(--line);border-radius:10px;padding:0 10px;min-width:0;overflow-wrap:anywhere}
+.focus-details>summary{min-height:44px;padding:10px 0;cursor:pointer;line-height:1.5}
+.focus-details:focus-within{outline-offset:2px}
+#foundationExplanation #foundationFeedback{max-height:none;height:auto;overflow:visible;margin:0;padding:8px 0}
+#foundationFocusTools #foundationVisualTools{display:flex;flex-wrap:wrap;gap:6px}
+@media(max-width:850px){
+ body.focus-activity .app{padding:8px!important;padding-bottom:8px!important}
+ body.focus-activity .main{padding:0!important}
+ body.focus-activity .mobile-nav{position:static!important;inset:auto!important;margin-top:12px;width:100%;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+ body.focus-foundation .foundation-work{grid-template-columns:minmax(0,1fr);gap:8px}
+ body.focus-foundation #foundationBoard{max-width:440px}
+ body.focus-foundation #foundationStepTitle{font-size:16px}
+ body.focus-foundation .learning-route-nav{gap:4px}
+ body.focus-foundation #learning-location{display:none}
+}
+@media(max-height:600px){body.focus-foundation #foundationBoard{max-width:480px}}
+body.focus-foundation #foundationInstruction{min-height:1.5em}
+@media(min-width:851px){body.focus-foundation #foundationBoard{max-width:min(560px,max(320px,calc(100dvh - 270px)))}}
+@container(max-width:650px){body.focus-foundation .foundation-work{grid-template-columns:minmax(0,1fr)}}
+[hidden].focus-details,#trainingLibrary[hidden],#training .learning-layout[hidden],#guestActivity[hidden],#guestChoices[hidden]{display:none!important}
+body.focus-activity .feature-jumps{margin:0 0 8px}
+body.focus-activity .board-feedback>div[role=status]{min-height:3em}
+.board-brief{margin:4px 0;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.board-explanation>summary{min-height:44px;padding:10px 0;cursor:pointer}
+.board-explanation .board-detail{height:auto;max-height:none;overflow:visible}
+
+#trainingLibrary{display:grid;gap:12px}#trainingLibrary .learning-list{max-height:none}
+.focus-selection{margin:0 0 10px}
+body.focus-activity #training .learning-layout{grid-template-columns:minmax(0,1.3fr) minmax(260px,1fr);align-items:start}
+body.focus-activity #training .learning-aside{display:block}
+body.focus-activity #training .learning-position{padding:8px}
+body.focus-activity #learningBoard,body.focus-activity #journeyBoard{max-width:min(560px,max(320px,calc(100dvh - 270px)))}
+body.focus-activity .board-feedback{margin:6px 0;padding:8px}
+#guestChoices{display:flex;flex-wrap:wrap;gap:10px}#guestPractice button:not(.sq){min-height:44px}
+.focus-guest-layout{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(260px,1fr);gap:16px;align-items:start}
+#guestBoard{width:100%;max-width:500px}#guestPractice p{overflow-wrap:anywhere}#guestPractice [hidden]{display:none!important}
+@media(max-width:850px){
+ body.focus-activity #training .learning-layout,.focus-guest-layout{display:grid;grid-template-columns:minmax(0,1fr)}
+ body.focus-activity #learningBoard,body.focus-activity #journeyBoard{max-width:440px}
+ body.focus-activity .feature-jumps{display:flex;flex-wrap:wrap;gap:4px}
+ body.focus-activity #v9PuzzleRoot{padding:8px}
+ #guestBoard{max-width:440px}
+}
+@media(max-width:1050px){body.focus-activity #training .learning-layout{grid-template-columns:minmax(0,1fr)}}
+#profileInformation[hidden],#profileSettings[hidden],#profileDataManagement[hidden],#profile .entry-auth-layout[hidden]{display:none!important}
+#profileSections{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}#profileSections .btn{min-height:44px}
+#profileInformation{display:grid;gap:14px}#profile .entry-auth-layout{grid-template-columns:minmax(0,1fr);max-width:680px}
+#profileDataManagement{border:2px solid #db9b83}
+body.entry-login #profile>.entry-auth-layout{display:block!important}
+body.entry-login #profileSections{display:none!important}
+@media(max-width:650px){#profileSections{display:grid;grid-template-columns:1fr 1fr}}
+
+#guestPractice{gap:8px}#guestPractice .feature-toolbar h2{font-size:18px;margin:0;line-height:1.4}#guestPractice .feature-toolbar{align-items:center}
+#guestScope>summary{min-height:44px;padding:10px;cursor:pointer}#guestScope{border:1px solid var(--line);border-radius:10px}
+#guestPractice #guestGoal{margin:4px 0 8px;line-height:1.5}#guestPractice #guestTitle{margin:4px 0}
+#guestOutcome{min-height:3em;margin:0;line-height:1.5}
+
+.focus-lesson-active{padding:10px!important}.focus-lesson-active> .focus-details{margin-bottom:8px}
+.focus-lesson-active h3{font-size:18px;margin:6px 0}.focus-lesson-active #educationBody>p,.focus-lesson-active #repertoireBody>p{margin:4px 0;line-height:1.5}
+.focus-lesson-active .education-layout,.focus-lesson-active .repertoire-layout{grid-template-columns:minmax(280px,1.2fr) minmax(240px,1fr);margin:8px 0;gap:16px}
+.focus-lesson-active .board{max-width:min(520px,max(300px,calc(100dvh - 310px)))}
+.focus-lesson-panel{display:flex;flex-direction:column;gap:8px;min-width:0}.focus-lesson-panel>p{margin:0}.focus-lesson-panel .btn-row{gap:6px}
+#reviewBoard[hidden]{display:none!important}
+@media(max-width:850px){.focus-lesson-active .education-layout,.focus-lesson-active .repertoire-layout{grid-template-columns:minmax(0,1fr)}.focus-lesson-active .board{max-width:440px}.focus-lesson-active{padding:8px!important}}
+
+body.focus-activity .view.active{gap:8px}.focus-lesson-active.education{margin-top:0}.focus-lesson-panel .board-feedback{order:-1}.focus-lesson-active .focus-details{margin-top:0}

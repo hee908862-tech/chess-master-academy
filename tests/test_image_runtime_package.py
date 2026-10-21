@@ -93,3 +93,14 @@ def test_missing_module_regression_is_detected(tmp_path):
                             env={**os.environ, 'PYTHONPATH': ''}, capture_output=True, text=True, timeout=30)
     assert result.returncode != 0
     assert "No module named 'board_facts'" in result.stderr
+
+
+def test_focus_assets_are_in_copy_payload(package):
+    import re
+    html=(package/'public/index.html').read_text()
+    for asset in ['focus-layout.js','focus-layout.css','guest-practice.js','info-layout.js']:
+        assert '/assets/'+asset in html
+        assert (package/'public'/asset).is_file()
+    guest=(package/'public/guest-practice.js').read_text()
+    for path in re.findall(r"['\"](/assets/[^'\"]+)['\"]",guest):
+        assert (package/'public'/path.removeprefix('/assets/')).is_file(),path

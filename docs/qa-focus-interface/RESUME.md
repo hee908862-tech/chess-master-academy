@@ -1,0 +1,44 @@
+# 최종 재개 상태
+
+검사 코드 head: 19992bf8ac980ce0543ef56c6fbda6090fdad4ba (runtime는17c4d8b와동일, 로그인 완료 동기화 테스트 보완).
+전체672/672통과,누락/중복/건너뜀/오류/실패0,681.78초. full-final의manifest/JUnit/원시로그/collection/verification보존. 실행중검사없음. 이후커밋은증거/문서/캡처만이며code-files.sha256대조일치.
+branch feat/focused-activity-ui. 작업트리 /tmp/cma-focused-ui. 기존자동생성타QA캡처와캐시는삭제하지않고보존한다. 실제Docker/PG/운영/물리모바일/실제초보사용성미검증. 직접병합/배포금지.
+다음: 원격증거저장→draft PR 생성/정확한head와CI조회→부모독립검토. 재실행필요시기존DB/로그를덮지말고새출력디렉터리사용. 원시결과확인명령: /tmp/chess-venv/bin/python /tmp/cma-focus-final2-verify.py.
+
+## 이전 작업 기록 (최종 결과와 구분)
+# 집중형 UI 단계1 체크포인트
+
+기준 main931fc3d. 기초·대국 집중배치31검사통과,정상Chromium PC/좁은캡처확인.
+초기3실패는PC보드높이와확대그리드조건수정후동일31전체통과. 기존상태/판정/저장API변경없음.
+다음: 다른보드화면집중배치/내정보설정분리/게스트3예제. 게스트초안파일은아직미커밋진행중.
+기존작업트리/자료보존. 운영계정접근/병합/배포금지. 루트0여유Docker/PG미실행. 최종전체는아직실행전.
+
+## 단계2/3 작업 체크포인트 (아직 최종 검증 전)
+작업트리 /tmp/cma-focused-ui, branch feat/focused-activity-ui.
+후속 전체 선택군 첫 실행은 실패 원인 회수를 위해 SIGINT: 6통과13실패, 나머지 미실행.
+후속 두 번째 선택군 종료: 45통과3실패. 실패는 보드 없는 개념 단계/개념 확인 후 경로 조작 숨김2, 계정 분리 후 구형 테스트 로그인 경로1.
+이후 최소 수정과 공개 계정 경로 반영을 마쳤고 /tmp/cma-focus-targeted.log 관련 검사 실행 중.
+별도 패널3개 통과(320/390/1280). 계정390 캡처 직접 확인. 게스트·설정·공통 상세해설 및 재배치 구현은 아직 최종 전체 검사 전이며 병합 금지.
+다음: 관련 검사 로그 회수→남은 실제 회귀 수정→58기능 대조/캡처→최종 전체646+신규 검사 및 COPY/static패키징. 기존 테스트의 판정/상태 assertion은 유지하고 변경된 공개 메뉴 동작만 반영.
+일반 Chromium 사용. 루트0여유, /tmp7.9GiB. Docker/PG 실제 실행 미검증. 운영 계정/데이터 접근 없음.
+
+관련 후속10검사 최종 통과(/tmp/cma-focus-final-targeted.log). 게스트390 실제 픽셀 재확인: 안내는 체험 시작 후 접혀 보드y214~588, 결과/다시하기 인접. 보드 없는 개념 단계/확인 후 경로 조작 회귀 해결. 설정 실패/재시도는 숨겨진 화면의 inner_text 차이를 피하려 전체 text_content의 동일성을 엄격 비교하며 저장 과제도 동일 비교.
+최종 전체 수집660개. 다음 명령: /tmp/chess-venv/bin/python /tmp/cma-focus-full.py (4개 격리 SQLite suite, 일반 Chromium), 종료 후 manifest/JUnit 대조. 실행 중 소스 고정. 실제 Docker/PG 미실행.
+
+## 독립 리뷰 후 중간 저장 (최종 검증 전)
+전체 e535fa3: 648통과12실패, 총660/누락0중복0 (full-e535 원시 로그/JUnit/manifest).
+후속 수정: learningSaved의 기존 이어하기도 공통 화면 복귀; 같은 카드 재선택 복귀; 별도 설정 조회/저장 세대 및 로딩 잠금; 게스트 대안수 포커스와 연속 방향키; 퍼즐 새 세션 성공시 선택패널 접힘; 교육/레퍼토리 안내·기록·해설 패널.
+교육 어댑터 bodyId 누락은 실제 오류로 재현 후 수정, 추가 오류 assertion을 포함한 교육/레퍼토리28검사 통과(/tmp/cma-focus-lessons-fixed.log). 앞선 4개 배치만 통과 결과는 오류 누락이므로 최종 근거로 사용하지 않음.
+현재 /tmp/cma-focus-navigation-fixed.log 선택군 실행 중: 종료 로그 회수 필요. 새 설정 실제 로그인 지연/퍼즐 포커스 등 실패 표시가 있어 미완료. 재실행 중복 금지. 저장된 준비 스크립트 /tmp/cma-focus-refine.py 는 이미 적용했으므로 재실행 금지.
+다음: 현재 실행결과 회수→실패 최소수정→교육 렌더 전에 배치 확정해 공통 모션 좌표 보존 및 판정 패널 PC측면 정리→관련검사→최종 전체. 아직 draft PR 없음/병합금지.
+
+## 2026-10-21 후속 회수
+원격 b712df18f9bd569559f173f8848956ad0d8c75c6 확인. 이전 선택군은 59통과8실패 후 SIGINT, 중복 실행하지 않고 로그 회수. 실패 원인: 테스트 계정 코드 대문자 정규화 불일치1, 기존 퍼즐 실패시 invalidate 동작과 다른 새 assertion1, 분리된 화면 접근 누락6(성장1/훈련5; 나머지 폭 미실행). 제품 저장 변경으로 해결하지 않고 정확한 UI경로/기존 실패 계약 검사로 수정.
+교육/레퍼토리 재배치를 draw 전에 동기화하고 PC 판정 패널을 같은 grid의 옆 열에 둠. 공통 모션의 이전/이후 좌표와 입력 노드를 보존. 설정 같은 경로 재진입은 진행 중 저장을 무효화하지 않음. /tmp/cma-focus-related-final.log 실행 중, 코드 고정. 정상 Chromium 사용. 루트0, /tmp7.9GiB; 기존자료/DB 삭제 없음.
+
+후속 선택군 완료:40통과3실패(/tmp/cma-focus-related-final2.log). 설정/게스트/교육/레퍼토리/기존study는 통과. 남은3은 반응형 테스트가 대시보드 복원 전 초기 선택화면을 보고 클릭하던 동기화 문제. 실제 조회 응답 및 active 보드가 보일 때까지 기다린 후 공개 선택버튼을 누르게 보완했고 /tmp/cma-focus-responsive-final.log 9개 실행 중. 제품 복원/저장 동작은 변경하지 않음.
+코드 구문12JS+Python생성기 통과. 정상Chromium 픽셀 education1280(판정 옆열)/repertoire390(보드 다음 판정) 직접 확인. 좁은 긴 조작은 정상 문서스크롤.
+
+원격 코드17c4d8b08341154c083ac69ddbe90a8e5d99a974 저장확인. 반응형 최종9/9 통과(27.20초). 최신 수집672개, /tmp/cma-focus-final-run.py 실행 중(4 SQLite 격리 suite/정상 Chromium). /tmp/cma-focus-final/manifest.json PID와suite로그 확인 후 종료결과 회수; 중복실행금지. 검사가끝나면 /tmp/chess-venv/bin/python /tmp/cma-focus-final-verify.py 로 collection/JUnit 대조. 실행중런타임/테스트파일고정.
+
+전체672 종료: 17c4d8b는671통과1실패, 누락/중복0. 실패는 새 검사가 user 갱신(/me)만으로 로그인 완료를 판단하고 /game 복원 뒤 auth 홈 이동 전에 설정으로 이동한 경계였다. 실패 당시 실제 화면은 #home. 런타임 변경 없이 /game을 의도적으로 지연하여 user 갱신 후에도 로그인 화면임을 확인→해제→#home 완료→설정 진입→옛 A 응답 해제 순서로 검사한다. 값3,8/저장활성/설정가시성 assertion 유지. 원인 한정 검사1건8.82초 통과(/tmp/cma-focus-login-boundary.log). 전체 원시 자료는 full-17c4에 보존. 다음은 이 테스트 보완 포함 전체672 최종 재실행이며 이전 결과를 전체 통과로 바꾸지 않는다.

@@ -80,9 +80,11 @@ def test_save_failure_refresh_and_old_account_response(page,site):
     assert page.evaluate("api('/repertoire')")['active']['moves']==[]
     expect(page.get_by_role('button',name='현재 수·설명 힌트 (도움 기록)',exact=True)).to_be_disabled()
     page.unroute('**/api/repertoire/action')
+    if not page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).is_visible():page.locator('#repertoireFocusScope > summary').click()
     page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).click()
     expect(page.get_by_role('button',name='현재 수·설명 힌트 (도움 기록)',exact=True)).to_be_enabled()
     page.evaluate("""()=>{const old=api;window.ownerA=token;api=(path,...args)=>path==='/repertoire'&&token===ownerA?new Promise(r=>window.releaseRepertoire=r):old(path,...args);} """)
+    if not page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).is_visible():page.locator('#repertoireFocusScope > summary').click()
     page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).click()
     page.evaluate("async code=>{const r=await api('/register','POST',{code,pin:'local-repertoire-pin'});token=r.token;tab('opening');}",'REP-B-'+secrets.token_hex(4))
     expect(page.locator('#repertoire input')).to_have_count(55)
@@ -104,6 +106,7 @@ def test_help_and_promotion_cancel_do_not_submit_or_mark_hint(page,site):
     page.route('**/api/repertoire',lambda route:route.fulfill(json=promotion))
     posts=[]
     page.on('request',lambda req:posts.append(req.post_data_json) if req.url.endswith('/api/repertoire/action') else None)
+    if not page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).is_visible():page.locator('#repertoireFocusScope > summary').click()
     page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).click()
     expect(page.locator('#repertoire')).to_have_attribute('aria-busy','false')
     page.locator('#repertoireBoard [aria-label^="a7 "]').click();page.locator('#repertoireBoard [aria-label^="a8 "]').click()
@@ -138,6 +141,7 @@ def test_integrated_first_recall_color_and_unknown_display(page,site):
     line=lesson('london-core')['branches']['main']
     while data['active']['phase']=='playing':action('move',move=line[len(data['active']['moves'])])
     action('finish');action('start',lesson_id='london-core',mode='recall',side='black')
+    if not page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).is_visible():page.locator('#repertoireFocusScope > summary').click()
     page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).click()
     expect(page.locator('#repertoireBody')).to_contain_text('흑 수 재현')
     expect(page.locator('#repertoireBody')).to_contain_text('레슨 통합 첫 복습 · 백')
@@ -146,6 +150,7 @@ def test_integrated_first_recall_color_and_unknown_display(page,site):
     expect(page.locator('#repertoire')).to_contain_text('동일한 심화 해설을 제공하지 않습니다')
     legacy=__import__('copy').deepcopy(data);legacy['metrics']['london-core']['first_recall'].pop('side')
     page.route('**/api/repertoire',lambda route:route.fulfill(json=legacy))
+    if not page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).is_visible():page.locator('#repertoireFocusScope > summary').click()
     page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).click()
     expect(page.locator('#repertoireBody')).to_contain_text('색 미기록 (이전 결과)')
     OUT.mkdir(exist_ok=True,parents=True);page.locator('#repertoire').screenshot(path=str(OUT/'review-color-unknown.png'))
@@ -160,6 +165,7 @@ def test_chained_action_stale_completion_cannot_start_or_close(page,site,operati
     if operation=='finish':
         for u in lesson('london-core')['branches']['main'][::2]:
             page.evaluate("async u=>{const s=await api('/repertoire');return api('/repertoire/action','POST',{action:'move',move:u,revision:s.revision,attempt_id:s.active.id});}",u)
+        if not page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).is_visible():page.locator('#repertoireFocusScope > summary').click()
         page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).click()
         expect(page.get_by_role('button',name='같은 레슨 답 가리고 복습',exact=True)).to_be_enabled()
     owner_a=page.evaluate('token')
@@ -189,6 +195,7 @@ def test_capacity_ui_finish_lost_response_reconnect_and_exploration(page,site):
         value=route.fetch().json();value.update(can_start=False,capacity_notice='정규 보관64개 한도입니다. 현재 시도의 종료와 기록 조회·강의 탐색은 가능합니다.')
         route.fulfill(json=value)
     page.route('**/api/repertoire',limited)
+    if not page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).is_visible():page.locator('#repertoireFocusScope > summary').click()
     page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).click()
     expect(page.get_by_role('button',name='처음부터 다시 연습 (이력 유지)',exact=True)).to_be_disabled()
     expect(page.get_by_role('button',name='이 시도 기록하고 마치기',exact=True)).to_be_enabled()
@@ -200,6 +207,7 @@ def test_capacity_ui_finish_lost_response_reconnect_and_exploration(page,site):
     expect(page.locator('#repertoireStatus')).to_contain_text('응답 유실 검사')
     expect(page.get_by_role('button',name='홈으로 돌아가기',exact=True)).to_be_enabled()
     page.unroute('**/api/repertoire/action')
+    if not page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).is_visible():page.locator('#repertoireFocusScope > summary').click()
     page.locator('#repertoire').get_by_role('button',name='저장 상태 다시 확인',exact=True).click()
     expect(page.get_by_role('button',name='답 가리고 복습 시작',exact=True)).to_be_disabled()
     expect(page.locator('#repertoireBoard')).to_have_count(0)

@@ -3,9 +3,9 @@
 function install(){
 const $=id=>document.getElementById(id),make=(p,t,text,cls)=>{const n=document.createElement(t);if(text)n.textContent=text;if(cls)n.className=cls;p.append(n);return n;};
 const button=(p,id,text,fn)=>{const b=make(p,'button',text,'btn');b.type='button';b.id=id;b.onclick=fn;return b;};
-const outer=new Set(['home','learn','diagnosis','assessment','training','play','puzzle','opening','review','profile','help','rookTrial']);
+const outer=new Set(['home','learn','diagnosis','assessment','training','play','puzzle','opening','review','profile','help','rookTrial','guestPractice']);
 const topics=[['basics','기초 규칙','기물과 규칙부터'],['tactics','전술 과목','주제별 문제 연습'],['education','위협·계획·종반','짧은 적용 수업'],['training','맞춤 훈련','개념과 새 문제'],['puzzle','퍼즐','일반 연습·연속 도전'],['opening','오프닝','강의·내 레퍼토리']];
-const valid=new Set([...outer,'learn/basics','learn/basics/practice','learn/tactics','learn/tactics/practice','learn/education','learn/education/practice','learn/resume']);
+const valid=new Set([...outer,'learn/basics','learn/basics/practice','learn/tactics','learn/tactics/practice','learn/education','learn/education/practice','learn/resume','profile/account','profile/settings','profile/data']);
 const parse=s=>{const [path,query='']=s.split('?');const params=new URLSearchParams(query);return {path:valid.has(path)?path:'home',choice:path==='learn/tactics/practice'&&params.has('theme')?{theme:params.get('theme'),level:params.get('level')}:null};},normalize=s=>parse(s).path,base=tab;let route='',owner=token,serial=0,restoring=false;const memories=new Map();
 history.scrollRestoration='manual';
 const learn=$('learn'),root=$('v9LearnRoot'),hub=$('academyHub'),foundation=$('foundationAcademy'),tactics=$('academyTactics'),education=$('educationPaths'),resume=$('academyResume');
@@ -39,8 +39,9 @@ function focusRoute(restore){if(restore&&route==='learn/education'&&window.cmaEd
 function go(next,{replace=false,restore,focus=true,load=true}={}){const requested=parse(next);next=requested.path;const old=route,from=document.querySelector('.view.active')?.id,to=next.split('/')[0],accountChanged=owner!==token;restore=restore??(from==='learn'&&to==='learn');if(accountChanged){owner=token;memories.clear();serial++;}if(old!==next&&!accountChanged)remember();route=next;const stamp=++serial;
  if(old!==next){window.cmaCloseAcademy(false);if(old.endsWith('/practice')){window.cmaFoundations?.cancelPresentation();window.cmaBoardTools.cancelAll();cancelPromotion();}}if(from!==to||accountChanged||!['learn','play'].includes(to))base(to);if(next.startsWith('learn/tactics'))window.cmaFoundations.selectTactics(); // Do not run cancellation/load wrappers for an in-screen list/hub choice.
  if(!restoring){const selection=next==='learn/tactics/practice'?(requested.choice||window.cmaTacticView.choice()):null;const hash='#'+(next==='rookTrial'?'home':next)+(selection?'?'+new URLSearchParams(selection):'');if(location.hash!==hash)history[replace?'replaceState':'pushState']({cmaRoute:next},'',hash);}
- paint();if(focus&&old!==next)focusRoute(restore);
- if(load&&next.startsWith('learn/basics'))window.cmaFoundations.load().then(()=>{if(stamp!==serial||owner!==token||route!==next)return;if(next.endsWith('/practice')&&!window.cmaFoundations.state()?.active){go('learn/basics',{replace:true,load:false});return;}paint();if(focus&&old!==next)focusRoute(restore);});
+ if(next==='guestPractice')window.cmaGuestPractice?.enter();
+ paint();window.cmaFocusLayout?.refresh();window.cmaInfoLayout?.show(next);if(focus&&old!==next)focusRoute(restore);
+ if(load&&next.startsWith('learn/basics'))window.cmaFoundations.load().then(()=>{if(stamp!==serial||owner!==token||route!==next)return;if(next.endsWith('/practice')&&!window.cmaFoundations.state()?.active){go('learn/basics',{replace:true,load:false});return;}paint();window.cmaFocusLayout?.refresh();window.cmaInfoLayout?.show(next);if(focus&&old!==next)focusRoute(restore);});
  if(load&&next==='learn/resume')window.cmaTacticView.refreshSaved();
  if(load&&next.startsWith('learn/education'))Promise.resolve(window.cmaEducation.show(!next.endsWith('/practice'))).then(()=>{if(stamp!==serial||route!==next)return;if(next.endsWith('/practice')&&!window.cmaEducation.hasActive())go('learn/education',{replace:true,load:false});else if(focus&&old!==next)focusRoute(restore);});
  if(load&&next==='learn/tactics/practice'&&requested.choice){window.cmaTacticView.restoreChoice(requested.choice,stamp).then(ok=>{if(!ok&&stamp===serial)go('learn/tactics',{replace:true,load:false});});}

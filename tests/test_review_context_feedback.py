@@ -60,7 +60,7 @@ def test_review_owner_changes_on_real_login_and_late_analysis_is_ignored(page,si
         if pending:break
         page.wait_for_timeout(20)
     assert pending
-    page.evaluate("tab('profile')");page.locator('#codeField').fill(code);page.locator('#pinField').fill(pin);page.locator('#signin').click()
+    page.evaluate("tab('profile/account')");page.locator('#codeField').fill(code);page.locator('#pinField').fill(pin);page.locator('#signin').click()
     page.wait_for_function('code=>user?.code===code',arg=code)
     expect(page.locator('#signin')).to_be_enabled()
     page.evaluate("tab('review')");expect(page.locator('#reviewLoad')).to_be_enabled()

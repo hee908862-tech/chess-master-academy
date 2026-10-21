@@ -35,7 +35,7 @@
     if(!ready()||busy)return;
     await run(async()=>{const r=await api('/learning/import/'+$('reviewGameSelect').value,'POST');tab('training');await load();$('learningMessage').textContent=r.message;});
   }));
-  function clear(){$('learningSettingsStatus').textContent='';needsRefresh=false;generation++;task=null;dashboard=null;selected=null;busy=false;render();$('learningCards').replaceChildren();$('learningAttempts').replaceChildren();$('learningSkills').replaceChildren();$('learningReason').textContent='로그인하면 나의 학습 경로를 안내합니다.';}
+  function clear(){cancelSettings();$('learningSettingsStatus').textContent='';needsRefresh=false;generation++;task=null;dashboard=null;selected=null;busy=false;render();$('learningCards').replaceChildren();$('learningAttempts').replaceChildren();$('learningSkills').replaceChildren();$('learningReason').textContent='로그인하면 나의 학습 경로를 안내합니다.';}
   async function run(fn,waiting='저장 중입니다. 상황 대국은 엔진 응수를 기다려 주세요.',affectsBoard=true){
     if(busy)return;const notice=$(affectsBoard?'learningMessage':'learningSettingsStatus');
     busy=true;renderControls();lockControls();
@@ -70,7 +70,7 @@
   }
   async function start(options){if(!ready()||busy)return;const same=task&&options.card_id===task.card_id&&(options.mode||'practice')===task.mode&&!options.fresh&&!options.similar_to;if(task&&!task.done&&!same){if(!confirm('현재 착수와 도움 사용을 저장해 두고 다른 문제로 전환할까요? 저장된 훈련에서 이어갈 수 있습니다.'))return;options={...options,pause_session_id:task.session_id,pause_revision:task.revision};}await run(async()=>{
     const identity=token, rev=generation;const r=await api('/learning/start','POST',options);
-    if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;render();await updateStats();
+    if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;render();window.cmaFocusLayout?.resumeTraining();await updateStats();
   });}
   async function updateStats(){const identity=token,rev=generation;const d=await api('/learning/dashboard');if(identity!==token||rev!==generation)return;dashboard=d;renderDashboard();}
   async function loadMoreCards(){
@@ -97,11 +97,11 @@
     if(!dashboard)return;
     $('learningNotice').textContent=dashboard.notice;
     $('learningSaved').replaceChildren(el('h3','저장된 훈련 이어하기'));
-    if(task&&!task.done){$('learningSaved').append(el('p','현재 훈련은 착수·도움 사용과 함께 저장됩니다. 새 문제로 전환하려면 보존 확인이 필요합니다.'),button('현재 훈련 이어하기',()=>{$('learningBoard').scrollIntoView({block:'center'});}));}
+    if(task&&!task.done){$('learningSaved').append(el('p','현재 훈련은 착수·도움 사용과 함께 저장됩니다. 새 문제로 전환하려면 보존 확인이 필요합니다.'),button('현재 훈련 이어하기',()=>{if(window.cmaFocusLayout)window.cmaFocusLayout.resumeTraining();else $('learningBoard').scrollIntoView({block:'center'});}));}
     for(const saved of dashboard.paused||[]){$('learningSaved').append(button(`${saved.category||'검증'} · ${saved.card_id.slice(-8)} · ${saved.turns}수 진행 이어하기`,()=>run(async()=>{const identity=token,rev=generation;const r=await api('/learning/resume','POST',{session_id:saved.session_id,active_id:task?.session_id,active_revision:task?.revision});if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;await updateStats();render();})));}
     if(!task&&!dashboard.paused?.length)$('learningSaved').append(el('p','아직 진행 중인 훈련이 없습니다.'));
     $('learningReason').textContent=`${dashboard.reason} · 복습할 위치 ${dashboard.due_count??dashboard.due.length}개`;
-    $('learningIntervals').value=dashboard.intervals.join(',');
+    if(!settingsActive)$('learningIntervals').value=dashboard.intervals.join(',');
     $('learningPath').replaceChildren();
     const route=dashboard.path;
     home.classList.toggle('has-saved-path',!!route||!!dashboard.active||(dashboard.due_count??dashboard.due.length)>0);
@@ -136,6 +136,7 @@
     $('learningBoard').setAttribute('aria-busy',String(busy));if(needsRefresh)for(const b of $('learningControls').querySelectorAll('button'))b.disabled=true;
   }
   function render(){
+    window.cmaFocusLayout?.task(task?.session_id||null);
     const route=dashboard?.path;
     const concept=!task?.growth_task && route?.current===1 && route.steps[1].status==='active' && !route.done ? route : null;
     const t=concept?null:task;window.cmaBoardLayout?.training(!!t);
@@ -182,7 +183,22 @@
   $('learningVerify').onclick=()=>start({fresh:true,mode:'verify',category:dashboard?.recommended});
   $('learningReview').onclick=()=>tab('review');
   $('learningRefresh').onclick=load;
-  $('learningSaveIntervals').onclick=()=>run(async()=>{const intervals=$('learningIntervals').value.split(',').map(Number);await api('/learning/settings','POST',{intervals});$('learningSettingsStatus').textContent='다음 완료부터 사용할 복습 간격을 저장했습니다.';},'복습 간격을 저장하고 있습니다.',false);
+  // Settings have a separate read/save lifecycle; changing panels never changes a board verdict.
+  let settingsGeneration=0,settingsReady=false,settingsBusy=false,settingsActive=false,settingsOwner=null;
+  const settingsRetry=button('복습 간격 다시 조회',()=>loadSettings(true));settingsRetry.id='learningSettingsRetry';$('learningSettingsStatus').after(settingsRetry);
+  function settingsControls(){for(const id of ['learningIntervals','learningSaveIntervals'])$(id).disabled=!settingsReady||settingsBusy;settingsRetry.disabled=settingsBusy;}
+  function cancelSettings(){settingsGeneration++;settingsReady=false;settingsBusy=false;settingsActive=false;settingsControls();}
+  async function loadSettings(force=false){if(!force&&settingsActive&&settingsOwner===token&&(settingsBusy||settingsReady))return;settingsOwner=token;const identity=token,stamp=++settingsGeneration;settingsActive=true;settingsReady=false;settingsBusy=true;$('learningIntervals').value='';$('learningSettingsStatus').textContent='현재 계정의 복습 간격을 조회하고 있습니다.';settingsControls();
+    try{if(!identity)throw Error('계정 연결 후 복습 간격을 확인할 수 있습니다.');const d=await api('/learning/dashboard');if(stamp!==settingsGeneration||identity!==token)return;$('learningIntervals').value=d.intervals.join(',');settingsReady=true;$('learningSettingsStatus').textContent='저장된 복습 간격을 확인했습니다. 변경은 다음 완료부터 적용됩니다.';}
+    catch(e){if(stamp===settingsGeneration&&identity===token)$('learningSettingsStatus').textContent=e.message+' 조회를 다시 시도하세요. 저장은 아직 사용할 수 없습니다.';}
+    finally{if(stamp===settingsGeneration&&identity===token){settingsBusy=false;settingsControls();}}
+  }
+  $('learningSaveIntervals').onclick=async()=>{if(!settingsReady||settingsBusy||!settingsActive)return;const identity=token,stamp=++settingsGeneration,intervals=$('learningIntervals').value.split(',').map(Number);settingsBusy=true;settingsControls();$('learningSettingsStatus').textContent='복습 간격을 저장하고 있습니다.';
+    try{await api('/learning/settings','POST',{intervals});if(stamp!==settingsGeneration||identity!==token)return;$('learningSettingsStatus').textContent='다음 완료부터 사용할 복습 간격을 저장했습니다.';}
+    catch(e){if(stamp===settingsGeneration&&identity===token)$('learningSettingsStatus').textContent=e.message;}
+    finally{if(stamp===settingsGeneration&&identity===token){settingsBusy=false;settingsControls();}}
+  };
+  window.cmaLearningSettings={load:loadSettings};settingsControls();
   window.learningRetention=async(report_id,item_id)=>{if(!ready('training')||busy)return;tab('training');generation++;await run(async()=>{const identity=token,rev=generation;const r=await api('/learning/retention/start','POST',{report_id,item_id});if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;await updateStats();render();},'7일 기억 확인을 위한 미노출 전체 수순 검증을 준비합니다…');};
   window.learningCycle=async(report_id,item_id)=>{if(!ready('training')||busy)return;tab('training');generation++;await run(async()=>{const identity=token,rev=generation;const result=await api('/learning/cycle/start','POST',{report_id,item_id});if(identity!==token||rev!==generation)return;task=result;selected=null;playbackIndex=-1;await updateStats();render();},'추천 훈련을 준비하고 있어요…');};
   window.learningFromDiagnosis=async(report_id,item_id)=>{
@@ -208,7 +224,7 @@
     },'선택한 진단의 원본 훈련을 여는 중입니다…');
   };
   const oldTab=tab;
-  tab=function(id){document.body.classList.toggle('learning-active',id==='training');generation++;selected=null;oldTab(id);if(id==='training'||id==='home')load();};
+  tab=function(id){if(!(id==='profile'&&window.cmaNavigation?.current()==='profile/settings'&&settingsOwner===token))cancelSettings();document.body.classList.toggle('learning-active',id==='training');generation++;selected=null;oldTab(id);if(id==='training'||id==='home')load();};
   const oldSignout=$('signout')?.onclick;
   if($('signout'))$('signout').onclick=function(e){clear();return oldSignout?.call(this,e);};
   const mq=matchMedia('(max-width: 760px)');const details=()=>{$('learningDetails').open=true;};details();mq.addEventListener('change',details);

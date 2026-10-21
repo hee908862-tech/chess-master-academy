@@ -18,6 +18,7 @@ def next_(page):page.get_by_role('button',name='이유 확인 · 다음 비교 �
 @pytest.mark.parametrize('width',[393,1280])
 def test_real_path_help_wrong_hint_resume_and_completion(page,site,width):
  page.set_viewport_size(dict(width=width,height=900));enter(page,site);before=page.evaluate("api('/me')")['stats'];start(page)
+ page.locator('#educationPathsFocusScope > summary').click()
  page.locator('#educationPaths summary').filter(has_text='사용 방법').click()
  assert page.evaluate("api('/education')")['active']['hints']==0
  sq(page,'g1').click();ready(page);expect(page.locator('#educationBody')).to_contain_text('다른 응답 1')
@@ -50,6 +51,7 @@ def test_black_direction_promotion_cancel_and_save_error(page,site):
  expect(page.locator('#educationStatus')).to_contain_text('controlled save failure')
  assert page.evaluate("api('/education')")==old
  page.unroute('**/api/education/action')
+ if not page.locator('#educationPaths').get_by_role('button',name='저장 상태 다시 확인',exact=True).is_visible():page.locator('#educationPathsFocusScope > summary').click()
  page.locator('#educationPaths').get_by_role('button',name='저장 상태 다시 확인',exact=True).click();ready(page)
  page.get_by_role('button',name='수업 예시 g7g8q',exact=True).click();ready(page)
  expect(page.locator('#educationBody')).to_contain_text('스테일메이트')

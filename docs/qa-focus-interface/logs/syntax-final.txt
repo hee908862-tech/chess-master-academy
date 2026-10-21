@@ -1,0 +1,13 @@
+PASS node --check public/audit-ui.js
+PASS node --check public/board-feedback.js
+PASS node --check public/education.js
+PASS node --check public/feature-guide.js
+PASS node --check public/first-visit.js
+PASS node --check public/focus-layout.js
+PASS node --check public/guest-practice.js
+PASS node --check public/info-layout.js
+PASS node --check public/learning-navigation.js
+PASS node --check public/learning.js
+PASS node --check public/repertoire.js
+PASS node --check public/v9.js
+PASS py_compile build_guest_examples.py

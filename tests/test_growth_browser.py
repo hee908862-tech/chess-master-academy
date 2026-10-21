@@ -67,7 +67,9 @@ def test_empty_result_error_loading_and_double_size(page,site):
     for view in ('home','diagnosis','profile'):
         page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(150)
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),view
-    assert page.locator('#profile input').first.bounding_box()['width']>=200
+    page.evaluate("tab('profile/account')")
+    assert page.locator('#codeField').bounding_box()['width']>=200
+    page.evaluate("tab('profile')")
     expect(page.locator('#gamePerformance')).to_contain_text('분석 기록을 잠시')
     page.get_by_text('대국 지표 · 내 수 품질과 앱 내부 레이팅',exact=True).click()
     expect(page.get_by_role('button',name='다시 확인',exact=True)).to_be_enabled()

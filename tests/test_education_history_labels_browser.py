@@ -21,6 +21,7 @@ def test_history_modes_localized_without_writes_or_unknown_inference(page,site,w
     expect(paragraphs).to_have_text([
         f'보관 예시 {i} · {label} · 중단 · 도움 1 · 다른 응답 2'
         for i,label in reversed(list(enumerate(['학습','복습','학습 방식 미기록','학습 방식 미기록','학습 방식 미기록'])))])
+    if not page.locator('#educationPaths').get_by_role('button',name='저장 상태 다시 확인',exact=True).is_visible():page.locator('#educationPathsFocusScope > summary').click()
     page.locator('#educationPaths').get_by_role('button',name='저장 상태 다시 확인',exact=True).click()
     expect(page.locator('#educationPaths')).to_have_attribute('aria-busy','false')
     assert page.evaluate("api('/education')")==original

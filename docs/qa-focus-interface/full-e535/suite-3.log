@@ -1,0 +1,31 @@
+...........................................................F............ [ 55%]
+..........................................................               [100%]
+=================================== FAILURES ===================================
+_______________ test_empty_result_error_loading_and_double_size ________________
+
+page = <Page url='http://127.0.0.1:57415/#profile'>
+site = ('http://127.0.0.1:57415', '0Y6XmJUbRv4o81tlHZ2RlBryZRlCwqlerL7WT2DtTZ3xWYw_')
+
+    def test_empty_result_error_loading_and_double_size(page,site):
+        page.set_viewport_size({'width':1440,'height':1000})
+        data=mock_status(page,report_fixture('empty',2));data['results']=[data['latest']]
+        page.route('**/api/games/analysis',lambda r:r.fulfill(status=503,json={'detail':'분석 기록을 잠시 불러오지 못했어요.'}))
+        open_page(page,site);page.evaluate("tab('diagnosis')")
+        expect(page.locator('.growth-intro')).to_contain_text('아직 직접 둔 수가 없어요')
+        expect(page.locator('.ability-card').first).to_contain_text('아직 응답 없음')
+        page.evaluate("document.documentElement.style.zoom='200%'")
+        for view in ('home','diagnosis','profile'):
+            page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(150)
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),view
+>       assert page.locator('#profile input').first.bounding_box()['width']>=200
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: 'NoneType' object is not subscriptable
+
+tests/test_growth_browser.py:70: TypeError
+=============================== warnings summary ===============================
+../chess-venv/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /tmp/chess-venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 failed, 129 passed, 1 warning in 655.11s (0:10:55)
