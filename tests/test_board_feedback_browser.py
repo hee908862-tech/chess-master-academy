@@ -31,7 +31,7 @@ def test_real_training_pending_completion_stable_board_controls(page,site,width,
     expect(page.locator('#learningBoardFeedback')).to_contain_text('첫 수 판단 완료')
     expect(page.locator('#learningBoardFeedback')).to_contain_text('서버 상태 확인됨')
     assert page.locator('#learningBoard .sq:enabled').count()==0
-    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),page.evaluate("[...document.querySelectorAll('#training *')].filter(n=>n.getBoundingClientRect().right>innerWidth).slice(0,10).map(n=>[n.id,n.className,n.getBoundingClientRect().width])")
     out=Path('/tmp/cma-centered-captures');out.mkdir(exist_ok=True)
     page.screenshot(path=str(out/f'training-{width}-{height}-{zoom}.png'),full_page=True)
 
@@ -43,7 +43,7 @@ def test_training_failure_requires_authoritative_refresh(page,site):
     page.route('**/api/learning/action',lambda r:r.abort())
     click_move(page,'learningBoard',u)
     if len(u)==5:page.locator('#cmaPromotionModal').get_by_role('button',name={'q':'퀸','r':'룩','b':'비숍','n':'나이트'}[u[4]],exact=False).click()
-    expect(page.locator('#learningBoardFeedback')).to_contain_text('保存' if False else '저장 여부 미확인')
+    expect(page.locator('#learningBoardFeedback')).to_contain_text('저장 여부 미확인')
     posts=[];page.on('request',lambda r:posts.append(r.url) if '/learning/action' in r.url else None)
     click_move(page,'learningBoard',u)
     assert posts==[]
@@ -68,6 +68,7 @@ def test_fact_visibility_position_cleanup_and_no_writes(page,site):
     from board_facts import learning_facts
     import chess
     login(page,site);page.evaluate("tab('training')")
+    page.wait_for_function("document.querySelector('#learningNotice').textContent!=='기존 기록은 그대로 유지됩니다.'")
     fen='6k1/8/8/8/n7/8/1P6/R5K1 w - - 0 1';b=chess.Board(fen);b.push_uci('a1a2')
     facts=learning_facts({'fen':fen,'line':['a1a2']},{'fen':b.fen(),'done':True,'outcome':{'success':True}})
     writes=[];page.on('request',lambda r:writes.append(r.url) if r.method=='POST' else None)

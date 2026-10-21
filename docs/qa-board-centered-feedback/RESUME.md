@@ -19,3 +19,5 @@
 현재: 구조조사와 적용표 완료. 런타임 구현 전. 다음 public/board-feedback.js 표시 전용 계약 및 컨트롤러 연결, board_facts.py 검증된 훈련 위치 관계.
 
 런타임 체크포인트: 표시전용 board-feedback.js/CSS, 각 컨트롤러 실제 상태 연결 및 board-layout.js DOM 재배치 구현. 기초/게임 핵심 배치 재사용. learning_facts는 완료 성공+실제 재현 FEN일치 때 마지막 내 기물의 현재 공격/보호 관계만 반환(강제손실/최선 주장 없음). 새 위치 cleanup, 표시숨김/재보기 쓰기0. 훈련 저장실패 후 판정/저장 미확인과 조회 전 재제출 차단. 초기 집중28통과(117초)는 추가보완 전 결과. /tmp/cma-centered-new.log에서 새12검사 진행 중; 결과확인 전 재실행 금지. 전체검사/최종이미지/PR 아직 미실행. 미검증 중간 코드 병합 금지.
+
+추가 보완: 200% 확대 grid 넘침 수정, 최초 비동기 조회 종료 후 관계 표시 fixture 검사. 새 브라우저10통과(29.37초). 이후 실제 이미지에서 훈련 추천/설정 카드가 보드보다 앞선 점을 확인해 활성 훈련시 뒤로 재배치하고 새로고침은 툴바 유지. 다수 수순 API의 실제 관계 표시 assertion 추가. 최근 묶음은9통과/2실패/3오류 후 중단: Chromium Target crashed, pthread_create EAGAIN(11), JS 초기 로딩 미완료. PID1 아래 약19464좀비, 원인확정/삭제없음. 일반 Chromium 재확인2개 시작오류. /tmp/cma-centered-recovery.log 보존. 제한적 single-process/no-zygote 대안 /tmp/cma-centered-low-resource.log 진행, 일반검사와구분. 루트0 /tmp자료보존. 최종전체/DockerPG 미실행.

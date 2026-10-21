@@ -97,3 +97,5 @@ def test_learning_full_line_final_single_ply_real_endpoint(page,site,tmp_path_fa
         result=move(page,'learningBoard',u,'/learning/action')
         assert page.evaluate('observedMotion.at(-1).ghosts')==count
     assert result['done'] and result['played_moves']==['b8c6','f1c4']
+    assert result['board_explanation']['arrows']
+    expect(page.locator('#learningBoard .feedback-fact-label')).to_have_count(len(result['board_explanation']['arrows']))

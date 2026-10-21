@@ -39,7 +39,7 @@
   async function run(fn,waiting='저장 중입니다. 상황 대국은 엔진 응수를 기다려 주세요.'){
     if(busy)return;
     busy=true;renderControls();lockControls();
-    $('learningMessage').textContent=waiting;
+    $('learningMessage').textContent=waiting;if(task)window.cmaFeedback.set('learningBoard',{title:'요청 처리 중',save:'서버 응답 대기',kind:'pending',detail:waiting,facts:null});
     const identity=token,rev=generation;let succeeded=false;
     try{await fn();succeeded=true;}
     catch(e){if(identity===token&&rev===generation){$('learningMessage').textContent=e.message;window.cmaFeedback.set('learningBoard',{title:'처리 결과 미확인 · 저장 상태 확인',save:'저장 여부 미확인',kind:'error',detail:e.message+' 기록 새로고침으로 확인하세요.',facts:null});}}
@@ -138,7 +138,7 @@
   function render(){
     const route=dashboard?.path;
     const concept=!task?.growth_task && route?.current===1 && route.steps[1].status==='active' && !route.done ? route : null;
-    const t=concept?null:task;
+    const t=concept?null:task;window.cmaBoardLayout?.training(!!t);
     const link=t?.learning_link||concept?.diagnosis;
     $('learningLink').hidden=!link;
     $('learningLink').textContent=link?`진단 근거 ${link.item_id}에서 이어짐 · ${t?.selection?.source_card?'새 적용':'원본·개념 연습'} · ${link.complete?'완료한 수순 복습':link.first_correct?'첫 수 이후 후속 수 확인':'저장된 수행과 원본 비교'}. 원본 반복과 도움 사용은 독립 숙련이 아닙니다.`:'';
