@@ -1,0 +1,603 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="7" skipped="0" tests="190" time="758.213" timestamp="2026-10-21T16:10:30.105118+00:00" hostname="16ab900e3e7d"><testcase classname="tests.test_account_reset" name="test_reset_all_domains_isolated_and_duplicate_safe" time="0.416" /><testcase classname="tests.test_account_reset" name="test_reset_rejection_preserves_everything[change0-403]" time="0.139" /><testcase classname="tests.test_account_reset" name="test_reset_rejection_preserves_everything[change1-400]" time="0.098" /><testcase classname="tests.test_account_reset" name="test_reset_rejection_preserves_everything[change2-409]" time="0.129" /><testcase classname="tests.test_account_reset" name="test_reset_rolls_back_all_domains" time="0.138" /><testcase classname="tests.test_account_reset" name="test_reset_blocks_pre_reset_inflight_write" time="0.117" /><testcase classname="tests.test_account_reset" name="test_concurrent_reset_once" time="0.143" /><testcase classname="tests.test_account_reset" name="test_dashboard_read_does_not_write_or_wait_on_sqlite_writer" time="0.070" /><testcase classname="tests.test_board_feedback_browser" name="test_real_training_pending_completion_stable_board_controls[320-800-1]" time="12.181" /><testcase classname="tests.test_board_feedback_browser" name="test_real_training_pending_completion_stable_board_controls[390-844-1]" time="3.823" /><testcase classname="tests.test_board_feedback_browser" name="test_real_training_pending_completion_stable_board_controls[1280-720-1]" time="4.053" /><testcase classname="tests.test_board_feedback_browser" name="test_real_training_pending_completion_stable_board_controls[844-390-1]" time="3.646" /><testcase classname="tests.test_board_feedback_browser" name="test_real_training_pending_completion_stable_board_controls[1280-720-2]" time="4.995" /><testcase classname="tests.test_board_feedback_browser" name="test_training_failure_requires_authoritative_refresh" time="3.438" /><testcase classname="tests.test_board_feedback_browser" name="test_diagnosis_only_complete_sequence_claims_completion[False-unverified_alternative]" time="2.696" /><testcase classname="tests.test_board_feedback_browser" name="test_diagnosis_only_complete_sequence_claims_completion[False-partial_execution]" time="2.836" /><testcase classname="tests.test_board_feedback_browser" name="test_diagnosis_only_complete_sequence_claims_completion[True-completed]" time="2.685" /><testcase classname="tests.test_board_feedback_browser" name="test_fact_visibility_position_cleanup_and_no_writes" time="3.305" /><testcase classname="tests.test_board_feedback_browser" name="test_real_puzzle_wrong_intermediate_completion_and_explicit_next" time="5.153" /><testcase classname="tests.test_board_presentation" name="test_checks_include_pinned_attackers_and_match_random_legal_positions" time="1.150" /><testcase classname="tests.test_board_presentation" name="test_explicit_move_plans_castling_capture_ep_promotion_and_reverse" time="0.207" /><testcase classname="tests.test_board_presentation" name="test_two_confirmed_plies_and_reverse_capture_path" time="0.064" /><testcase classname="tests.test_board_presentation" name="test_submitted_delta_rejects_old_reply_and_uses_exact_final_position" time="0.187" /><testcase classname="tests.test_diagnosis_alternatives" name="test_ozelq_real_engine_and_sequence_context" time="1.796" /><testcase classname="tests.test_diagnosis_alternatives" name="test_unverified_causes_and_engine_budget" time="0.003" /><testcase classname="tests.test_diagnosis_alternatives" name="test_equivalent_is_not_full_line_credit" time="0.001" /><testcase classname="tests.test_diagnosis_alternatives" name="test_balanced_api_real_ozelq_and_busy_reason" time="2.642" /><testcase classname="tests.test_education_history_labels_browser" name="test_history_modes_localized_without_writes_or_unknown_inference[393]" time="11.989" /><testcase classname="tests.test_education_history_labels_browser" name="test_history_modes_localized_without_writes_or_unknown_inference[1280]" time="3.391" /><testcase classname="tests.test_evidence_flow_browser" name="test_home_one_next_step_with_explicit_estimate[new-\ub098\uc758 \ubd84\uc57c\ubcc4 \uc2e4\ub825 \uc54c\uc544\ubcf4\uae30]" time="15.304" /><testcase classname="tests.test_evidence_flow_browser" name="test_home_one_next_step_with_explicit_estimate[active-\uc800\uc7a5\ub41c \uc9c4\ub2e8 \uc774\uc5b4\ud558\uae30]" time="3.474" /><testcase classname="tests.test_evidence_flow_browser" name="test_home_one_next_step_with_explicit_estimate[training-\uc9c4\ud589 \uc911\uc778 \ud6c8\ub828 \uc774\uc5b4\ud558\uae30]" time="4.878" /><testcase classname="tests.test_evidence_flow_browser" name="test_home_one_next_step_with_explicit_estimate[incomplete-\ucd94\ucc9c \ud6c8\ub828 \uc774\uc5b4\uac00\uae30]" time="4.587" /><testcase classname="tests.test_evidence_flow_browser" name="test_home_one_next_step_with_explicit_estimate[unlocked-\uc0c8 \ubb38\uc81c\ub85c \ub2e4\uc2dc \uc9c4\ub2e8\ud558\uae30]" time="4.259" /><testcase classname="tests.test_evidence_flow_browser" name="test_home_one_next_step_with_explicit_estimate[retention-7\uc77c \uae30\uc5b5 \uc720\uc9c0 \ud655\uc778 \ubcf4\uae30]" time="4.060" /><testcase classname="tests.test_evidence_flow_browser" name="test_home_one_next_step_with_explicit_estimate[preparing-\uc900\ube44 \uc0c1\ud0dc \ud655\uc778]" time="4.850" /><testcase classname="tests.test_evidence_flow_browser" name="test_home_one_next_step_with_explicit_estimate[error-\uc800\uc7a5 \uc0c1\ud0dc \ub2e4\uc2dc \ud655\uc778]" time="4.056" /><testcase classname="tests.test_evidence_flow_browser" name="test_traceable_recommendation_and_selected_independent_check[390]" time="5.778" /><testcase classname="tests.test_evidence_flow_browser" name="test_traceable_recommendation_and_selected_independent_check[1280]" time="5.559" /><testcase classname="tests.test_evidence_flow_browser" name="test_pc_disclosure_tab_leaves_without_navigation" time="3.477" /><testcase classname="tests.test_evidence_flow_browser" name="test_late_status_refresh_keeps_explicit_history_selection" time="4.456" /><testcase classname="tests.test_first_visit_browser" name="test_fresh_trial_keyboard_skip_reload_no_server_writes" time="15.409" /><testcase classname="tests.test_first_visit_browser" name="test_signup_from_trial_starts_real_first_step_without_transferring_success" time="5.997" /><testcase classname="tests.test_first_visit_browser" name="test_existing_login_keeps_saved_activity_and_cancel_is_safe" time="4.501" /><testcase classname="tests.test_first_visit_browser" name="test_guest_layout_and_all_destinations_require_auth[1366-768]" time="3.879" /><testcase classname="tests.test_first_visit_browser" name="test_guest_layout_and_all_destinations_require_auth[360-800]" time="4.513" /><testcase classname="tests.test_first_visit_browser" name="test_guest_layout_and_all_destinations_require_auth[320-640]" time="5.356" /><testcase classname="tests.test_first_visit_browser" name="test_guest_layout_and_all_destinations_require_auth[844-390]" time="5.190" /><testcase classname="tests.test_first_visit_browser" name="test_cancel_late_login_cannot_replace_new_account_or_start_old_path" time="5.307" /><testcase classname="tests.test_first_visit_browser" name="test_login_error_cancel_and_zoom" time="5.501" /><testcase classname="tests.test_first_visit_browser" name="test_delayed_foundations_after_signup_does_not_start_after_leaving[False]" time="5.110" /><testcase classname="tests.test_first_visit_browser" name="test_delayed_foundations_after_signup_does_not_start_after_leaving[True]" time="5.366" /><testcase classname="tests.test_first_visit_browser" name="test_returning_action_precedes_optional_guides_and_group_location" time="5.455" /><testcase classname="tests.test_first_visit_browser" name="test_skip_prioritizes_activities_and_preserves_revisit_preference" time="4.086" /><testcase classname="tests.test_first_visit_browser" name="test_late_logout_cannot_clear_new_login_and_failure_preserves_account" time="5.121" /><testcase classname="tests.test_first_visit_browser" name="test_entry_primary_contrast_initial_skip_and_returning" time="3.694" /><testcase classname="tests.test_first_visit_browser" name="test_trial_continue_label_matches_authentication[False]" time="3.162" /><testcase classname="tests.test_first_visit_browser" name="test_trial_continue_label_matches_authentication[True]" time="3.540" /><testcase classname="tests.test_focused_learning_browser" name="test_home_foundation_practice_list_history_no_writes[320-800]" time="14.635" /><testcase classname="tests.test_focused_learning_browser" name="test_home_foundation_practice_list_history_no_writes[390-844]" time="5.377" /><testcase classname="tests.test_focused_learning_browser" name="test_home_foundation_practice_list_history_no_writes[485-757]" time="4.745" /><testcase classname="tests.test_focused_learning_browser" name="test_home_foundation_practice_list_history_no_writes[1280-720]" time="5.466" /><testcase classname="tests.test_focused_learning_browser" name="test_tactics_selection_list_focus_and_education_menu" time="3.526" /><testcase classname="tests.test_focused_learning_browser" name="test_education_list_return_and_url_whitelist_no_writes" time="3.551" /><testcase classname="tests.test_focused_learning_browser" name="test_hub_home_mobile_and_menu_does_not_change_selected_piece" time="5.005" /><testcase classname="tests.test_focused_learning_browser" name="test_list_focus_counts_and_485_geometry" time="3.318" /><testcase classname="tests.test_focused_learning_browser" name="test_guest_foundation_login_route_and_ephemeral_trial_reload" time="5.033" /><testcase classname="tests.test_focused_learning_browser" name="test_late_foundation_start_does_not_leave_hub" time="3.864" /><testcase classname="tests.test_focused_learning_browser" name="test_hub_and_other_topics_do_not_record_training_exposure" time="2.704" /><testcase classname="tests.test_focused_learning_browser" name="test_promotion_cancel_on_route_leave_without_saved_answer" time="3.631" /><testcase classname="tests.test_foundation_feedback_browser" name="test_guided_status_save_delay_layout_and_explicit_next[360]" time="11.551" /><testcase classname="tests.test_foundation_feedback_browser" name="test_guided_status_save_delay_layout_and_explicit_next[1280]" time="3.104" /><testcase classname="tests.test_foundation_feedback_browser" name="test_promotion_picker_selected_piece_goal_and_cancel[q]" time="3.655" /><testcase classname="tests.test_foundation_feedback_browser" name="test_promotion_picker_selected_piece_goal_and_cancel[r]" time="4.170" /><testcase classname="tests.test_foundation_feedback_browser" name="test_promotion_picker_selected_piece_goal_and_cancel[b]" time="3.644" /><testcase classname="tests.test_foundation_feedback_browser" name="test_promotion_picker_selected_piece_goal_and_cancel[n]" time="3.146" /><testcase classname="tests.test_foundation_feedback_browser" name="test_ep_demo_and_overlay_replay_are_read_only[False]" time="3.396" /><testcase classname="tests.test_foundation_feedback_browser" name="test_ep_demo_and_overlay_replay_are_read_only[True]" time="4.413" /><testcase classname="tests.test_foundation_feedback_browser" name="test_save_failure_recovery_and_long_message_do_not_move_board" time="3.336" /><testcase classname="tests.test_foundation_feedback_browser" name="test_saved_response_delay_leave_or_account_change_no_followup_or_focus_theft[False]" time="3.991" /><testcase classname="tests.test_foundation_feedback_browser" name="test_saved_response_delay_leave_or_account_change_no_followup_or_focus_theft[True]" time="3.570" /><testcase classname="tests.test_foundation_feedback_browser" name="test_promotion_leave_cancels_no_submit_and_keeps_destination_focus" time="3.164" /><testcase classname="tests.test_foundation_feedback_browser" name="test_check_black_board_reduced_motion_reflow_and_promotion_access[320-640-1]" time="4.433" /><testcase classname="tests.test_foundation_feedback_browser" name="test_check_black_board_reduced_motion_reflow_and_promotion_access[390-844-1]" time="4.306" /><testcase classname="tests.test_foundation_feedback_browser" name="test_check_black_board_reduced_motion_reflow_and_promotion_access[844-390-1]" time="6.133" /><testcase classname="tests.test_foundation_feedback_browser" name="test_check_black_board_reduced_motion_reflow_and_promotion_access[1280-720-2]" time="5.492" /><testcase classname="tests.test_foundation_feedback_browser" name="test_actual_protection_threat_and_guidance_layers" time="5.175" /><testcase classname="tests.test_game_analysis" name="test_black_pov_mates_missing_depth_and_rating_hold" time="0.004" /><testcase classname="tests.test_game_analysis" name="test_background_dedup_failed_retry_and_account_isolation" time="0.206" /><testcase classname="tests.test_game_analysis" name="test_reset_generation_does_not_restore_analysis" time="0.191" /><testcase classname="tests.test_game_analysis" name="test_internal_quality_monotone_no_elo_mapping" time="0.001" /><testcase classname="tests.test_game_analysis" name="test_interrupted_job_can_retry_without_inventing_score" time="0.127" /><testcase classname="tests.test_game_analysis" name="test_actual_stockfish_terminal_mate_is_not_low_depth" time="3.165" /><testcase classname="tests.test_game_analysis" name="test_actual_stockfish_stalemate_is_terminal_not_missing_depth" time="0.569" /><testcase classname="tests.test_game_analysis" name="test_normal_long_losses_are_not_excluded_from_quality[resign]" time="0.013" /><testcase classname="tests.test_game_analysis" name="test_normal_long_losses_are_not_excluded_from_quality[timeout]" time="0.011" /><testcase classname="tests.test_growth_cycle" name="test_score_missing_help_uncertainty_and_equal_band_weight" time="0.000" /><testcase classname="tests.test_growth_cycle" name="test_balanced_24_snapshots_cycle_unlock_and_new_positions" time="3.459" /><testcase classname="tests.test_growth_cycle" name="test_credit_requires_actual_assigned_success_and_unique_position" time="0.000" /><testcase classname="tests.test_growth_cycle" name="test_quick_and_balanced_not_comparable_old_records_untouched" time="1.017" /><testcase classname="tests.test_growth_cycle" name="test_balanced_scores_and_higher_followup_preserve_cycle" time="1.794" /><testcase classname="tests.test_growth_cycle" name="test_insufficient_balanced_pool_preserves_saved_state" time="0.455" /><testcase classname="tests.test_growth_cycle" name="test_engine_evidence_is_optional_bounded_and_releases_slot" time="0.002" /><testcase classname="tests.test_growth_cycle" name="test_alternative_move_uses_only_verified_large_loss[300-verified_error]" time="0.586" /><testcase classname="tests.test_growth_cycle" name="test_alternative_move_uses_only_verified_large_loss[50-unverified_alternative]" time="0.373" /><testcase classname="tests.test_help_scope" name="test_current_help_separate_from_prior_card_exposure" time="0.124" /><testcase classname="tests.test_help_scope" name="test_situation_uses_same_exposure_but_not_current_hint" time="0.091" /><testcase classname="tests.test_help_scope" name="test_dashboard_read_compatibility_preserves_stored_json" time="0.031" /><testcase classname="tests.test_help_scope" name="test_card_pages_preserve_history_and_due_count" time="0.059" /><testcase classname="tests.test_journey_guidance" name="test_unverified_and_unanswered_are_not_failure_or_weakness" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_unknown_legacy_exposure_does_not_poison_new_app_tracking" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_guidance_never_combines_cued_uncued_or_old_versions" time="0.001" /><testcase classname="tests.test_journey_guidance" name="test_additional_difficulty_follows_observed_completion" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_difficulty_scopes_do_not_contaminate_either_order[False]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_difficulty_scopes_do_not_contaminate_either_order[True]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes0-cued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes0-uncued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes1-cued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes1-uncued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes2-cued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes2-uncued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes3-cued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes3-uncued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes4-cued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes4-uncued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes5-cued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes5-uncued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes6-cued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_incompatible_difficulty_evidence_uses_explicit_default[changes6-uncued_execution]" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_status_and_actual_selection_use_requested_scope[False-targeted-cued_execution-band0]" time="0.057" /><testcase classname="tests.test_journey_guidance" name="test_status_and_actual_selection_use_requested_scope[False-recheck-uncued_execution-band1]" time="0.043" /><testcase classname="tests.test_journey_guidance" name="test_status_and_actual_selection_use_requested_scope[True-targeted-cued_execution-band0]" time="0.043" /><testcase classname="tests.test_journey_guidance" name="test_status_and_actual_selection_use_requested_scope[True-recheck-uncued_execution-band1]" time="0.047" /><testcase classname="tests.test_journey_guidance" name="test_recheck_status_date_moves_after_related_exposure" time="0.000" /><testcase classname="tests.test_journey_guidance" name="test_real_new_report_preserves_unknown_history_and_next_band" time="0.182" /><testcase classname="tests.test_learning_continuity" name="test_saved_switch_resume_keeps_help_and_rejects_late_moves" time="0.164" /><testcase classname="tests.test_learning_continuity" name="test_same_card_start_is_resume_without_exposure_or_help_reset" time="0.070" /><testcase classname="tests.test_learning_continuity" name="test_starting_level_persists_rules_retries_and_preserves_history" time="0.148" /><testcase classname="tests.test_learning_continuity" name="test_entry_selection_and_reports_cannot_mix_with_balanced_growth" time="0.364" /><testcase classname="tests.test_learning_continuity" name="test_application_easier_same_slot_and_retention_preparation" time="1.247" /><testcase classname="tests.test_learning_continuity" name="test_no_lower_candidate_preserves_everything" time="1.370" /><testcase classname="tests.test_learning_continuity" name="test_unknown_or_skipped_level_never_defaults_to_medium[None]" time="0.065" /><testcase classname="tests.test_learning_continuity" name="test_unknown_or_skipped_level_never_defaults_to_medium[unsure]" time="0.049" /><testcase classname="tests.test_learning_continuity" name="test_unknown_or_skipped_level_never_defaults_to_medium[later]" time="0.039" /><testcase classname="tests.test_learning_continuity" name="test_latest_gentle_is_separate_from_prior_standard_cycle" time="0.902" /><testcase classname="tests.test_onboarding" name="test_account_state_and_replay_preserves_records" time="0.151" /><testcase classname="tests.test_onboarding" name="test_skip_auth_validation_and_defer" time="0.166" /><testcase classname="tests.test_onboarding" name="test_new_journey_dynamic_helper_defers_without_mutation" time="0.093" /><testcase classname="tests.test_puzzle_catalog_ready" name="test_delayed_catalog_blocks_submit_and_supports_explicit_retry[http]" time="12.330" /><testcase classname="tests.test_puzzle_catalog_ready" name="test_delayed_catalog_blocks_submit_and_supports_explicit_retry[unavailable]" time="4.971" /><testcase classname="tests.test_puzzle_catalog_ready" name="test_late_public_catalog_after_account_change_preserves_b_restored_task" time="6.229" /><testcase classname="tests.test_qa_followup_browser" name="test_s3_active_restore_clears_previous_result[questions]" time="19.101" /><testcase classname="tests.test_qa_followup_browser" name="test_s3_active_restore_clears_previous_result[feedback]" time="5.349" /><testcase classname="tests.test_qa_followup_browser" name="test_s3_active_restore_clears_previous_result[game]" time="5.616" /><testcase classname="tests.test_qa_followup_browser" name="test_s3_new_start_discards_late_recommendations" time="4.856" /><testcase classname="tests.test_qa_followup_browser" name="test_s4_matchup_uses_actual_game_color[new-white-\ubc31 \u2654 vs AI \u265a]" time="5.782" /><testcase classname="tests.test_qa_followup_browser" name="test_s4_matchup_uses_actual_game_color[new-black-\ud751 \u265a vs AI \u2654]" time="4.427" /><testcase classname="tests.test_qa_followup_browser" name="test_s4_matchup_uses_actual_game_color[resume-white-\ubc31 \u2654 vs AI \u265a]" time="3.851" /><testcase classname="tests.test_qa_followup_browser" name="test_s4_matchup_uses_actual_game_color[resume-black-\ud751 \u265a vs AI \u2654]" time="4.126" /><testcase classname="tests.test_qa_followup_browser" name="test_s4_matchup_uses_actual_game_color[timeout-white-\ubc31 \u2654 vs AI \u265a]" time="6.012" /><testcase classname="tests.test_qa_followup_browser" name="test_s4_matchup_uses_actual_game_color[timeout-black-\ud751 \u265a vs AI \u2654]" time="5.202" /><testcase classname="tests.test_responsive_qa" name="test_responsive_boards_long_copy_and_last_result[320]" time="15.937" /><testcase classname="tests.test_responsive_qa" name="test_responsive_boards_long_copy_and_last_result[360]" time="34.617"><failure message="playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;#learningFresh&quot;)&#10;    - locator resolved to &lt;button id=&quot;learningFresh&quot; class=&quot;btn primary&quot;&gt;새 첫 수 연습&lt;/button&gt;&#10;  - attempting click action&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;    - waiting 20ms&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;      - waiting 100ms&#10;    56 × waiting for element to be visible, enabled and stable&#10;       - element is not visible&#10;     - retrying click action&#10;       - waiting 500ms">site = ('http://127.0.0.1:45949', 'B5zugmcQyBjqxT0VsLghybfZqLUavbLuU2I_N4pENCsksRMq')
+width = 360
+
+    @pytest.mark.parametrize('width',[320,360,390,430,768,900,1024,1280])
+    def test_responsive_boards_long_copy_and_last_result(site,width):
+        with sync_playwright() as p:
+            browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+            page=browser.new_page(viewport={'width':width,'height':900},is_mobile=width&lt;768,has_touch=width&lt;768)
+            errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+            page.add_init_script("localStorage.setItem('chess_token',"+repr(site[1])+");")
+            task=question();task['question']['goal']='상대 응수를 확인하고 이어서 직접 두세요. '+('d7d8n-e8f7-'*12)
+            task['question']['label']='메이트 수순 · 한국어 설명과 긴 날짜 2026-10-19T23:59:59.999999+00:00'
+            page.route('**/api/onboarding',lambda r:r.fulfill(json={'status':'completed','version':1}))
+            page.route('**/api/journey',lambda r:r.fulfill(json={'active':task,'latest':None,'results':[],'competencies':[]}))
+            page.goto(site[0]);page.evaluate("tab('diagnosis')")
+            try:expect(page.locator('#journeyBoard .sq')).to_have_count(64)
+            except AssertionError as error:
+                page.screenshot(path=f'/tmp/cma-responsive-failure-{width}.png',full_page=True)
+                message=page.locator('#journeyMessage').text_content()
+                raise AssertionError(f'{error}; journey status={message}; page errors={errors}') from error
+            expect(page.locator('#journeyBoard [aria-label^="e3 "]')).to_have_attribute('aria-label','e3 흑 룩')
+            for view in ['diagnosis','profile','help']:
+                page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(100)
+                assert page.evaluate('document.documentElement.scrollWidth&lt;=innerWidth+1'),(width,view,page.evaluate('document.documentElement.scrollWidth'))
+            page.evaluate("tab('diagnosis')")
+            directory=Path(__file__).resolve().parents[1]/'docs/qa-responsive';directory.mkdir(exist_ok=True)
+            page.screenshot(path=str(directory/f'diagnosis-{width}.png'),full_page=True)
+            page.locator('#journeyBoard [aria-label^="e3 "]').focus()
+            assert page.locator('#journeyBoard [aria-label^="e3 "]').evaluate("e=&gt;getComputedStyle(e).outlineStyle")!='none'
+            # Final feedback exposes a clear result action, not another-question wording.
+            task.update(index=1,phase='feedback',feedback={'submitted':['e3h3'],'expected':['e3h3'],'correct_plies':1,'total_plies':1})
+            page.locator('#journeyRefresh').click();expect(page.locator('#journeyNext')).to_have_text('결과 보기')
+            page.evaluate("tab('training')")
+&gt;           page.locator('#learningFresh').click()
+
+tests/test_responsive_qa.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../chess-venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11021: in click
+    self._sync(
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:174: in click
+    return await self._frame._click(self._selector, strict=True, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:598: in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x7f96e56a9e50&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x7f96d6a66a20&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("#learningFresh")
+E               - locator resolved to &lt;button id="learningFresh" class="btn primary"&gt;새 첫 수 연습&lt;/button&gt;
+E             - attempting click action
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E               - waiting 20ms
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E                 - waiting 100ms
+E               56 × waiting for element to be visible, enabled and stable
+E                  - element is not visible
+E                - retrying click action
+E                  - waiting 500ms
+
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:636: TimeoutError</failure></testcase><testcase classname="tests.test_responsive_qa" name="test_responsive_boards_long_copy_and_last_result[390]" time="34.573"><failure message="playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;#learningFresh&quot;)&#10;    - locator resolved to &lt;button id=&quot;learningFresh&quot; class=&quot;btn primary&quot;&gt;새 첫 수 연습&lt;/button&gt;&#10;  - attempting click action&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;    - waiting 20ms&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;      - waiting 100ms&#10;    57 × waiting for element to be visible, enabled and stable&#10;       - element is not visible&#10;     - retrying click action&#10;       - waiting 500ms">site = ('http://127.0.0.1:45949', 'B5zugmcQyBjqxT0VsLghybfZqLUavbLuU2I_N4pENCsksRMq')
+width = 390
+
+    @pytest.mark.parametrize('width',[320,360,390,430,768,900,1024,1280])
+    def test_responsive_boards_long_copy_and_last_result(site,width):
+        with sync_playwright() as p:
+            browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+            page=browser.new_page(viewport={'width':width,'height':900},is_mobile=width&lt;768,has_touch=width&lt;768)
+            errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+            page.add_init_script("localStorage.setItem('chess_token',"+repr(site[1])+");")
+            task=question();task['question']['goal']='상대 응수를 확인하고 이어서 직접 두세요. '+('d7d8n-e8f7-'*12)
+            task['question']['label']='메이트 수순 · 한국어 설명과 긴 날짜 2026-10-19T23:59:59.999999+00:00'
+            page.route('**/api/onboarding',lambda r:r.fulfill(json={'status':'completed','version':1}))
+            page.route('**/api/journey',lambda r:r.fulfill(json={'active':task,'latest':None,'results':[],'competencies':[]}))
+            page.goto(site[0]);page.evaluate("tab('diagnosis')")
+            try:expect(page.locator('#journeyBoard .sq')).to_have_count(64)
+            except AssertionError as error:
+                page.screenshot(path=f'/tmp/cma-responsive-failure-{width}.png',full_page=True)
+                message=page.locator('#journeyMessage').text_content()
+                raise AssertionError(f'{error}; journey status={message}; page errors={errors}') from error
+            expect(page.locator('#journeyBoard [aria-label^="e3 "]')).to_have_attribute('aria-label','e3 흑 룩')
+            for view in ['diagnosis','profile','help']:
+                page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(100)
+                assert page.evaluate('document.documentElement.scrollWidth&lt;=innerWidth+1'),(width,view,page.evaluate('document.documentElement.scrollWidth'))
+            page.evaluate("tab('diagnosis')")
+            directory=Path(__file__).resolve().parents[1]/'docs/qa-responsive';directory.mkdir(exist_ok=True)
+            page.screenshot(path=str(directory/f'diagnosis-{width}.png'),full_page=True)
+            page.locator('#journeyBoard [aria-label^="e3 "]').focus()
+            assert page.locator('#journeyBoard [aria-label^="e3 "]').evaluate("e=&gt;getComputedStyle(e).outlineStyle")!='none'
+            # Final feedback exposes a clear result action, not another-question wording.
+            task.update(index=1,phase='feedback',feedback={'submitted':['e3h3'],'expected':['e3h3'],'correct_plies':1,'total_plies':1})
+            page.locator('#journeyRefresh').click();expect(page.locator('#journeyNext')).to_have_text('결과 보기')
+            page.evaluate("tab('training')")
+&gt;           page.locator('#learningFresh').click()
+
+tests/test_responsive_qa.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../chess-venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11021: in click
+    self._sync(
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:174: in click
+    return await self._frame._click(self._selector, strict=True, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:598: in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x7f96d77d4d10&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x7f96d6236a20&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("#learningFresh")
+E               - locator resolved to &lt;button id="learningFresh" class="btn primary"&gt;새 첫 수 연습&lt;/button&gt;
+E             - attempting click action
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E               - waiting 20ms
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E                 - waiting 100ms
+E               57 × waiting for element to be visible, enabled and stable
+E                  - element is not visible
+E                - retrying click action
+E                  - waiting 500ms
+
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:636: TimeoutError</failure></testcase><testcase classname="tests.test_responsive_qa" name="test_responsive_boards_long_copy_and_last_result[430]" time="34.786"><failure message="playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;#learningFresh&quot;)&#10;    - locator resolved to &lt;button id=&quot;learningFresh&quot; class=&quot;btn primary&quot;&gt;새 첫 수 연습&lt;/button&gt;&#10;  - attempting click action&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;    - waiting 20ms&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;      - waiting 100ms&#10;    56 × waiting for element to be visible, enabled and stable&#10;       - element is not visible&#10;     - retrying click action&#10;       - waiting 500ms">site = ('http://127.0.0.1:45949', 'B5zugmcQyBjqxT0VsLghybfZqLUavbLuU2I_N4pENCsksRMq')
+width = 430
+
+    @pytest.mark.parametrize('width',[320,360,390,430,768,900,1024,1280])
+    def test_responsive_boards_long_copy_and_last_result(site,width):
+        with sync_playwright() as p:
+            browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+            page=browser.new_page(viewport={'width':width,'height':900},is_mobile=width&lt;768,has_touch=width&lt;768)
+            errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+            page.add_init_script("localStorage.setItem('chess_token',"+repr(site[1])+");")
+            task=question();task['question']['goal']='상대 응수를 확인하고 이어서 직접 두세요. '+('d7d8n-e8f7-'*12)
+            task['question']['label']='메이트 수순 · 한국어 설명과 긴 날짜 2026-10-19T23:59:59.999999+00:00'
+            page.route('**/api/onboarding',lambda r:r.fulfill(json={'status':'completed','version':1}))
+            page.route('**/api/journey',lambda r:r.fulfill(json={'active':task,'latest':None,'results':[],'competencies':[]}))
+            page.goto(site[0]);page.evaluate("tab('diagnosis')")
+            try:expect(page.locator('#journeyBoard .sq')).to_have_count(64)
+            except AssertionError as error:
+                page.screenshot(path=f'/tmp/cma-responsive-failure-{width}.png',full_page=True)
+                message=page.locator('#journeyMessage').text_content()
+                raise AssertionError(f'{error}; journey status={message}; page errors={errors}') from error
+            expect(page.locator('#journeyBoard [aria-label^="e3 "]')).to_have_attribute('aria-label','e3 흑 룩')
+            for view in ['diagnosis','profile','help']:
+                page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(100)
+                assert page.evaluate('document.documentElement.scrollWidth&lt;=innerWidth+1'),(width,view,page.evaluate('document.documentElement.scrollWidth'))
+            page.evaluate("tab('diagnosis')")
+            directory=Path(__file__).resolve().parents[1]/'docs/qa-responsive';directory.mkdir(exist_ok=True)
+            page.screenshot(path=str(directory/f'diagnosis-{width}.png'),full_page=True)
+            page.locator('#journeyBoard [aria-label^="e3 "]').focus()
+            assert page.locator('#journeyBoard [aria-label^="e3 "]').evaluate("e=&gt;getComputedStyle(e).outlineStyle")!='none'
+            # Final feedback exposes a clear result action, not another-question wording.
+            task.update(index=1,phase='feedback',feedback={'submitted':['e3h3'],'expected':['e3h3'],'correct_plies':1,'total_plies':1})
+            page.locator('#journeyRefresh').click();expect(page.locator('#journeyNext')).to_have_text('결과 보기')
+            page.evaluate("tab('training')")
+&gt;           page.locator('#learningFresh').click()
+
+tests/test_responsive_qa.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../chess-venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11021: in click
+    self._sync(
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:174: in click
+    return await self._frame._click(self._selector, strict=True, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:598: in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x7f96d76fc920&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x7f96d65e5ee0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("#learningFresh")
+E               - locator resolved to &lt;button id="learningFresh" class="btn primary"&gt;새 첫 수 연습&lt;/button&gt;
+E             - attempting click action
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E               - waiting 20ms
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E                 - waiting 100ms
+E               56 × waiting for element to be visible, enabled and stable
+E                  - element is not visible
+E                - retrying click action
+E                  - waiting 500ms
+
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:636: TimeoutError</failure></testcase><testcase classname="tests.test_responsive_qa" name="test_responsive_boards_long_copy_and_last_result[768]" time="35.562"><failure message="playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;#learningFresh&quot;)&#10;    - locator resolved to &lt;button id=&quot;learningFresh&quot; class=&quot;btn primary&quot;&gt;새 첫 수 연습&lt;/button&gt;&#10;  - attempting click action&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;    - waiting 20ms&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;      - waiting 100ms&#10;    57 × waiting for element to be visible, enabled and stable&#10;       - element is not visible&#10;     - retrying click action&#10;       - waiting 500ms">site = ('http://127.0.0.1:45949', 'B5zugmcQyBjqxT0VsLghybfZqLUavbLuU2I_N4pENCsksRMq')
+width = 768
+
+    @pytest.mark.parametrize('width',[320,360,390,430,768,900,1024,1280])
+    def test_responsive_boards_long_copy_and_last_result(site,width):
+        with sync_playwright() as p:
+            browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+            page=browser.new_page(viewport={'width':width,'height':900},is_mobile=width&lt;768,has_touch=width&lt;768)
+            errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+            page.add_init_script("localStorage.setItem('chess_token',"+repr(site[1])+");")
+            task=question();task['question']['goal']='상대 응수를 확인하고 이어서 직접 두세요. '+('d7d8n-e8f7-'*12)
+            task['question']['label']='메이트 수순 · 한국어 설명과 긴 날짜 2026-10-19T23:59:59.999999+00:00'
+            page.route('**/api/onboarding',lambda r:r.fulfill(json={'status':'completed','version':1}))
+            page.route('**/api/journey',lambda r:r.fulfill(json={'active':task,'latest':None,'results':[],'competencies':[]}))
+            page.goto(site[0]);page.evaluate("tab('diagnosis')")
+            try:expect(page.locator('#journeyBoard .sq')).to_have_count(64)
+            except AssertionError as error:
+                page.screenshot(path=f'/tmp/cma-responsive-failure-{width}.png',full_page=True)
+                message=page.locator('#journeyMessage').text_content()
+                raise AssertionError(f'{error}; journey status={message}; page errors={errors}') from error
+            expect(page.locator('#journeyBoard [aria-label^="e3 "]')).to_have_attribute('aria-label','e3 흑 룩')
+            for view in ['diagnosis','profile','help']:
+                page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(100)
+                assert page.evaluate('document.documentElement.scrollWidth&lt;=innerWidth+1'),(width,view,page.evaluate('document.documentElement.scrollWidth'))
+            page.evaluate("tab('diagnosis')")
+            directory=Path(__file__).resolve().parents[1]/'docs/qa-responsive';directory.mkdir(exist_ok=True)
+            page.screenshot(path=str(directory/f'diagnosis-{width}.png'),full_page=True)
+            page.locator('#journeyBoard [aria-label^="e3 "]').focus()
+            assert page.locator('#journeyBoard [aria-label^="e3 "]').evaluate("e=&gt;getComputedStyle(e).outlineStyle")!='none'
+            # Final feedback exposes a clear result action, not another-question wording.
+            task.update(index=1,phase='feedback',feedback={'submitted':['e3h3'],'expected':['e3h3'],'correct_plies':1,'total_plies':1})
+            page.locator('#journeyRefresh').click();expect(page.locator('#journeyNext')).to_have_text('결과 보기')
+            page.evaluate("tab('training')")
+&gt;           page.locator('#learningFresh').click()
+
+tests/test_responsive_qa.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../chess-venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11021: in click
+    self._sync(
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:174: in click
+    return await self._frame._click(self._selector, strict=True, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:598: in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x7f96d7480c20&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x7f96d623d300&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("#learningFresh")
+E               - locator resolved to &lt;button id="learningFresh" class="btn primary"&gt;새 첫 수 연습&lt;/button&gt;
+E             - attempting click action
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E               - waiting 20ms
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E                 - waiting 100ms
+E               57 × waiting for element to be visible, enabled and stable
+E                  - element is not visible
+E                - retrying click action
+E                  - waiting 500ms
+
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:636: TimeoutError</failure></testcase><testcase classname="tests.test_responsive_qa" name="test_responsive_boards_long_copy_and_last_result[900]" time="33.729"><failure message="playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;#learningFresh&quot;)&#10;    - locator resolved to &lt;button id=&quot;learningFresh&quot; class=&quot;btn primary&quot;&gt;새 첫 수 연습&lt;/button&gt;&#10;  - attempting click action&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;    - waiting 20ms&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;      - waiting 100ms&#10;    57 × waiting for element to be visible, enabled and stable&#10;       - element is not visible&#10;     - retrying click action&#10;       - waiting 500ms">site = ('http://127.0.0.1:45949', 'B5zugmcQyBjqxT0VsLghybfZqLUavbLuU2I_N4pENCsksRMq')
+width = 900
+
+    @pytest.mark.parametrize('width',[320,360,390,430,768,900,1024,1280])
+    def test_responsive_boards_long_copy_and_last_result(site,width):
+        with sync_playwright() as p:
+            browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+            page=browser.new_page(viewport={'width':width,'height':900},is_mobile=width&lt;768,has_touch=width&lt;768)
+            errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+            page.add_init_script("localStorage.setItem('chess_token',"+repr(site[1])+");")
+            task=question();task['question']['goal']='상대 응수를 확인하고 이어서 직접 두세요. '+('d7d8n-e8f7-'*12)
+            task['question']['label']='메이트 수순 · 한국어 설명과 긴 날짜 2026-10-19T23:59:59.999999+00:00'
+            page.route('**/api/onboarding',lambda r:r.fulfill(json={'status':'completed','version':1}))
+            page.route('**/api/journey',lambda r:r.fulfill(json={'active':task,'latest':None,'results':[],'competencies':[]}))
+            page.goto(site[0]);page.evaluate("tab('diagnosis')")
+            try:expect(page.locator('#journeyBoard .sq')).to_have_count(64)
+            except AssertionError as error:
+                page.screenshot(path=f'/tmp/cma-responsive-failure-{width}.png',full_page=True)
+                message=page.locator('#journeyMessage').text_content()
+                raise AssertionError(f'{error}; journey status={message}; page errors={errors}') from error
+            expect(page.locator('#journeyBoard [aria-label^="e3 "]')).to_have_attribute('aria-label','e3 흑 룩')
+            for view in ['diagnosis','profile','help']:
+                page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(100)
+                assert page.evaluate('document.documentElement.scrollWidth&lt;=innerWidth+1'),(width,view,page.evaluate('document.documentElement.scrollWidth'))
+            page.evaluate("tab('diagnosis')")
+            directory=Path(__file__).resolve().parents[1]/'docs/qa-responsive';directory.mkdir(exist_ok=True)
+            page.screenshot(path=str(directory/f'diagnosis-{width}.png'),full_page=True)
+            page.locator('#journeyBoard [aria-label^="e3 "]').focus()
+            assert page.locator('#journeyBoard [aria-label^="e3 "]').evaluate("e=&gt;getComputedStyle(e).outlineStyle")!='none'
+            # Final feedback exposes a clear result action, not another-question wording.
+            task.update(index=1,phase='feedback',feedback={'submitted':['e3h3'],'expected':['e3h3'],'correct_plies':1,'total_plies':1})
+            page.locator('#journeyRefresh').click();expect(page.locator('#journeyNext')).to_have_text('결과 보기')
+            page.evaluate("tab('training')")
+&gt;           page.locator('#learningFresh').click()
+
+tests/test_responsive_qa.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../chess-venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11021: in click
+    self._sync(
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:174: in click
+    return await self._frame._click(self._selector, strict=True, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:598: in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x7f96d7474a10&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x7f96d65993a0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("#learningFresh")
+E               - locator resolved to &lt;button id="learningFresh" class="btn primary"&gt;새 첫 수 연습&lt;/button&gt;
+E             - attempting click action
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E               - waiting 20ms
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E                 - waiting 100ms
+E               57 × waiting for element to be visible, enabled and stable
+E                  - element is not visible
+E                - retrying click action
+E                  - waiting 500ms
+
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:636: TimeoutError</failure></testcase><testcase classname="tests.test_responsive_qa" name="test_responsive_boards_long_copy_and_last_result[1024]" time="32.922"><failure message="playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;#learningFresh&quot;)&#10;    - locator resolved to &lt;button id=&quot;learningFresh&quot; class=&quot;btn primary&quot;&gt;새 첫 수 연습&lt;/button&gt;&#10;  - attempting click action&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;    - waiting 20ms&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;      - waiting 100ms&#10;    58 × waiting for element to be visible, enabled and stable&#10;       - element is not visible&#10;     - retrying click action&#10;       - waiting 500ms">site = ('http://127.0.0.1:45949', 'B5zugmcQyBjqxT0VsLghybfZqLUavbLuU2I_N4pENCsksRMq')
+width = 1024
+
+    @pytest.mark.parametrize('width',[320,360,390,430,768,900,1024,1280])
+    def test_responsive_boards_long_copy_and_last_result(site,width):
+        with sync_playwright() as p:
+            browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+            page=browser.new_page(viewport={'width':width,'height':900},is_mobile=width&lt;768,has_touch=width&lt;768)
+            errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+            page.add_init_script("localStorage.setItem('chess_token',"+repr(site[1])+");")
+            task=question();task['question']['goal']='상대 응수를 확인하고 이어서 직접 두세요. '+('d7d8n-e8f7-'*12)
+            task['question']['label']='메이트 수순 · 한국어 설명과 긴 날짜 2026-10-19T23:59:59.999999+00:00'
+            page.route('**/api/onboarding',lambda r:r.fulfill(json={'status':'completed','version':1}))
+            page.route('**/api/journey',lambda r:r.fulfill(json={'active':task,'latest':None,'results':[],'competencies':[]}))
+            page.goto(site[0]);page.evaluate("tab('diagnosis')")
+            try:expect(page.locator('#journeyBoard .sq')).to_have_count(64)
+            except AssertionError as error:
+                page.screenshot(path=f'/tmp/cma-responsive-failure-{width}.png',full_page=True)
+                message=page.locator('#journeyMessage').text_content()
+                raise AssertionError(f'{error}; journey status={message}; page errors={errors}') from error
+            expect(page.locator('#journeyBoard [aria-label^="e3 "]')).to_have_attribute('aria-label','e3 흑 룩')
+            for view in ['diagnosis','profile','help']:
+                page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(100)
+                assert page.evaluate('document.documentElement.scrollWidth&lt;=innerWidth+1'),(width,view,page.evaluate('document.documentElement.scrollWidth'))
+            page.evaluate("tab('diagnosis')")
+            directory=Path(__file__).resolve().parents[1]/'docs/qa-responsive';directory.mkdir(exist_ok=True)
+            page.screenshot(path=str(directory/f'diagnosis-{width}.png'),full_page=True)
+            page.locator('#journeyBoard [aria-label^="e3 "]').focus()
+            assert page.locator('#journeyBoard [aria-label^="e3 "]').evaluate("e=&gt;getComputedStyle(e).outlineStyle")!='none'
+            # Final feedback exposes a clear result action, not another-question wording.
+            task.update(index=1,phase='feedback',feedback={'submitted':['e3h3'],'expected':['e3h3'],'correct_plies':1,'total_plies':1})
+            page.locator('#journeyRefresh').click();expect(page.locator('#journeyNext')).to_have_text('결과 보기')
+            page.evaluate("tab('training')")
+&gt;           page.locator('#learningFresh').click()
+
+tests/test_responsive_qa.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../chess-venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11021: in click
+    self._sync(
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:174: in click
+    return await self._frame._click(self._selector, strict=True, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:598: in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x7f96e60c6990&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x7f96d6a67100&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("#learningFresh")
+E               - locator resolved to &lt;button id="learningFresh" class="btn primary"&gt;새 첫 수 연습&lt;/button&gt;
+E             - attempting click action
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E               - waiting 20ms
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E                 - waiting 100ms
+E               58 × waiting for element to be visible, enabled and stable
+E                  - element is not visible
+E                - retrying click action
+E                  - waiting 500ms
+
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:636: TimeoutError</failure></testcase><testcase classname="tests.test_responsive_qa" name="test_responsive_boards_long_copy_and_last_result[1280]" time="32.344"><failure message="playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;#learningFresh&quot;)&#10;    - locator resolved to &lt;button id=&quot;learningFresh&quot; class=&quot;btn primary&quot;&gt;새 첫 수 연습&lt;/button&gt;&#10;  - attempting click action&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;    - waiting 20ms&#10;    2 × waiting for element to be visible, enabled and stable&#10;      - element is not visible&#10;    - retrying click action&#10;      - waiting 100ms&#10;    57 × waiting for element to be visible, enabled and stable&#10;       - element is not visible&#10;     - retrying click action&#10;       - waiting 500ms">site = ('http://127.0.0.1:45949', 'B5zugmcQyBjqxT0VsLghybfZqLUavbLuU2I_N4pENCsksRMq')
+width = 1280
+
+    @pytest.mark.parametrize('width',[320,360,390,430,768,900,1024,1280])
+    def test_responsive_boards_long_copy_and_last_result(site,width):
+        with sync_playwright() as p:
+            browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+            page=browser.new_page(viewport={'width':width,'height':900},is_mobile=width&lt;768,has_touch=width&lt;768)
+            errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+            page.add_init_script("localStorage.setItem('chess_token',"+repr(site[1])+");")
+            task=question();task['question']['goal']='상대 응수를 확인하고 이어서 직접 두세요. '+('d7d8n-e8f7-'*12)
+            task['question']['label']='메이트 수순 · 한국어 설명과 긴 날짜 2026-10-19T23:59:59.999999+00:00'
+            page.route('**/api/onboarding',lambda r:r.fulfill(json={'status':'completed','version':1}))
+            page.route('**/api/journey',lambda r:r.fulfill(json={'active':task,'latest':None,'results':[],'competencies':[]}))
+            page.goto(site[0]);page.evaluate("tab('diagnosis')")
+            try:expect(page.locator('#journeyBoard .sq')).to_have_count(64)
+            except AssertionError as error:
+                page.screenshot(path=f'/tmp/cma-responsive-failure-{width}.png',full_page=True)
+                message=page.locator('#journeyMessage').text_content()
+                raise AssertionError(f'{error}; journey status={message}; page errors={errors}') from error
+            expect(page.locator('#journeyBoard [aria-label^="e3 "]')).to_have_attribute('aria-label','e3 흑 룩')
+            for view in ['diagnosis','profile','help']:
+                page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(100)
+                assert page.evaluate('document.documentElement.scrollWidth&lt;=innerWidth+1'),(width,view,page.evaluate('document.documentElement.scrollWidth'))
+            page.evaluate("tab('diagnosis')")
+            directory=Path(__file__).resolve().parents[1]/'docs/qa-responsive';directory.mkdir(exist_ok=True)
+            page.screenshot(path=str(directory/f'diagnosis-{width}.png'),full_page=True)
+            page.locator('#journeyBoard [aria-label^="e3 "]').focus()
+            assert page.locator('#journeyBoard [aria-label^="e3 "]').evaluate("e=&gt;getComputedStyle(e).outlineStyle")!='none'
+            # Final feedback exposes a clear result action, not another-question wording.
+            task.update(index=1,phase='feedback',feedback={'submitted':['e3h3'],'expected':['e3h3'],'correct_plies':1,'total_plies':1})
+            page.locator('#journeyRefresh').click();expect(page.locator('#journeyNext')).to_have_text('결과 보기')
+            page.evaluate("tab('training')")
+&gt;           page.locator('#learningFresh').click()
+
+tests/test_responsive_qa.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../chess-venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11021: in click
+    self._sync(
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:174: in click
+    return await self._frame._click(self._selector, strict=True, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:598: in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x7f96d717e960&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x7f96d6a67100&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("#learningFresh")
+E               - locator resolved to &lt;button id="learningFresh" class="btn primary"&gt;새 첫 수 연습&lt;/button&gt;
+E             - attempting click action
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E               - waiting 20ms
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E                 - waiting 100ms
+E               57 × waiting for element to be visible, enabled and stable
+E                  - element is not visible
+E                - retrying click action
+E                  - waiting 500ms
+
+../chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:636: TimeoutError</failure></testcase><testcase classname="tests.test_responsive_qa" name="test_reset_failure_recovers_button_and_cancel_sends_nothing" time="2.066" /><testcase classname="tests.test_review_context_feedback" name="test_loaded_review_context_survives_history_refresh_and_tab_return" time="9.441" /><testcase classname="tests.test_review_context_feedback" name="test_review_owner_changes_on_real_login_and_late_analysis_is_ignored[False]" time="3.513" /><testcase classname="tests.test_review_context_feedback" name="test_review_owner_changes_on_real_login_and_late_analysis_is_ignored[True]" time="3.308" /><testcase classname="tests.test_study" name="test_piece_object_particles_in_move_explanation[e4 e5 Ke2-\ubc31 Ke2: \ud0b9\uc744 e1\uc5d0\uc11c e2\ub85c \uc62e\uae41\ub2c8\ub2e4.]" time="0.002" /><testcase classname="tests.test_study" name="test_piece_object_particles_in_move_explanation[e4 e5 Qh5-\ubc31 Qh5: \ud038\uc744 d1\uc5d0\uc11c h5\ub85c \uc62e\uae41\ub2c8\ub2e4.]" time="0.001" /><testcase classname="tests.test_study" name="test_piece_object_particles_in_move_explanation[h4 a6 Rh3-\ubc31 Rh3: \ub8e9\uc744 h1\uc5d0\uc11c h3\ub85c \uc62e\uae41\ub2c8\ub2e4.]" time="0.001" /><testcase classname="tests.test_study" name="test_piece_object_particles_in_move_explanation[e4 e5 Bc4-\ubc31 Bc4: \ube44\uc20d\uc744 f1\uc5d0\uc11c c4\ub85c \uc62e\uae41\ub2c8\ub2e4.]" time="0.001" /><testcase classname="tests.test_study" name="test_piece_object_particles_in_move_explanation[Nf3-\ubc31 Nf3: \ub098\uc774\ud2b8\ub97c g1\uc5d0\uc11c f3\ub85c \uc62e\uae41\ub2c8\ub2e4.]" time="0.000" /><testcase classname="tests.test_study" name="test_piece_object_particles_in_move_explanation[e4-\ubc31 e4: \ud3f0\uc744 e2\uc5d0\uc11c e4\ub85c \uc62e\uae41\ub2c8\ub2e4.]" time="0.001" /><testcase classname="tests.test_study" name="test_every_authored_and_reference_line_is_legal_and_source_hashes_match" time="1.255" /><testcase classname="tests.test_study" name="test_graph_transposition_rights_unknown_move_and_recall" time="0.010" /><testcase classname="tests.test_study" name="test_exploration_preserves_all_account_state_and_actual_engine" time="1.309" /><testcase classname="tests.test_study" name="test_special_moves[7k/P7/8/8/8/8/8/K7 w - - 0 1-a7a8n-n]" time="0.114" /><testcase classname="tests.test_study" name="test_special_moves[r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1-e1g1-castled]" time="0.094" /><testcase classname="tests.test_study" name="test_special_moves[4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1-e5d6-ep]" time="0.093" /><testcase classname="tests.test_study" name="test_terminal_repetition_invalid_and_bounded_busy" time="0.097" /><testcase classname="tests.test_study" name="test_opening_bookmark_cas_separate_from_game_progress" time="0.162" /><testcase classname="tests.test_study" name="test_commentary_matches_position_and_does_not_follow_free_moves" time="0.715" /><testcase classname="tests.test_study" name="test_new_systems_exact_positions_note_scope_and_transposition" time="0.014" /><testcase classname="tests.test_study" name="test_fianchetto_ray_and_trompowsky_retreat_notes_match_positions" time="0.009" /></testsuite></testsuites>

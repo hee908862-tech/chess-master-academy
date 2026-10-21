@@ -164,6 +164,7 @@ def test_black_puzzle_hint_reply_and_next_color(page,site):
     page.evaluate("tab('home');tab('puzzle')")
     expect(page.locator('#'+name+' .sq').first).to_have_attribute('aria-label','h1 백 룩')
     task.update(id='white',fen=chess.STARTING_FEN,side='white',legal=['e2e4'],opponent_last_move=None)
+    if not page.locator('#v9PuzzleStart').is_visible():page.locator('#focusPuzzleSelection > summary').click()
     page.locator('#v9PuzzleStart').click()
     expect(page.locator('#'+name+' .sq').first).to_have_attribute('aria-label','a8 흑 룩')
     expect(page.locator('#v9PuzzleMessage')).to_contain_text('직전 수 기록이 없어')

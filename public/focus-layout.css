@@ -70,3 +70,11 @@ body.entry-login #profileSections{display:none!important}
 #guestScope>summary{min-height:44px;padding:10px;cursor:pointer}#guestScope{border:1px solid var(--line);border-radius:10px}
 #guestPractice #guestGoal{margin:4px 0 8px;line-height:1.5}#guestPractice #guestTitle{margin:4px 0}
 #guestOutcome{min-height:3em;margin:0;line-height:1.5}
+
+.focus-lesson-active{padding:10px!important}.focus-lesson-active> .focus-details{margin-bottom:8px}
+.focus-lesson-active h3{font-size:18px;margin:6px 0}.focus-lesson-active #educationBody>p,.focus-lesson-active #repertoireBody>p{margin:4px 0;line-height:1.5}
+.focus-lesson-active .education-layout,.focus-lesson-active .repertoire-layout{grid-template-columns:minmax(280px,1.2fr) minmax(240px,1fr);margin:8px 0;gap:16px}
+.focus-lesson-active .board{max-width:min(520px,max(300px,calc(100dvh - 310px)))}
+.focus-lesson-panel{display:flex;flex-direction:column;gap:8px;min-width:0}.focus-lesson-panel>p{margin:0}.focus-lesson-panel .btn-row{gap:6px}
+#reviewBoard[hidden]{display:none!important}
+@media(max-width:850px){.focus-lesson-active .education-layout,.focus-lesson-active .repertoire-layout{grid-template-columns:minmax(0,1fr)}.focus-lesson-active .board{max-width:440px}.focus-lesson-active{padding:8px!important}}

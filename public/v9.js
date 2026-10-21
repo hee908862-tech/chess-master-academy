@@ -33,7 +33,7 @@ function boardFeedback(kind,title,save='저장 응답 확인됨',type='ready'){w
 function status(kind,msg){el('v9'+(kind==='course'?'Course':'Puzzle')+'Message').textContent=msg}
 function boardName(kind){return 'v9'+(kind==='course'?'Course':'Puzzle')+'Board'}
 function props(kind){return kind==='course'?'Course':'Puzzle'}
-function paint(kind){const st=modes[kind];if(!st.task)return;
+function paint(kind){const st=modes[kind];if(!st.task)return;if(kind==='puzzle')window.cmaFocusLayout?.puzzleReady(st.task.session_id);
  const data=st.task, fen=data.fen, p=fromFen(fen), turn=st.side==='white';
  const targets=st.selected?(data.legal||[]).filter(u=>u.slice(0,2)===st.selected).map(u=>({to:u.slice(2,4)})):[];
  drawBoard(boardName(kind),p,{flip:!turn,opponent:data.opponent_last_move?[data.opponent_last_move.slice(0,2),data.opponent_last_move.slice(2,4)]:[],hint:st.hint||[],selected:st.selected,targets,last:st.last,onClick:sq=>tap(kind,sq)});

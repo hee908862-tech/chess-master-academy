@@ -166,12 +166,14 @@ def test_opening_redo_boundaries_and_delayed_description(page,site,width):
     page.evaluate('window.holdDescription=false;releaseDescription()')
     expect(page.locator('#studyMessage')).to_contain_text('등록된')
     expect(page.locator('#studyChoices button').first).to_be_visible()
+    expect(page.locator('.cma-motion-ghost')).to_have_count(0)
     board_after=page.locator('#studyOpeningBoard').inner_html()
     explanation=page.locator('#studyExplanation').inner_text()
     previous.click();expect(page.locator('#studyMessage')).to_contain_text('등록된')
     expect(previous).to_be_disabled();expect(redo).to_be_enabled()
     redo.click();expect(page.locator('#studyMessage')).to_contain_text('등록된')
     expect(redo).to_be_disabled();expect(previous).to_be_enabled()
+    expect(page.locator('.cma-motion-ghost')).to_have_count(0)
     assert page.locator('#studyOpeningBoard').inner_html()==board_after
     assert page.locator('#studyExplanation').inner_text()==explanation
     # An alternative move replaces the old redo path; recall still hides answers.

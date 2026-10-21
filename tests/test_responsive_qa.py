@@ -35,6 +35,7 @@ def test_responsive_boards_long_copy_and_last_result(site,width):
         task.update(index=1,phase='feedback',feedback={'submitted':['e3h3'],'expected':['e3h3'],'correct_plies':1,'total_plies':1})
         page.locator('#journeyRefresh').click();expect(page.locator('#journeyNext')).to_have_text('결과 보기')
         page.evaluate("tab('training')")
+        page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).click()
         page.locator('#learningFresh').click()
         expect(page.locator('#learningBoard .sq')).to_have_count(64)
         expect(page.locator('#learningFresh')).to_be_enabled()

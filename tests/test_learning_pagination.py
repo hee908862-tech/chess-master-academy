@@ -40,6 +40,7 @@ def test_older_card_next_problem_uses_completed_category(page,site):
         route.fulfill(json=d)
     page.route('**/api/learning/dashboard*',dashboard)
     page.evaluate("tab('training')")
+    page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).click()
     page.get_by_role('button',name='이전 훈련 카드 더 보기',exact=True).click()
     expect(page.locator('#learningCards > .learning-item')).to_have_count(63)
     page.locator('#learningCards > .learning-item').last.get_by_role('button',name='다시 연습',exact=True).click()
@@ -96,6 +97,7 @@ def test_more_button_double_click_and_late_page_after_refresh(page,site):
         route.fulfill(json=d)
     page.route('**/api/learning/dashboard*',dashboard)
     page.evaluate("tab('training')")
+    page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).click()
     more=page.get_by_role('button',name='이전 훈련 카드 더 보기',exact=True)
     expect(more).to_be_enabled()
     # Fire twice on the same old DOM node, before the first response.
