@@ -97,7 +97,7 @@ def test_course_board_feedback_column(page,site,width):
     column=page.locator('#v9CourseBoard').locator('..')
     assert 'board-feedback-column' in column.get_attribute('class')
     assert column.locator('#v9CourseBoardFeedback').count()==1
-    boxes=page.evaluate('()=>{const c=document.getElementById("v9CourseBoard").parentElement;return [c.getBoundingClientRect().toJSON(),c.nextElementSibling.getBoundingClientRect().toJSON()]}')
+    boxes=page.evaluate('()=>{const c=document.getElementById("v9CourseBoard").parentElement;return [c.getBoundingClientRect().toJSON(),document.getElementById("v9CourseHint").parentElement.getBoundingClientRect().toJSON()]}')
     if width==1280:assert boxes[1]['x']>=boxes[0]['right']-1 and abs(boxes[0]['y']-boxes[1]['y'])<=8
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
     page.screenshot(path=f'docs/qa-board-centered-feedback/captures/course-{width}.png',full_page=True)
