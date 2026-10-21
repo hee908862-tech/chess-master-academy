@@ -15,7 +15,7 @@ function install(){
  boardPanel.append($('gameBoard'));
  const controls=make(stage,'section',null,'game-focus-controls');controls.setAttribute('aria-label','대국 핵심 조작');
  const actions=make(controls,'div',null,'game-primary-actions');actions.append($('v7Hint'),$('v7Undo'));
- controls.append($('gameActionReason'),$('gameStatus'));$('gameStatus').setAttribute('role','status');
+ controls.append($('gameActionReason'),$('gameStatus'));if($('gameRestoreRetry'))controls.append($('gameRestoreRetry'));$('gameStatus').setAttribute('role','status');
  const boardTools=play.querySelector('.board-tools');
  // The existing live region remains visible even when tool options are folded.
  const premoveStatus=boardTools.querySelector(':scope > small');premoveStatus.id='gamePremoveStatus';controls.append(premoveStatus);

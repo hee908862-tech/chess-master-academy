@@ -93,6 +93,29 @@ def test_prerequisite_link_opens_exact_existing_card_without_writes(page,site):
  card.get_by_role('button',name='관련 기존 기초 보기',exact=True).click()
  expect(page.locator('#foundationCourseList')).to_have_attribute('open','')
  expect(page.locator('[data-course="king-check"]')).to_be_visible()
- assert page.evaluate("document.activeElement.dataset.course")=='king-check'
+ expect(page.locator('[data-course="king-check"]')).to_be_focused()
  assert page.evaluate("api('/foundations')")==before
  assert page.evaluate("api('/education')")['active'] is None
+
+
+def test_prerequisite_cached_card_waits_for_read_then_focuses_without_writes(page,site):
+ enter(page,site)
+ page.evaluate('cmaFoundations.load()')  # Cached cards are visible before the next GET resolves.
+ before=page.evaluate("api('/foundations')")
+ page.evaluate("""()=>{window.foundationRelease=null;window.prerequisiteWrites=[];
+ window.prerequisiteApi=api;api=async(...a)=>{
+  if(a[1]==='POST')prerequisiteWrites.push(a[0]);
+  if(a[0]==='/foundations'){const r=await prerequisiteApi(...a);return new Promise(resolve=>foundationRelease=()=>resolve(r));}
+  return prerequisiteApi(...a);
+ };}""")
+ card=page.locator('#educationBody article').filter(has=page.get_by_role('heading',name='공격선 관찰과 피하기',exact=True))
+ card.get_by_role('button',name='관련 기존 기초 보기',exact=True).click()
+ expect(page.locator('#foundationCourseList')).to_have_attribute('open','')
+ expect(page.locator('[data-course="king-check"]')).to_be_visible()
+ page.wait_for_function('foundationRelease!==null')
+ expect(page.locator('#foundationHeading')).to_be_focused()
+ page.evaluate('foundationRelease()')
+ expect(page.locator('[data-course="king-check"]')).to_be_focused()
+ assert page.evaluate('prerequisiteWrites')==[]
+ assert page.evaluate("prerequisiteApi('/foundations')")==before
+ assert page.evaluate("prerequisiteApi('/education')")['active'] is None
