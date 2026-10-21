@@ -53,7 +53,9 @@ def test_ep_demo_and_overlay_replay_are_read_only(page,site):
     writes=[];page.on('request',lambda r:writes.append(r.url) if '/api/' in r.url and r.method!='GET' else None)
     page.locator('#foundationDemoStart').click();expect(page.locator('#foundationVisualLegend')).to_contain_text('교육 예시')
     expect(square(page,'foundationBoard','d7')).to_have_attribute('aria-label','d7 흑 폰')
+    page.screenshot(path='/tmp/cma-foundation-feedback-captures/ep-before.png',full_page=True)
     page.locator('#foundationDemoNext').click();expect(square(page,'foundationBoard','d5')).to_have_attribute('aria-label','d5 흑 폰')
+    page.screenshot(path='/tmp/cma-foundation-feedback-captures/ep-after.png',full_page=True)
     page.locator('#foundationVisualToggle').click();expect(page.locator('.foundation-arrows')).to_have_count(0)
     page.locator('#foundationVisualToggle').click();page.locator('#foundationDemoReturn').click()
     assert page.evaluate("api('/foundations')")==before and writes==[]
@@ -74,7 +76,7 @@ def test_save_failure_recovery_and_long_message_do_not_move_board(page,site):
 @pytest.mark.parametrize('switch_account',[False,True])
 def test_saved_response_delay_leave_or_account_change_no_followup_or_focus_theft(page,site,switch_account):
     start(page,site)
-    other=page.evaluate("async()=> (await api('/register','POST',{code:'FB-'+crypto.randomUUID(),pin:'local-foundation-pin'})).token")
+    other=page.evaluate("async()=> (await api('/register','POST',{code:'FB-'+crypto.randomUUID().slice(0,8),pin:'local-foundation-pin'})).token")
     page.evaluate("""()=>{const original=api;window.foundationPosts=0;api=async(...a)=>{if(a[0]==='/foundations/action')window.foundationPosts++;const d=await original(...a);if(a[0]==='/foundations/action')return new Promise(r=>window.releaseSavedFoundation=()=>r(d));return d;};}""")
     square(page,'foundationBoard','a1').click();square(page,'foundationBoard','a4').click()
     page.wait_for_function('!!window.releaseSavedFoundation')
@@ -134,5 +136,6 @@ def test_check_black_board_reduced_motion_reflow_and_promotion_access(page,site,
     page.get_by_role('button',name='다음 단계',exact=True).click()
     expect(page.locator('#foundationBoard .foundation-check')).to_have_count(0)
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+    assert page.locator('#foundationBoard').bounding_box()['width']>=240
     out=Path('/tmp/cma-foundation-feedback-captures');out.mkdir(exist_ok=True)
     page.screenshot(path=str(out/f'black-{width}-{zoom}.png'),full_page=True)

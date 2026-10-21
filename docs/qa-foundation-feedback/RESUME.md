@@ -9,3 +9,5 @@
 
 중간 UI 체크포인트: 안내/완료 경로·L자 방향/체크, 안정된 판정·저장 패널, Q/R/B/N 공통 선택창, 앙파상 전후 교육 예시를 구현. 기존+첫 집중 브라우저 15통과 (/tmp/cma-foundation-browser-2.log). 이후 계정/지연/확대 검사 추가 실행 중이며 2실패 원인 확인 대기 (/tmp/cma-foundation-focused-3.log). 미검증 중간 코드이며 병합 금지. 서버 원격 체크포인트 5edcd03.
 다음 명령: tail -100 /tmp/cma-foundation-focused-3.log; 실행 프로세스 확인 후 실패 수정, 집중 재검사→최종 전체 검사.
+
+집중 검사: /tmp/cma-foundation-focused-3.log 28통과2실패(새 테스트 계정 코드 길이 제한 초과); fixture 수정 후 -4.log 15통과. 확대 실제 캡처에서 좁아진 보드를 확인해 container query로 보완, -5.log 새15개 재통과. 교육 시범 중 안내 문장을 현재 표시 위치에 맞게 최종 정리. 다음은 최종 전체 회귀.
