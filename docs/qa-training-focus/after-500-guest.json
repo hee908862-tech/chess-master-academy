@@ -1,0 +1,26 @@
+{
+  "guestBoard": {
+    "x": 8,
+    "y": 213.390625,
+    "width": 400,
+    "height": 400
+  },
+  "guestAgain": {
+    "x": 8,
+    "y": 685.390625,
+    "width": 156,
+    "height": 44
+  },
+  "guestNext": {
+    "x": 172,
+    "y": 685.390625,
+    "width": 156,
+    "height": 44
+  },
+  "guestContinue": {
+    "x": 336,
+    "y": 685.390625,
+    "width": 156,
+    "height": 44
+  }
+}

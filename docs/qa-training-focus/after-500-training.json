@@ -1,0 +1,14 @@
+{
+  "learningBoard": {
+    "x": 50,
+    "y": 179,
+    "width": 400,
+    "height": 400
+  },
+  "learningControls": {
+    "x": 8,
+    "y": 710,
+    "width": 484,
+    "height": 44
+  }
+}

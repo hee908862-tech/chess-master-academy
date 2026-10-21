@@ -1,0 +1,20 @@
+{
+  "learningBoard": {
+    "x": 247.203125,
+    "y": 201.78125,
+    "width": 487,
+    "height": 487
+  },
+  "learningBoardFeedback": {
+    "x": 768.421875,
+    "y": 144.78125,
+    "width": 399.5625,
+    "height": 66
+  },
+  "learningControls": {
+    "x": 768.421875,
+    "y": 218.78125,
+    "width": 399.5625,
+    "height": 46.390625
+  }
+}
