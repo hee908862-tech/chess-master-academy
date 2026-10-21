@@ -1,7 +1,11 @@
 /* V9: Lichess CC0 themes + levelled 15-problem academy. No unverified generated puzzles. */
 (()=>{'use strict';
 const el=id=>document.getElementById(id), modes={puzzle:{task:null,selected:null,busy:false,solved:false,last:[],mistakes:0,revision:0},course:{task:null,selected:null,busy:false,solved:false,last:[],mistakes:0,revision:0}};
-let catalog=null,courseTheme=null,courseSaved=null,courseRead=0;
+let catalog=null,courseTheme=null,courseSaved=null,courseRead=0,catalogState='loading',catalogRequest=0;
+const catalogNotice=document.createElement('div');catalogNotice.id='v9CatalogStatus';catalogNotice.className='notice';catalogNotice.setAttribute('role','status');catalogNotice.setAttribute('aria-atomic','true');
+const catalogText=document.createElement('span'),catalogRetry=document.createElement('button');catalogRetry.id='v9CatalogRetry';catalogRetry.className='btn';catalogRetry.textContent='문제 목록 다시 확인';catalogNotice.append(catalogText,catalogRetry);el('v9PuzzleTheme').closest('.v9-controls').before(catalogNotice);
+function catalogFeedback(state,text){catalogState=state;catalogText.textContent=text;for(const id of ['v9PuzzleStart','v9PuzzleTheme','v9PuzzleLevel']){el(id).disabled=state!=='ready';el(id).setAttribute('aria-describedby','v9CatalogStatus');}catalogRetry.hidden=state==='ready'||state==='loading';catalogRetry.disabled=state==='loading';catalogNotice.setAttribute('aria-busy',String(state==='loading'));}
+catalogRetry.onclick=()=>{if(catalogState!=='loading')catalogReady=init();};
 const savedBox=document.createElement("div");savedBox.id="v9SavedCourse";savedBox.className="notice";el("v9CourseCards").before(savedBox);
 function invalidate(kind,message){window.cmaMate?.clear(boardName(kind));window.cmaBoardTools.cancel(boardName(kind));const st=modes[kind];st.revision++;st.task=null;st.selected=null;st.solved=false;st.last=[];st.busy=false;el(boardName(kind)).replaceChildren();el('v9'+props(kind)+'Next').hidden=true;el('v9'+props(kind)+'Hint').disabled=true;el('v9'+props(kind)+'Meta').textContent='새 문제 대기 중';if(message)status(kind,message);window.cmaFeedback.clear(boardName(kind));}
 async function failed(kind,error){
@@ -79,7 +83,7 @@ async function tap(kind,sq){const st=modes[kind];if(st.busy){window.cmaBoardTool
  const queued=window.cmaBoardTools.take(boardName(kind),task,st.task?.legal,revision===st.revision&&accountToken===token&&!el(boardName(kind)).closest('[hidden],[inert]')&&el(boardName(kind)).closest('.view.active')&&!st.solved&&st.task?.session_id===task.session_id&&st.task?.id===task.id&&st.task?.fen.split(' ')[1]===(st.side==='white'?'w':'b'));
  if(queued){st.selected=queued.from;await tap(kind,queued.to);}
 }
-async function start(kind){if(!ready(kind==='course'?(window.cmaNavigation?.tacticDestination()||'learn'):'puzzle'))return;const st=modes[kind];if(st.busy)return;
+async function start(kind){if(kind==='puzzle'&&catalogState!=='ready')return;if(!ready(kind==='course'?(window.cmaNavigation?.tacticDestination()||'learn'):'puzzle'))return;const st=modes[kind];if(st.busy)return;
  let replacement=null;
  if(kind==='course'){const identity=token,rev=st.revision;st.busy=true;try{const saved=await api('/v9/session/course');if(identity!==token||rev!==st.revision)return;if(saved.active&&!saved.done){if(!confirm('저장된 과정의 착수·힌트·진행을 보존하고 새 과정을 시작할까요? 저장된 과정 목록에서 다시 이어갈 수 있습니다.'))return;replacement=saved.replace_token;}}catch(e){if(identity===token)status(kind,e.message);return;}finally{if(identity===token&&rev===st.revision)st.busy=false;}}
  invalidate(kind);const revision=st.revision,identity=token;st.busy=true;try{
@@ -122,8 +126,8 @@ function selectCourse(theme,{navigate=true,level=null}={}){if(courseTheme===them
  const available=[...el('v9CourseLevel').options].filter(o=>!o.disabled);el('v9CourseStart').disabled=!available.length;if(available.length)el('v9CourseLevel').value=available[0].value;else el('v9CourseMessage').textContent='이 과목은 준비된 문제가 부족하여 시작할 수 없습니다.';
  if(level)el('v9CourseLevel').value=level;if(navigate&&window.cmaNavigation)window.cmaNavigation.tacticSelected();else if(navigate)el('v9LearnMode').scrollIntoView({block:'nearest',behavior:'smooth'});
 }
-async function init(){try{
- catalog=await api('/v9/catalog');el('v9DataCount').textContent=catalog.ready?`공개 검증 퍼즐 ${catalog.count.toLocaleString()}개`:'공개 문제 데이터 설치 필요';
+async function init(){const request=++catalogRequest,selected=el('v9PuzzleTheme').value;catalogFeedback('loading','문제 목록을 불러오는 중입니다. 준비가 끝나면 출제할 수 있습니다.');try{
+ const data=await api('/v9/catalog');if(request!==catalogRequest)return;catalog=data;el('v9DataCount').textContent=catalog.ready?`공개 검증 퍼즐 ${catalog.count.toLocaleString()}개`:'공개 문제 데이터 설치 필요';
  const select=el('v9PuzzleTheme');select.replaceChildren();select.add(new Option('모든 주제 · 랜덤','random'));
  const card=el('v9CourseCards');card.replaceChildren();
  for(const t of catalog.themes){const total=Object.values(t.counts).reduce((a,b)=>a+b,0);
@@ -132,10 +136,11 @@ async function init(){try{
   const title=document.createElement('strong');title.textContent=t.name;const goal=document.createElement('p');goal.textContent=window.cmaAcademyConcept(t.id).goal;const small=document.createElement('small');small.textContent=`전술 문제 수 · 낮은 난도(기존 입문) ${t.counts['입문']} · 중급 ${t.counts['중급']} · 고급 ${t.counts['고급']}`;
   btn.id='tactic-'+t.id;btn.append(title,goal,small);btn.onclick=()=>selectCourse(t.id);card.append(btn);
  }
+ if([...select.options].some(o=>o.value===selected&&!o.disabled))select.value=selected;
  if(!catalog.ready){const warning='공개 퍼즐 원본은 별도로 내려받아야 합니다. 배포 파일에 데이터가 없어 현재 15문제 과정과 공개 랜덤 퍼즐을 시작할 수 없습니다. README의 데이터 가져오기 안내를 확인하세요.';
- status('puzzle',warning);el('v9CourseHistory').textContent=warning;}
- else {status('puzzle','테마와 난이도를 고른 뒤 랜덤 문제를 출제하세요.');await history();await loadSavedCourse();}
- }catch(e){status('puzzle','데이터 확인 실패: '+e.message);el('v9CourseHistory').textContent=e.message}}
+ catalogFeedback('unavailable',warning);el('v9CourseHistory').textContent=warning;}
+ else {catalogFeedback('ready','문제 목록 준비됨 · 주제와 난이도를 고른 뒤 출제하세요.');if(!modes.puzzle.task)status('puzzle','테마와 난이도를 고른 뒤 랜덤 문제를 출제하세요.');await history();await loadSavedCourse();}
+ }catch(e){if(request!==catalogRequest)return;catalogFeedback('error','문제 목록 확인 실패: '+e.message+' · 다시 확인해 주세요.');el('v9CourseHistory').textContent=e.message}}
 // Hide legacy inaccurate exercises. New mode remains visible even when corpus is missing.
 document.body.classList.add('v9-active');
 const css=document.createElement('style');css.textContent='#puzzle > .row,#puzzle > .two,#puzzle > .card:not(#v9PuzzleRoot),#learn > .two,#learn > div:first-child:not(#v9LearnRoot){display:none!important}';document.head.append(css);
@@ -146,6 +151,6 @@ el('v9CourseStart').onclick=()=>start('course');el('v9CourseNext').onclick=()=>n
 el('v9CourseBack').onclick=()=>{if(window.cmaNavigation){window.cmaNavigation.go('learn/tactics');return;}invalidate('course');el('v9LearnMode').hidden=true;courseTheme=null};
 el('v9CourseLevel').addEventListener('change',()=>{if(window.cmaNavigation?.current()==='learn/tactics/practice')window.cmaNavigation.go('learn/tactics/practice',{replace:true,load:false,focus:false});});
 window.cmaTacticView={choice:()=>courseTheme?{theme:courseTheme,level:el('v9CourseLevel').value}:null,async restoreChoice(choice,version){const account=token;await catalogReady;if(account!==token||version!==window.cmaNavigation.version())return false;if(!catalog?.themes.some(t=>t.id===choice.theme)||!catalog.levels.includes(choice.level))return false;selectCourse(choice.theme,{navigate:false,level:choice.level});window.cmaNavigation.go('learn/tactics/practice',{replace:true,load:false,focus:false});await restore('course',false,choice);return true;},hasSelection:()=>!!courseTheme,refreshSaved:()=>loadSavedCourse(),loadSaved:async()=>{const account=token,version=window.cmaNavigation?.version();await catalogReady;if(account!==token||version!==window.cmaNavigation?.version())return;await restore('course');}};
-const catalogReady=init();
+let catalogReady=init();
 window.cmaOpenV9Course=async(theme)=>{await catalogReady;if(!catalog)return false;const m=catalog.themes.find(t=>t.id===theme);if(!m)return false;selectCourse(theme);return true};
 })();
