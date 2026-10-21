@@ -1,0 +1,2934 @@
+{
+  "base": "395d492d136fbd3aa5eb392d85223884ee01b465",
+  "validated_head": "1f459f08b8070c51bf7c1f07b72396f0fe38aa6d",
+  "unique_tests": 700,
+  "final_status": {
+    "passed": 700,
+    "failed": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "method": "Full 699-test run in four whole-file suites, followed by complete affected-file reruns and targeted subpixel/growth checks; one new education UI test brings unique coverage to 700. Latest listed result replaces the earlier result for the same test.",
+  "runs": [
+    {
+      "file": "suite-0.xml",
+      "sha256": "b1825ed3bed805b1081580c143b2ef1338d398e057fa438fee04710007feb4f3",
+      "counts": {
+        "passed": 168,
+        "failed": 7,
+        "error": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "file": "suite-1.xml",
+      "sha256": "4858f1d8ba8f2aff8524a8a99c4f78d825cf600a8fae198c175e63c5e69ee871",
+      "counts": {
+        "passed": 171,
+        "failed": 4,
+        "error": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "file": "suite-2.xml",
+      "sha256": "670a16bc8cb729b12d4e4948d928ece40dfdd02000052bb057729d9ce8340355",
+      "counts": {
+        "passed": 171,
+        "failed": 4,
+        "error": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "file": "suite-3.xml",
+      "sha256": "36fa7d29059285f58d450309b04e984b2726dde73f80f91d4968a00eda022f30",
+      "counts": {
+        "passed": 172,
+        "failed": 2,
+        "error": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "file": "cma-ui-regression.xml",
+      "sha256": "bbf2f579b95edd7067bf1f24b9e85fc9fc201fa67d62ad3e9de509495cea638e",
+      "counts": {
+        "passed": 43,
+        "failed": 0,
+        "error": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "file": "cma-ui2-regression.xml",
+      "sha256": "bd5ab9b1d520d10569c5bfc5f63d5649a1d0c2f9ffc664a3d0c6970edcc5868f",
+      "counts": {
+        "passed": 37,
+        "failed": 2,
+        "error": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "file": "cma-last-followup.xml",
+      "sha256": "8320fde028355626e181ad0b600b915ac600c69c80c8adb38a8de76f9896659a",
+      "counts": {
+        "passed": 19,
+        "failed": 1,
+        "error": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "file": "cma-focus-position-final.xml",
+      "sha256": "252b8e28b20d7beb1e85fe24f55adaed4c1a4a50857248c24109247be3b5836e",
+      "counts": {
+        "passed": 1,
+        "failed": 0,
+        "error": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "file": "cma-final-change.xml",
+      "sha256": "c7428be7ff500766906fe69ebea30adcd9301a9411e2cc6a2d8d8b7c3e4e6f64",
+      "counts": {
+        "passed": 58,
+        "failed": 0,
+        "error": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "file": "cma-growth-real-final.xml",
+      "sha256": "b5fb11791e4226ea561d0999bb11c53eb79e5e76ea02016ca62e8f4e0e2431cb",
+      "counts": {
+        "passed": 1,
+        "failed": 0,
+        "error": 0,
+        "skipped": 0
+      }
+    }
+  ],
+  "earlier_environment_run": "Aborted after 169 passes and two cold-index timeout failures; generated the same index as Dockerfile and supplied Stockfish before the full run.",
+  "runtime": "Python 3.12; Chromium; Stockfish 17.1; isolated disposable SQLite; no production account mutation.",
+  "local_image_build": {
+    "status": "blocked",
+    "error": "Temporary failure resolving deb.debian.org; E: Unable to locate package stockfish; exit code 100",
+    "payload_validation": "Docker COPY staging, index generation, isolated server import, assets and license tests passed."
+  },
+  "production_direct_http": {
+    "status": "blocked",
+    "action": "GET https://chess-master-academy.onrender.com/api/health",
+    "error": "HTTP 403",
+    "timing": "Before merge; no successful direct smoke claim."
+  },
+  "tablebase_download": {
+    "status": "blocked",
+    "error": "Tunnel connection failed: 403 Forbidden",
+    "impact": "No unverified general theoretical win claims; added lessons assert legal moves and immediate rule outcomes."
+  },
+  "cases": {
+    "tests.test_first_visit_browser::test_fresh_trial_keyboard_skip_reload_no_server_writes": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_signup_from_trial_starts_real_first_step_without_transferring_success": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_existing_login_keeps_saved_activity_and_cancel_is_safe": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_guest_layout_and_all_destinations_require_auth[1366-768]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_guest_layout_and_all_destinations_require_auth[360-800]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_guest_layout_and_all_destinations_require_auth[320-640]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_guest_layout_and_all_destinations_require_auth[844-390]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_cancel_late_login_cannot_replace_new_account_or_start_old_path": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_login_error_cancel_and_zoom": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_delayed_foundations_after_signup_does_not_start_after_leaving[False]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_delayed_foundations_after_signup_does_not_start_after_leaving[True]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_returning_action_precedes_optional_guides_and_group_location": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_skip_prioritizes_activities_and_preserves_revisit_preference": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_late_logout_cannot_clear_new_login_and_failure_preserves_account": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_entry_primary_contrast_initial_skip_and_returning": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_trial_continue_label_matches_authentication[False]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_first_visit_browser::test_trial_continue_label_matches_authentication[True]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_feature_navigation_browser::test_navigation_help_no_mutations_and_opening_layout[390]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_feature_navigation_browser::test_navigation_help_no_mutations_and_opening_layout[1280]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_feature_navigation_browser::test_challenge_actual_server_restore_mistake_review[390]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_feature_navigation_browser::test_challenge_actual_server_restore_mistake_review[1280]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_feature_navigation_browser::test_delayed_challenge_submit_navigation_reload_and_duplicate": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_feature_navigation_browser::test_challenge_promotion_cancel_on_navigation_and_underpromotion_ui": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_feature_navigation_browser::test_study_promotion_cancel_restores_board_controls": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_feature_navigation_browser::test_academy_disclosure_preserves_review_branch_and_pending_engine[390]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_feature_navigation_browser::test_academy_disclosure_preserves_review_branch_and_pending_engine[1280]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_feature_navigation_browser::test_rules_first_explicit_tactics_survives_delayed_foundations[menu]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_feature_navigation_browser::test_rules_first_explicit_tactics_survives_delayed_foundations[hub]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_feature_navigation_browser::test_challenge_review_last_selected_result_wins_reverse_response": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_focus_panels_browser::test_training_panels_and_info_preserve_current_task[320]": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_focus_panels_browser::test_training_panels_and_info_preserve_current_task[390]": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_focus_panels_browser::test_training_panels_and_info_preserve_current_task[1280]": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_focus_panels_browser::test_existing_saved_resume_uses_same_task_without_writes": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_focus_panels_browser::test_settings_direct_reload_delayed_read_and_retry": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_focus_panels_browser::test_settings_late_account_read_and_save_do_not_replace_new_identity": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_focus_panels_browser::test_guest_alternative_keyboard_focus_without_injected_refocus": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_focus_panels_browser::test_settings_late_read_after_actual_account_login_is_ignored": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_focus_panels_browser::test_training_first_read_error_remains_visible_without_board": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_focus_panels_browser::test_puzzle_choice_closes_only_after_new_session_success": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_focus_panels_browser::test_settings_same_route_during_save_keeps_pending_owner": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_game_focus_browser::test_actual_game_geometry_hint_undo_and_navigation": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_game_focus_browser::test_short_zoom_rotation_keyboard_and_promotion": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_game_focus_browser::test_wait_failure_check_clock_and_end_keep_actions": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_game_focus_browser::test_menu_escape_preserves_waiting_premove": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_game_focus_browser::test_replacement_success_collapses_but_pending_failure_preserves[360-800]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_game_focus_browser::test_replacement_success_collapses_but_pending_failure_preserves[390-844]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_game_focus_browser::test_promotion_controls_hit_targets_focus_and_long_status[320-640]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_game_focus_browser::test_promotion_controls_hit_targets_focus_and_long_status[360-800]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_foundations_browser::test_rules_route_saved_progress_layout_and_keyboard[320-640]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_foundations_browser::test_rules_route_saved_progress_layout_and_keyboard[400-860]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_foundations_browser::test_rules_route_saved_progress_layout_and_keyboard[1280-900]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_foundations_browser::test_promotion_judgement_retry_and_choice_changes": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_foundations_browser::test_all_authored_steps_with_real_board_and_judgement_controls": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_foundations_browser::test_unstarted_vs_started_zero_progress_and_visible_recommendation[320-640]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_foundations_browser::test_unstarted_vs_started_zero_progress_and_visible_recommendation[1280-900]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_default_off_then_executes_once[False-game]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_default_off_then_executes_once[False-assessment]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_default_off_then_executes_once[False-puzzle]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_default_off_then_executes_once[True-game]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_default_off_then_executes_once[True-assessment]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_default_off_then_executes_once[True-puzzle]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[off-game]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[off-assessment]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[off-puzzle]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[cancel-game]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[cancel-assessment]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[cancel-puzzle]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[menu-game]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[menu-assessment]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[menu-puzzle]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[illegal-game]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[illegal-assessment]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[illegal-puzzle]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[finished-game]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[finished-assessment]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[finished-puzzle]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[session-game]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[session-assessment]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[session-puzzle]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[error-game]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[error-assessment]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_cancellation[error-puzzle]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_promotion_waits_for_choice_and_menu_cancels[cancel]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_promotion_waits_for_choice_and_menu_cancels[r]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_black_question_feedback_keeps_orientation_and_history": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_black_puzzle_hint_reply_and_next_color": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_results_stay_clear_during_reload_and_delayed_status": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_does_not_execute_on_expired_clock[game]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_board_interaction::test_premove_does_not_execute_on_expired_clock[assessment]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_outcomes_and_duplicate_archive[win-white]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_outcomes_and_duplicate_archive[win-black]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_outcomes_and_duplicate_archive[draw-white]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_outcomes_and_duplicate_archive[draw-black]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_outcomes_and_duplicate_archive[loss-white]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_outcomes_and_duplicate_archive[loss-black]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_normal_loss_is_included_and_modes_are_separate[resign]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_normal_loss_is_included_and_modes_are_separate[timeout]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_exclusion_is_explicit_no_retroactive_estimate[<lambda>-\\uc2e4\\uc81c AI]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_exclusion_is_explicit_no_retroactive_estimate[<lambda>-\\ub3c4\\uc6c0 \\uc815\\ubcf4]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_exclusion_is_explicit_no_retroactive_estimate[<lambda>-\\ud78c\\ud2b8\\xb7\\ubb34\\ub974\\uae30]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_exclusion_is_explicit_no_retroactive_estimate[<lambda>-\\uae30\\uc900\\uc810]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_exclusion_is_explicit_no_retroactive_estimate[<lambda>-\\ub300\\uccb4 AI]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_exclusion_is_explicit_no_retroactive_estimate[<lambda>-\\uc815\\uc0c1 \\uc885\\ub8cc]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_real_api_records_effective_engine_and_persists_once": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_effective_profile_failures_are_not_rated[configuration]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_effective_profile_failures_are_not_rated[unknown_version]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_effective_profile_failures_are_not_rated[fallback]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_analysis_and_reload_do_not_reapply_internal_rating": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_ai_clock_expiry_keeps_unplayed_evaluation_provenance[white]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_ai_clock_expiry_keeps_unplayed_evaluation_provenance[black]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_app_rating::test_actual_api_ai_clock_expiry_is_rated": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_onboarding_browser::test_first_login_skip_reopen_keyboard_and_no_automatic_start": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_onboarding_browser::test_existing_token_invitation_focus_trap_and_mobile_fit": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_onboarding_browser::test_active_session_defers_and_failed_save_still_closes": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_onboarding_browser::test_pending_save_does_not_trap_close_or_navigate_later": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_piece_object_particles_in_move_explanation[e4 e5 Ke2-\\ubc31 Ke2: \\ud0b9\\uc744 e1\\uc5d0\\uc11c e2\\ub85c \\uc62e\\uae41\\ub2c8\\ub2e4.]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_piece_object_particles_in_move_explanation[e4 e5 Qh5-\\ubc31 Qh5: \\ud038\\uc744 d1\\uc5d0\\uc11c h5\\ub85c \\uc62e\\uae41\\ub2c8\\ub2e4.]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_piece_object_particles_in_move_explanation[h4 a6 Rh3-\\ubc31 Rh3: \\ub8e9\\uc744 h1\\uc5d0\\uc11c h3\\ub85c \\uc62e\\uae41\\ub2c8\\ub2e4.]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_piece_object_particles_in_move_explanation[e4 e5 Bc4-\\ubc31 Bc4: \\ube44\\uc20d\\uc744 f1\\uc5d0\\uc11c c4\\ub85c \\uc62e\\uae41\\ub2c8\\ub2e4.]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_piece_object_particles_in_move_explanation[Nf3-\\ubc31 Nf3: \\ub098\\uc774\\ud2b8\\ub97c g1\\uc5d0\\uc11c f3\\ub85c \\uc62e\\uae41\\ub2c8\\ub2e4.]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_piece_object_particles_in_move_explanation[e4-\\ubc31 e4: \\ud3f0\\uc744 e2\\uc5d0\\uc11c e4\\ub85c \\uc62e\\uae41\\ub2c8\\ub2e4.]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_every_authored_and_reference_line_is_legal_and_source_hashes_match": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_graph_transposition_rights_unknown_move_and_recall": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_exploration_preserves_all_account_state_and_actual_engine": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_special_moves[7k/P7/8/8/8/8/8/K7 w - - 0 1-a7a8n-n]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_special_moves[r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1-e1g1-castled]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_special_moves[4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1-e5d6-ep]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_terminal_repetition_invalid_and_bounded_busy": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_opening_bookmark_cas_separate_from_game_progress": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_commentary_matches_position_and_does_not_follow_free_moves": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_new_systems_exact_positions_note_scope_and_transposition": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_study::test_fianchetto_ray_and_trompowsky_retreat_notes_match_positions": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_education_followup_browser::test_old_history_failure_does_not_change_new_screen[True]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_followup_browser::test_old_history_failure_does_not_change_new_screen[False]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_followup_browser::test_prior_context_in_review_has_two_marked_squares_not_answer": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_primary_contrast_browser::test_main_actions_contrast_keyboard_and_narrow_layout[320-800]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_primary_contrast_browser::test_main_actions_contrast_keyboard_and_narrow_layout[1280-720]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_primary_contrast_browser::test_foundation_waiting_error_reason_and_primary_disabled_style": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_education_history_labels_browser::test_history_modes_localized_without_writes_or_unknown_inference[393]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_history_labels_browser::test_history_modes_localized_without_writes_or_unknown_inference[1280]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_rules_entry_cycle_browser::test_rules_to_entry_keeps_unfinished_standard_cycle": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_rules_entry_cycle_browser::test_rules_entry_offer_resumes_existing_diagnosis": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_account_reset::test_reset_all_domains_isolated_and_duplicate_safe": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_account_reset::test_reset_rejection_preserves_everything[change0-403]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_account_reset::test_reset_rejection_preserves_everything[change1-400]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_account_reset::test_reset_rejection_preserves_everything[change2-409]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_account_reset::test_reset_rolls_back_all_domains": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_account_reset::test_reset_blocks_pre_reset_inflight_write": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_account_reset::test_concurrent_reset_once": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_account_reset::test_dashboard_read_does_not_write_or_wait_on_sqlite_writer": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_evidence_navigation_followup::test_rules_first_home_action_reaches_recommended_basics": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_evidence_navigation_followup::test_home_primary_destination[active-diagnosis]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_evidence_navigation_followup::test_home_primary_destination[training-training]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_evidence_navigation_followup::test_home_primary_destination[retention-diagnosis]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_evidence_navigation_followup::test_previous_account_delayed_report_cannot_replace_current_home": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_evidence_navigation_followup::test_menu_short_height_text_enlargement_and_width_transition[900-420-1]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_evidence_navigation_followup::test_menu_short_height_text_enlargement_and_width_transition[1280-480-1.5]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_resume_exposure::test_board_reentry_restarts_seven_days_without_erasing_help[same_start]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_resume_exposure::test_board_reentry_restarts_seven_days_without_erasing_help[same_resume]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_resume_exposure::test_board_reentry_restarts_seven_days_without_erasing_help[paused_resume]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_resume_exposure::test_board_reentry_restarts_seven_days_without_erasing_help[path_restore]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_resume_exposure::test_board_reentry_restarts_seven_days_without_erasing_help[board_reload]": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_foundation_visuals::test_all_guides_are_legal_and_judgements_do_not_disclose_answer": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_foundation_visuals::test_ep_demo_is_authored_legal_and_matches_current_position": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_foundation_visuals::test_threat_and_protection_are_actual_attacks_not_move_guides": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_foundation_visuals::test_pinned_attacker_still_checks_and_terminal_labels_are_distinct": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_puzzle_challenge::test_whole_game_hints_restore_duplicate_no_credit": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_puzzle_challenge::test_lives_illegal_moves_skip_and_new_game": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_puzzle_challenge::test_simultaneous_submission_commits_once": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_puzzle_challenge::test_promotion_ep_and_castling_snapshots": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_review_context_feedback::test_loaded_review_context_survives_history_refresh_and_tab_return": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_review_context_feedback::test_review_owner_changes_on_real_login_and_late_analysis_is_ignored[False]": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_review_context_feedback::test_review_owner_changes_on_real_login_and_late_analysis_is_ignored[True]": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_course_continuity::test_course_resume_after_switch_and_stale_token": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_first_visit_contract::test_trial_reuses_first_rook_position_and_legal_target": {
+      "status": "passed",
+      "run": "suite-0.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_guided_status_save_delay_layout_and_explicit_next[360]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_guided_status_save_delay_layout_and_explicit_next[1280]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_promotion_picker_selected_piece_goal_and_cancel[q]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_promotion_picker_selected_piece_goal_and_cancel[r]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_promotion_picker_selected_piece_goal_and_cancel[b]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_promotion_picker_selected_piece_goal_and_cancel[n]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_ep_demo_and_overlay_replay_are_read_only[False]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_ep_demo_and_overlay_replay_are_read_only[True]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_save_failure_recovery_and_long_message_do_not_move_board": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_saved_response_delay_leave_or_account_change_no_followup_or_focus_theft[False]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_saved_response_delay_leave_or_account_change_no_followup_or_focus_theft[True]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_promotion_leave_cancels_no_submit_and_keeps_destination_focus": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_check_black_board_reduced_motion_reflow_and_promotion_access[320-640-1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_check_black_board_reduced_motion_reflow_and_promotion_access[390-844-1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_check_black_board_reduced_motion_reflow_and_promotion_access[844-390-1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_check_black_board_reduced_motion_reflow_and_promotion_access[1280-720-2]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundation_feedback_browser::test_actual_protection_threat_and_guidance_layers": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_focused_learning_browser::test_home_foundation_practice_list_history_no_writes[320-800]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_focused_learning_browser::test_home_foundation_practice_list_history_no_writes[390-844]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_focused_learning_browser::test_home_foundation_practice_list_history_no_writes[485-757]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_focused_learning_browser::test_home_foundation_practice_list_history_no_writes[1280-720]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_focused_learning_browser::test_tactics_selection_list_focus_and_education_menu": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_focused_learning_browser::test_education_list_return_and_url_whitelist_no_writes": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_focused_learning_browser::test_hub_home_mobile_and_menu_does_not_change_selected_piece": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_focused_learning_browser::test_list_focus_counts_and_485_geometry": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_focused_learning_browser::test_guest_foundation_login_route_and_ephemeral_trial_reload": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_focused_learning_browser::test_late_foundation_start_does_not_leave_hub": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_focused_learning_browser::test_hub_and_other_topics_do_not_record_training_exposure": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_focused_learning_browser::test_promotion_cancel_on_route_leave_without_saved_answer": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_board_feedback_followup_browser::test_actual_pending_and_same_grid_column[education-390]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_feedback_followup_browser::test_actual_pending_and_same_grid_column[education-1280]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_feedback_followup_browser::test_actual_pending_and_same_grid_column[repertoire-390]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_feedback_followup_browser::test_actual_pending_and_same_grid_column[repertoire-1280]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_feedback_followup_browser::test_study_initial_failure_and_retry[studyOpeningBoard]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_feedback_followup_browser::test_study_initial_failure_and_retry[reviewBoard]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_feedback_followup_browser::test_legacy_feedback_game_result_and_error_recovery": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_feedback_followup_browser::test_settings_preserve_actual_board_verdict": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_feedback_followup_browser::test_course_board_feedback_column[320]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_feedback_followup_browser::test_course_board_feedback_column[1280]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_followup_browser::test_diagnostic_single_flight_survives_navigation": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_followup_browser::test_lost_move_response_recovers_saved_completion": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_followup_browser::test_review_disabled_during_loading_and_failure": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_followup_browser::test_guest_return_and_board_layout[1366-768]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_followup_browser::test_guest_return_and_board_layout[1165-747]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_followup_browser::test_guest_return_and_board_layout[390-844]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_followup_browser::test_guest_return_and_board_layout[844-390]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_followup_browser::test_diagnostic_timeout_recovers_without_restarting": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_followup_browser::test_puzzle_uncertain_response_freezes_then_recovers_position": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey_browser::test_journey_partial_resume_result_training[1366-768]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey_browser::test_journey_partial_resume_result_training[390-844]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey_browser::test_journey_failed_write_requires_state_recovery": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey_browser::test_journey_promotion_choice_and_no_early_solution": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey_browser::test_real_journey_complete_skipped_then_training[1366-768-pc]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey_browser::test_real_journey_complete_skipped_then_training[390-844-mobile]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey_browser::test_one_click_clears_old_board_and_suppresses_duplicate_start": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_focus_interface_browser::test_foundation_focused_bounds_and_readonly_details[size0]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_focus_interface_browser::test_foundation_focused_bounds_and_readonly_details[size1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_focus_interface_browser::test_foundation_focused_bounds_and_readonly_details[size2]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_focus_interface_browser::test_foundation_focused_bounds_and_readonly_details[size3]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_focus_interface_browser::test_foundation_focused_bounds_and_readonly_details[size4]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_focus_interface_browser::test_foundation_focused_bounds_and_readonly_details[size5]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_motion_wiring_browser::test_foundation_real_intermediate_and_final_delta": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_motion_wiring_browser::test_challenge_actual_success_uses_submitted_move_when_offset_is_unchanged": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_motion_wiring_browser::test_learning_actual_completion_motion": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_motion_wiring_browser::test_legacy_assessment_actual_nested_answer_response_motion": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_motion_wiring_browser::test_learning_full_line_final_single_ply_real_endpoint": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_education::test_content_rule_facts": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_complete_restore_isolated[threat-observe]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_complete_restore_isolated[threat-defended]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_complete_restore_isolated[plan-file]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_complete_restore_isolated[plan-piece]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_complete_restore_isolated[ending-opposition]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_complete_restore_isolated[ending-promotion]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_complete_restore_isolated[ending-rook-finish]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_complete_restore_isolated[ending-pawn-race]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_complete_restore_isolated[ending-rook-pawn]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_complete_restore_isolated[rules-draw-clock]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_hint_wrong_partial_retry_cas_and_failure": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_capacity_start_and_finish[None-63]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_capacity_start_and_finish[None-64]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_capacity_start_and_finish[playing-63]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_capacity_start_and_finish[playing-64]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_capacity_start_and_finish[complete-63]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_capacity_start_and_finish[complete-64]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_row_bytes_and_version_finish_recovery": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_repertoire_history_missing_side_time_not_inferred": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education::test_saved_prior_move_is_legal_context_not_review_answer": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_focused_learning_followup::test_active_education_list_blocks_start_and_failed_read_allows_return": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_course_premove_cancelled_only_on_actual_activity_leave[learn]": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_course_premove_cancelled_only_on_actual_activity_leave[learn/tactics]": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_public_course_choice_survives_reload_or_login_without_start[False]": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_public_course_choice_survives_reload_or_login_without_start[True]": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_guest_education_login_returns_to_list_without_attempt": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_selected_course_reload_does_not_restore_unrelated_saved_session": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_hub_zoom_long_text_and_keyboard_return": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_saved_education_answer_delayed_return_refetches_authoritative_progress": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_bare_course_route_late_catalog_does_not_leave_hub": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_nondefault_level_history_keeps_forward_entries": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_education_list_focus_returns_to_active_lesson_after_render": {
+      "status": "passed",
+      "run": "cma-focus-position-final.xml"
+    },
+    "tests.test_focused_learning_followup::test_home_has_one_foundation_entry_with_real_progress[new]": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_home_has_one_foundation_entry_with_real_progress[basics]": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_home_has_one_foundation_entry_with_real_progress[diagnosis]": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_focused_learning_followup::test_level_history_does_not_reuse_cached_different_level_task": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_mate_explanation::test_mate_cells_and_mirrored_white[7k/6Q1/5K2/8/8/8/8/8 b - - 0 1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_mate_cells_and_mirrored_white[R3k3/6Q1/8/1B6/8/8/8/4K3 b - - 0 1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_mate_cells_and_mirrored_white[R3k3/3p2Q1/8/8/8/8/8/4K3 b - - 0 1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_vacated_origin_reveals_rook_and_multiple_attackers": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_capture_removes_attacker_and_king_adjacency": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_nonmate_never_explained[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_nonmate_never_explained[k7/8/1QK5/8/8/8/8/8 b - - 0 1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_nonmate_never_explained[7k/6Q1/8/8/8/8/8/K7 b - - 0 1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_nonmate_never_explained[R3k3/3b4/8/8/8/8/8/4K3 b - - 0 1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_multi_ply_line_and_invalid_line": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_actual_alternative_promotion_explained[q]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_actual_alternative_promotion_explained[r]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_diagnosis_multi_move_gates_explanation_without_advancing[True]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_diagnosis_multi_move_gates_explanation_without_advancing[False]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_diagnostic_alternative_mate_uses_actual_move": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_mate_explanation::test_truncated_mate_corpus_reports_unavailable": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_review_assistance_browser::test_hint_undo_review_and_reload[1440-1000]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_review_assistance_browser::test_hint_undo_review_and_reload[390-844]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_review_assistance_browser::test_different_move_and_legacy_labels": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_evidence_learning_flow::test_labels_do_not_turn_uncertainty_into_error[not_answered-\\ubbf8\\uc751\\ub2f5]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_evidence_learning_flow::test_labels_do_not_turn_uncertainty_into_error[partial_execution-\\uc77c\\ubd80 \\uc218\\ud589]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_evidence_learning_flow::test_labels_do_not_turn_uncertainty_into_error[verified_error-\\ud070 \\uc190\\uc2e4]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_evidence_learning_flow::test_labels_do_not_turn_uncertainty_into_error[unverified_alternative-\\ud310\\ub2e8 \\ubcf4\\ub958]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_evidence_learning_flow::test_labels_do_not_turn_uncertainty_into_error[equivalent_alternative-\\ube44\\uc2b7\\ud55c \\ub300\\uc548]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_evidence_learning_flow::test_labels_do_not_turn_uncertainty_into_error[completed-\\uc804\\uccb4 \\uc218\\uc21c \\uc131\\uacf5]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_evidence_learning_flow::test_reference_stops_at_actual_deviation_and_invalid_data_is_not_explained": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_evidence_learning_flow::test_rule_facts_are_from_actual_board": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_evidence_learning_flow::test_status_observations_never_change_reports_or_active_answers": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_evidence_learning_flow::test_training_link_survives_resume_but_is_hidden_in_verification": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_academy_upgrade::test_new_scale_application_weight_bounds_and_duplicates": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_academy_upgrade::test_inflight_old_diagnosis_finishes_with_old_scale_and_snapshots": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_academy_upgrade::test_replay_preserves_start_rights_and_all_frames[r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 7 20-line0]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_academy_upgrade::test_replay_preserves_start_rights_and_all_frames[7k/8/8/3pP3/8/8/8/K7 w - d6 0 12-line1]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_academy_upgrade::test_replay_preserves_start_rights_and_all_frames[7k/P7/8/8/8/8/8/K7 w - - 0 12-line2]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_academy_upgrade::test_replay_preserves_start_rights_and_all_frames[7k/8/8/8/8/8/p7/7K b - - 0 12-line3]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_academy_upgrade::test_exact_new_education_outcomes": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_academy_upgrade::test_old_education_snapshot_can_continue_without_rewriting": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_academy_upgrade::test_pieces_same_geometry_and_packaged_license": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_growth_cycle::test_score_missing_help_uncertainty_and_equal_band_weight": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_growth_cycle::test_balanced_24_snapshots_cycle_unlock_and_new_positions": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_growth_cycle::test_credit_requires_actual_assigned_success_and_unique_position": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_growth_cycle::test_quick_and_balanced_not_comparable_old_records_untouched": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_growth_cycle::test_balanced_scores_and_higher_followup_preserve_cycle": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_growth_cycle::test_insufficient_balanced_pool_preserves_saved_state": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_growth_cycle::test_engine_evidence_is_optional_bounded_and_releases_slot": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_growth_cycle::test_alternative_move_uses_only_verified_large_loss[300-verified_error]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_growth_cycle::test_alternative_move_uses_only_verified_large_loss[50-unverified_alternative]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey::test_basic_snapshots_hidden_answers_restart_and_atomic_write": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey::test_multi_ply_partial_skip_full_report_and_bridge": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey::test_unmeasured_no_overwrite_and_unverified_alternative": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey::test_recheck_delay_and_learning_positions_excluded": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey::test_promotion_and_actual_mate_explanation": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey::test_cross_module_concurrent_reservation_and_continuation_exclusion": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_journey::test_saved_line_survives_corpus_change": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_training_focus_layout::test_saved_training_core_actions_layout_and_preservation[1180-757-1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_training_focus_layout::test_saved_training_core_actions_layout_and_preservation[1280-720-1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_training_focus_layout::test_saved_training_core_actions_layout_and_preservation[390-844-1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_training_focus_layout::test_saved_training_core_actions_layout_and_preservation[320-844-1]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_training_focus_layout::test_saved_training_core_actions_layout_and_preservation[1280-720-2]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundations::test_authored_positions_and_rules": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundations::test_complete_all_restore_account_separation_no_credit": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundations::test_wrong_illegal_stale_duplicate_and_switch_resume": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_foundations::test_simultaneous_moves_have_one_completion": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_followup_state::test_unrelated_stale_save_cannot_erase_new_puzzle": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_followup_state::test_same_field_stale_save_rejects_and_rolls_back": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_followup_state::test_review_placeholder_has_friendly_validation": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_midwidth_focus::test_midwidth_board_and_primary_completion_actions[foundation]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_midwidth_focus::test_midwidth_board_and_primary_completion_actions[training]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_midwidth_focus::test_midwidth_board_and_primary_completion_actions[guest]": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_facts::test_confirmed_position_attacks_and_protection_only": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_board_facts::test_unrecorded_alternative_never_borrows_reference_relationship": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_guest_examples::test_public_examples_exactly_match_verified_existing_content": {
+      "status": "passed",
+      "run": "suite-1.xml"
+    },
+    "tests.test_growth_browser::test_results_growth_and_long_korean_layout[320]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_growth_browser::test_results_growth_and_long_korean_layout[360]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_growth_browser::test_results_growth_and_long_korean_layout[390]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_growth_browser::test_results_growth_and_long_korean_layout[430]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_growth_browser::test_results_growth_and_long_korean_layout[768]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_growth_browser::test_results_growth_and_long_korean_layout[900]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_growth_browser::test_results_growth_and_long_korean_layout[1024]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_growth_browser::test_results_growth_and_long_korean_layout[1280]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_growth_browser::test_results_growth_and_long_korean_layout[1440]": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_growth_browser::test_empty_result_error_loading_and_double_size": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_growth_browser::test_chart_breaks_missing_and_incompatible_points": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_growth_browser::test_recommendation_button_routes_task_and_unlock_stays_server_owned": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_growth_browser::test_additional_reports_do_not_displace_comparable_growth_points": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_growth_browser::test_internal_rating_chart_separates_clock_modes_and_shows_exclusions": {
+      "status": "passed",
+      "run": "cma-ui-regression.xml"
+    },
+    "tests.test_evidence_flow_browser::test_home_one_next_step_with_explicit_estimate[new-\\ub098\\uc758 \\ubd84\\uc57c\\ubcc4 \\uc2e4\\ub825 \\uc54c\\uc544\\ubcf4\\uae30]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_evidence_flow_browser::test_home_one_next_step_with_explicit_estimate[active-\\uc800\\uc7a5\\ub41c \\uc9c4\\ub2e8 \\uc774\\uc5b4\\ud558\\uae30]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_evidence_flow_browser::test_home_one_next_step_with_explicit_estimate[training-\\uc9c4\\ud589 \\uc911\\uc778 \\ud6c8\\ub828 \\uc774\\uc5b4\\ud558\\uae30]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_evidence_flow_browser::test_home_one_next_step_with_explicit_estimate[incomplete-\\ucd94\\ucc9c \\ud6c8\\ub828 \\uc774\\uc5b4\\uac00\\uae30]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_evidence_flow_browser::test_home_one_next_step_with_explicit_estimate[unlocked-\\uc0c8 \\ubb38\\uc81c\\ub85c \\ub2e4\\uc2dc \\uc9c4\\ub2e8\\ud558\\uae30]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_evidence_flow_browser::test_home_one_next_step_with_explicit_estimate[retention-7\\uc77c \\uae30\\uc5b5 \\uc720\\uc9c0 \\ud655\\uc778 \\ubcf4\\uae30]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_evidence_flow_browser::test_home_one_next_step_with_explicit_estimate[preparing-\\uc900\\ube44 \\uc0c1\\ud0dc \\ud655\\uc778]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_evidence_flow_browser::test_home_one_next_step_with_explicit_estimate[error-\\uc800\\uc7a5 \\uc0c1\\ud0dc \\ub2e4\\uc2dc \\ud655\\uc778]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_evidence_flow_browser::test_traceable_recommendation_and_selected_independent_check[390]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_evidence_flow_browser::test_traceable_recommendation_and_selected_independent_check[1280]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_evidence_flow_browser::test_pc_disclosure_tab_leaves_without_navigation": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_evidence_flow_browser::test_late_status_refresh_keeps_explicit_history_selection": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_feedback_browser::test_real_training_pending_completion_stable_board_controls[320-800-1]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_feedback_browser::test_real_training_pending_completion_stable_board_controls[390-844-1]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_feedback_browser::test_real_training_pending_completion_stable_board_controls[1280-720-1]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_feedback_browser::test_real_training_pending_completion_stable_board_controls[844-390-1]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_feedback_browser::test_real_training_pending_completion_stable_board_controls[1280-720-2]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_feedback_browser::test_training_failure_requires_authoritative_refresh": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_feedback_browser::test_diagnosis_only_complete_sequence_claims_completion[False-unverified_alternative]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_feedback_browser::test_diagnosis_only_complete_sequence_claims_completion[False-partial_execution]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_feedback_browser::test_diagnosis_only_complete_sequence_claims_completion[True-completed]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_feedback_browser::test_fact_visibility_position_cleanup_and_no_writes": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_feedback_browser::test_real_puzzle_wrong_intermediate_completion_and_explicit_next": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_presentation_browser::test_explicit_shared_motion_and_cancel_keep_actual_position[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1-e2e4-1]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_presentation_browser::test_explicit_shared_motion_and_cancel_keep_actual_position[4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1-e1g1-2]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_presentation_browser::test_explicit_shared_motion_and_cancel_keep_actual_position[r3k2r/8/8/8/8/8/8/4K3 b kq - 0 1-e8c8-2]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_presentation_browser::test_explicit_shared_motion_and_cancel_keep_actual_position[7k/8/8/3pP3/8/8/8/6K1 w - d6 0 2-e5d6-1]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_presentation_browser::test_explicit_shared_motion_and_cancel_keep_actual_position[7k/P7/8/8/8/8/8/6K1 w - - 0 1-a7a8n-1]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_presentation_browser::test_current_check_label_cleanup_and_opening_history_motion": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_presentation_browser::test_motion_account_tab_and_reduced_preference_cancel_without_writes": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_presentation_browser::test_two_ply_capture_reverse_and_fast_replacement_has_no_residual_ghost": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_presentation_browser::test_real_opening_api_checkmate_display_and_black_orientation_capture[390]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_presentation_browser::test_real_opening_api_checkmate_display_and_black_orientation_capture[1280]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_all_core_branches_positions_and_position_facts[london-core]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_all_core_branches_positions_and_position_facts[london-qb6]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_all_core_branches_positions_and_position_facts[london-g6]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_all_core_branches_positions_and_position_facts[london-early-c5]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_all_core_branches_positions_and_position_facts[jobava-exchange]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_all_core_branches_positions_and_position_facts[jobava-a6]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_all_core_branches_positions_and_position_facts[jobava-c5]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_authored_geometry_claims": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_recall_completion_alternative_no_other_state_changes[white]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_recall_completion_alternative_no_other_state_changes[black]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_hint_deviation_retry_preserved_and_stale_duplicate": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_weak_resume_illegal_save_failure_and_version_change": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_concurrent_revision_and_bounds": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_first_incomplete_recall_side_and_legacy_unknown_preserved[finish]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_first_incomplete_recall_side_and_legacy_unknown_preserved[retry]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[start-None-63]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[start-None-64]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[start-playing-63]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[start-playing-64]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[start-complete-63]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[start-complete-64]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[retry-None-63]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[retry-None-64]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[retry-playing-63]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[retry-playing-64]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[retry-complete-63]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[retry-complete-64]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[finish-None-63]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[finish-None-64]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[finish-playing-63]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[finish-playing-64]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[finish-complete-63]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[finish-complete-64]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[move-None-63]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[move-None-64]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[move-playing-63]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[move-playing-64]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[move-complete-63]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_archive_boundary_matrix_preserves_and_allows_exit[move-complete-64]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_repertoire::test_event_and_byte_limits_preserve_normal_finish": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_browser::test_learning_responsive_real_persistence[1440-1000]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_browser::test_learning_responsive_real_persistence[390-844]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_browser::test_learning_responsive_real_persistence[844-390]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_browser::test_learning_responsive_real_persistence[768-1024]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_browser::test_saved_route_review_concept_transfer_resume[1440-1000]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_browser::test_saved_route_review_concept_transfer_resume[390-844]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_mate_browser::test_puzzle_mate_panel_next_and_reload[1366-768-False]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_mate_browser::test_puzzle_mate_panel_next_and_reload[390-844-False]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_mate_browser::test_puzzle_mate_panel_next_and_reload[390-844-True]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_mate_browser::test_diagnostic_feedback_gating_and_next[True]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_mate_browser::test_diagnostic_feedback_gating_and_next[False]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_focus_lessons_browser::test_lesson_board_first_and_scope_is_readonly[390-education]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_focus_lessons_browser::test_lesson_board_first_and_scope_is_readonly[390-repertoire]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_focus_lessons_browser::test_lesson_board_first_and_scope_is_readonly[1280-education]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_focus_lessons_browser::test_lesson_board_first_and_scope_is_readonly[1280-repertoire]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_original_d8_terminal_alternative[line0-q]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_original_d8_terminal_alternative[line0-r]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_original_d8_terminal_alternative[line1-q]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_original_d8_terminal_alternative[line1-r]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_wrong_hint_preserve_accuracy": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_missing_session_is_conflict": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_assessment_timeout_rejects_later_move": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_ai_en_passant_and_underpromotion[4k3/8/8/8/3p4/8/4P3/4K3 w - - 0 1-d4e3-move0]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_ai_en_passant_and_underpromotion[4k3/8/8/8/8/8/1p6/4K2R w - - 0 1-b2b1n-move1]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_real_corpus_course_completes_once": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_timeout_response_retains_player_color[white-moves0]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_timeout_response_retains_player_color[black-moves1]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_assessment_previous_move_matches_corpus": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_puzzle_previous_move_and_stale_fen_rejection": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_game_stale_session_and_position_rejected": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_assessment_stale_session_and_position_rejected": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_behavior::test_reported_black_mate_and_completed_session_recovery": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_continuity_browser::test_reference_save_reset_and_mobile_more": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_continuity_browser::test_rules_level_board_completion_and_reload": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_continuity_browser::test_more_keyboard_focus_and_disabled_no_game_actions": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_guest_practice_browser::test_guest_examples_are_ephemeral_and_do_not_write[390]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_guest_practice_browser::test_guest_examples_are_ephemeral_and_do_not_write[1280]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_guest_practice_browser::test_guest_load_failure_retry_and_late_exit_are_readonly": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_review_assistance::test_help_types_and_actual_adoption[True-False-e2e4]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_review_assistance::test_help_types_and_actual_adoption[False-True-d2d4]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_review_assistance::test_help_types_and_actual_adoption[True-True-e2e4]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_review_assistance::test_help_types_and_actual_adoption[True-False-d2d4]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_review_assistance::test_multiple_undo_branch_does_not_relabel_same_ply": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_review_assistance::test_black_ply_and_restore": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_review_assistance::test_illegal_stale_and_failed_ai_do_not_commit_events": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_review_assistance::test_legacy_missing_metadata_and_new_game_isolation": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_review_assistance::test_all_finish_paths_keep_ledger[timeout]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_review_assistance::test_all_finish_paths_keep_ledger[rules]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_review_assistance::test_concurrent_hints_keep_both_events": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_review_assistance::test_actual_checkmate_api_preserves_hint": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_game_analysis::test_black_pov_mates_missing_depth_and_rating_hold": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_game_analysis::test_background_dedup_failed_retry_and_account_isolation": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_game_analysis::test_reset_generation_does_not_restore_analysis": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_game_analysis::test_internal_quality_monotone_no_elo_mapping": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_game_analysis::test_interrupted_job_can_retry_without_inventing_score": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_game_analysis::test_actual_stockfish_terminal_mate_is_not_low_depth": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_game_analysis::test_actual_stockfish_stalemate_is_terminal_not_missing_depth": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_game_analysis::test_normal_long_losses_are_not_excluded_from_quality[resign]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_game_analysis::test_normal_long_losses_are_not_excluded_from_quality[timeout]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_bridge::test_bridge_full_line_provenance_no_independent_credit": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_bridge::test_bridge_rejects_unrelated_unfinished_path_and_invalid_snapshot": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_bridge::test_bridge_invalid_snapshot_does_not_write_card": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_bridge::test_today_path_uses_diagnosis_and_excludes_ids_positions_from_transfer": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_bridge::test_diagnostic_exposure_cannot_become_mastery_after_delayed_repeat": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_bridge::test_concept_uses_real_source_and_locks_pending_transition[1366-768]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_bridge::test_concept_uses_real_source_and_locks_pending_transition[390-844]": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_learning_bridge::test_previous_pending_diagnosis_path_opens_same_source_without_duplicate": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_game_restore_feedback::test_auth_then_session_delay_and_failure_retry": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_game_restore_feedback::test_stale_read_cannot_replace_newer_read_or_account": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_game_restore_feedback::test_auth_failure_is_unknown_not_empty_and_retry_recovers": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_game_restore_feedback::test_account_switch_hides_prior_board_until_new_account_lookup": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_game_restore_feedback::test_pending_game_request_then_real_account_login_restores_b_without_waiting_for_a[move]": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_game_restore_feedback::test_pending_game_request_then_real_account_login_restores_b_without_waiting_for_a[new]": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_growth_real_browser::test_solved_partial_diagnosis_five_tasks_resume_and_concept_path": {
+      "status": "passed",
+      "run": "cma-growth-real-final.xml"
+    },
+    "tests.test_board_presentation::test_checks_include_pinned_attackers_and_match_random_legal_positions": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_presentation::test_explicit_move_plans_castling_capture_ep_promotion_and_reverse": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_presentation::test_two_confirmed_plies_and_reverse_capture_path": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_board_presentation::test_submitted_delta_rejects_old_reply_and_uses_exact_final_position": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_help_scope::test_current_help_separate_from_prior_card_exposure": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_help_scope::test_situation_uses_same_exposure_but_not_current_hint": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_help_scope::test_dashboard_read_compatibility_preserves_stored_json": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_help_scope::test_card_pages_preserve_history_and_due_count": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_onboarding::test_account_state_and_replay_preserves_records": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_onboarding::test_skip_auth_validation_and_defer": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_onboarding::test_new_journey_dynamic_helper_defers_without_mutation": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_engine_budget::test_one_engine_and_failure_release": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_engine_budget::test_foreground_busy_returns_retry_without_saving_game": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_refresh_identity::test_old_account_success_and_401_cannot_replace_new_login": {
+      "status": "passed",
+      "run": "suite-2.xml"
+    },
+    "tests.test_qa_browser::test_recommendations_and_delayed_catalog": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_browser::test_timeout_return_and_recent_lock": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_browser::test_original_promotion_summary[False-q]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_browser::test_original_promotion_summary[False-r]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_browser::test_original_promotion_summary[True-q]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_browser::test_original_promotion_summary[True-r]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_browser::test_missing_session_disables_stale_board[move]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_browser::test_missing_session_disables_stale_board[hint]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_browser::test_missing_session_disables_stale_board[start]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_browser::test_black_bullet_timeout_refreshes_summary": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_browser::test_catalog_loading_waits_before_navigation": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_browser::test_assessment_failed_optimistic_move_waits_for_restore": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_browser::test_assessment_status_single_flight_keeps_results": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_education_browser::test_real_path_help_wrong_hint_resume_and_completion[393]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_browser::test_real_path_help_wrong_hint_resume_and_completion[1280]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_browser::test_black_direction_promotion_cancel_and_save_error": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_browser::test_delayed_write_account_or_screen_exit_no_stale_render[False]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_browser::test_delayed_write_account_or_screen_exit_no_stale_render[True]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_browser::test_all_other_paths_real_board_or_choice_completion[threat-defended]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_browser::test_all_other_paths_real_board_or_choice_completion[plan-file]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_browser::test_all_other_paths_real_board_or_choice_completion[plan-piece]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_browser::test_all_other_paths_real_board_or_choice_completion[ending-opposition]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_browser::test_all_other_paths_real_board_or_choice_completion[ending-promotion]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_browser::test_prerequisite_link_opens_exact_existing_card_without_writes": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_education_browser::test_prerequisite_cached_card_waits_for_read_then_focuses_without_writes": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_repertoire_browser::test_actual_recall_no_answers_hint_deviation_resume_completion[390]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_repertoire_browser::test_actual_recall_no_answers_hint_deviation_resume_completion[1280]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_repertoire_browser::test_black_learning_and_weak_position": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_repertoire_browser::test_save_failure_refresh_and_old_account_response": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_repertoire_browser::test_help_and_promotion_cancel_do_not_submit_or_mark_hint": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_repertoire_browser::test_pending_saved_move_navigation_recovers_authoritative_state": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_repertoire_browser::test_integrated_first_recall_color_and_unknown_display": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_repertoire_browser::test_chained_action_stale_completion_cannot_start_or_close[False-finish]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_repertoire_browser::test_chained_action_stale_completion_cannot_start_or_close[False-hint]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_repertoire_browser::test_chained_action_stale_completion_cannot_start_or_close[True-finish]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_repertoire_browser::test_chained_action_stale_completion_cannot_start_or_close[True-hint]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_repertoire_browser::test_capacity_ui_finish_lost_response_reconnect_and_exploration": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_followup_browser::test_s3_active_restore_clears_previous_result[questions]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_followup_browser::test_s3_active_restore_clears_previous_result[feedback]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_followup_browser::test_s3_active_restore_clears_previous_result[game]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_followup_browser::test_s3_new_start_discards_late_recommendations": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_followup_browser::test_s4_matchup_uses_actual_game_color[new-white-\\ubc31 \\u2654 vs AI \\u265a]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_followup_browser::test_s4_matchup_uses_actual_game_color[new-black-\\ud751 \\u265a vs AI \\u2654]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_followup_browser::test_s4_matchup_uses_actual_game_color[resume-white-\\ubc31 \\u2654 vs AI \\u265a]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_followup_browser::test_s4_matchup_uses_actual_game_color[resume-black-\\ud751 \\u265a vs AI \\u2654]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_followup_browser::test_s4_matchup_uses_actual_game_color[timeout-white-\\ubc31 \\u2654 vs AI \\u265a]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_qa_followup_browser::test_s4_matchup_uses_actual_game_color[timeout-black-\\ud751 \\u265a vs AI \\u2654]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_study_browser::test_opening_actual_api_branch_recall_save_and_reference[390]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_study_browser::test_opening_actual_api_branch_recall_save_and_reference[1280]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_study_browser::test_review_branch_actual_rules_and_late_engine_cancel": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_study_browser::test_late_opening_bookmark_cannot_replace_new_course": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_study_browser::test_first_visit_auto_board_and_late_resume_does_not_replace_move": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_study_browser::test_delayed_save_ack_after_move_updates_revision_without_replacing_board": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_study_browser::test_opening_redo_boundaries_and_delayed_description[390]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_study_browser::test_opening_redo_boundaries_and_delayed_description[1280]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_unverified_and_unanswered_are_not_failure_or_weakness": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_unknown_legacy_exposure_does_not_poison_new_app_tracking": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_guidance_never_combines_cued_uncued_or_old_versions": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_additional_difficulty_follows_observed_completion": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_difficulty_scopes_do_not_contaminate_either_order[False]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_difficulty_scopes_do_not_contaminate_either_order[True]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes0-cued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes0-uncued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes1-cued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes1-uncued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes2-cued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes2-uncued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes3-cued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes3-uncued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes4-cued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes4-uncued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes5-cued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes5-uncued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes6-cued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_incompatible_difficulty_evidence_uses_explicit_default[changes6-uncued_execution]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_status_and_actual_selection_use_requested_scope[False-targeted-cued_execution-band0]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_status_and_actual_selection_use_requested_scope[False-recheck-uncued_execution-band1]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_status_and_actual_selection_use_requested_scope[True-targeted-cued_execution-band0]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_status_and_actual_selection_use_requested_scope[True-recheck-uncued_execution-band1]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_recheck_status_date_moves_after_related_exposure": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_journey_guidance::test_real_new_report_preserves_unknown_history_and_next_band": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_academy_upgrade_browser::test_anonymous_discovery_examples_and_opening_no_writes[1180-757]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_academy_upgrade_browser::test_anonymous_discovery_examples_and_opening_no_writes[390-844]": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_academy_upgrade_browser::test_logged_account_form_only_after_explicit_switch_and_cancel": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_academy_upgrade_browser::test_replay_component_starts_before_answer_and_never_posts": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_academy_upgrade_browser::test_internal_scale_keeps_game_rating_chart_separate": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_learning::test_hidden_answer_verify_server_enforced": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_help_classification_and_delayed_restore[hint-hinted_success]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_help_classification_and_delayed_restore[reveal-revealed_success]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_concurrent_duplicate_move_commits_once": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_account_isolation_and_settings_rollback": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_no_engine_and_no_repeat": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_legacy_seen_excluded_and_missing_data": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_wrong_verification_records_failure": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_real_engine_situation_and_undo": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_real_game_import_deduplicates": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_new_learning_survives_legacy_json_writes": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_situation_six_turn_completion_and_assisted_undo": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_restart_cannot_erase_card_exposure[reveal-revealed_success]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_restart_cannot_erase_card_exposure[hint-hinted_success]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_restart_cannot_erase_card_exposure[wrong-retry_success]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_delayed_credit_once_daily_and_distinct_evidence": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_shared_tag_selection_and_no_unrelated_fallback": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_daily_route_keeps_source_and_resumes_after_free_practice": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_newcomer_route_starts_real_beginner_task": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_missing_corpus_route_never_claims_completion": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_next_route_prioritizes_failed_verification": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning::test_route_missing_transfer_skips_but_original_situation_still_starts": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_progress_followup_browser::test_active_session_history_and_stale_refresh_never_mix": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_progress_followup_browser::test_one_observation_is_additional_confirmation_not_unmeasured": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_progress_followup_browser::test_equivalent_observation_is_not_unanswered": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_progress_followup_browser::test_past_lazy_evidence_is_read_only_during_active_diagnosis": {
+      "status": "passed",
+      "run": "cma-last-followup.xml"
+    },
+    "tests.test_entry_followup_browser::test_entry_complete_practice_then_direct_standard_choice[balanced-24]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_entry_followup_browser::test_entry_complete_practice_then_direct_standard_choice[quick-12]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_entry_followup_browser::test_prior_standard_cycle_then_new_entry_survives_reload": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_full_line_overlap_both_orders_preserves_nonoverlapping_similar_problem[False-suffix-journey]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_full_line_overlap_both_orders_preserves_nonoverlapping_similar_problem[False-suffix-learning]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_full_line_overlap_both_orders_preserves_nonoverlapping_similar_problem[False-convergence-journey]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_full_line_overlap_both_orders_preserves_nonoverlapping_similar_problem[False-convergence-learning]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_full_line_overlap_both_orders_preserves_nonoverlapping_similar_problem[True-suffix-journey]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_full_line_overlap_both_orders_preserves_nonoverlapping_similar_problem[True-suffix-learning]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_full_line_overlap_both_orders_preserves_nonoverlapping_similar_problem[True-convergence-journey]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_full_line_overlap_both_orders_preserves_nonoverlapping_similar_problem[True-convergence-learning]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_position_identity_ignores_clocks_but_preserves_chess_rights": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_old_first_move_success_does_not_inflate_full_line_or_fake_decline": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_only_matching_scope_version_windows_support_trend_and_priority": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_incomparable_failure_does_not_override_due_order[None-None]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_incomparable_failure_does_not_override_due_order[competency-v1-full_line]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_evidence_boundaries::test_incomparable_failure_does_not_override_due_order[competency-v2-first_move]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_all_features_button_browser::test_all_features_button_style_focus_and_existing_dialog[1280-720]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_all_features_button_browser::test_all_features_button_style_focus_and_existing_dialog[320-800]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_continuity::test_saved_switch_resume_keeps_help_and_rejects_late_moves": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_continuity::test_same_card_start_is_resume_without_exposure_or_help_reset": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_continuity::test_starting_level_persists_rules_retries_and_preserves_history": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_continuity::test_entry_selection_and_reports_cannot_mix_with_balanced_growth": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_continuity::test_application_easier_same_slot_and_retention_preparation": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_continuity::test_no_lower_candidate_preserves_everything": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_continuity::test_unknown_or_skipped_level_never_defaults_to_medium[None]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_continuity::test_unknown_or_skipped_level_never_defaults_to_medium[unsure]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_continuity::test_unknown_or_skipped_level_never_defaults_to_medium[later]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_continuity::test_latest_gentle_is_separate_from_prior_standard_cycle": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_responsive_qa::test_responsive_boards_long_copy_and_last_result[320]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_responsive_qa::test_responsive_boards_long_copy_and_last_result[360]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_responsive_qa::test_responsive_boards_long_copy_and_last_result[390]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_responsive_qa::test_responsive_boards_long_copy_and_last_result[430]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_responsive_qa::test_responsive_boards_long_copy_and_last_result[768]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_responsive_qa::test_responsive_boards_long_copy_and_last_result[900]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_responsive_qa::test_responsive_boards_long_copy_and_last_result[1024]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_responsive_qa::test_responsive_boards_long_copy_and_last_result[1280]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_responsive_qa::test_reset_failure_recovers_button_and_cancel_sends_nothing": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_runtime_isolation::test_cold_work_does_not_hold_production_db_or_block_other_account": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_runtime_isolation::test_database_busy_is_bounded_and_read_retry_preserves_state": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_runtime_isolation::test_preparation_failure_has_no_reservation_and_can_retry": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_runtime_isolation::test_cross_module_reservation_is_atomic_with_real_wrapper": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_runtime_isolation::test_concurrent_progress_compare_and_swap_without_global_mutex": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_runtime_isolation::test_prebuilt_index_matches_corpus_and_stale_index_rebuilds": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_image_runtime_package::test_copy_covers_local_runtime_imports": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_image_runtime_package::test_server_import_from_copy_payload_only": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_image_runtime_package::test_missing_module_regression_is_detected": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_image_runtime_package::test_focus_assets_are_in_copy_payload": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_image_runtime_package::test_piece_license_in_package": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    },
+    "tests.test_diagnosis_alternatives::test_ozelq_real_engine_and_sequence_context": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_diagnosis_alternatives::test_unverified_causes_and_engine_budget": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_diagnosis_alternatives::test_equivalent_is_not_full_line_credit": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_diagnosis_alternatives::test_balanced_api_real_ozelq_and_busy_reason": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_pagination::test_old_active_card_keeps_completed_category": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_pagination::test_older_card_next_problem_uses_completed_category": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_pagination::test_page_single_flight_duplicates_and_stale_responses": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_learning_pagination::test_more_button_double_click_and_late_page_after_refresh": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_puzzle_catalog_ready::test_delayed_catalog_blocks_submit_and_supports_explicit_retry[http]": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_puzzle_catalog_ready::test_delayed_catalog_blocks_submit_and_supports_explicit_retry[unavailable]": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_puzzle_catalog_ready::test_late_public_catalog_after_account_change_preserves_b_restored_task": {
+      "status": "passed",
+      "run": "cma-ui2-regression.xml"
+    },
+    "tests.test_start_guidance::test_start_guidance_matches_entry_and_standard_paths[index.html]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_start_guidance::test_start_guidance_matches_entry_and_standard_paths[onboarding.js]": {
+      "status": "passed",
+      "run": "suite-3.xml"
+    },
+    "tests.test_academy_upgrade_browser::test_new_education_review_uses_actual_step_count_without_answer_prompt": {
+      "status": "passed",
+      "run": "cma-final-change.xml"
+    }
+  }
+}

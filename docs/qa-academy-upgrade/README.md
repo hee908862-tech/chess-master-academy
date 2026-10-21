@@ -66,3 +66,14 @@ Final command outcomes are recorded in `verification.json`. Screenshots are loca
 QA, not claims about authenticated production state. Live checks after deployment
 are read-only health and static asset checks; no production learner records are
 created or replayed for QA.
+
+Final validation: 700 unique tests pass, zero skips or unresolved failures, after
+full-suite execution and affected-file reruns. Updated legacy test expectations
+cover explicit account switching, expanded lesson counts, read-only replay buttons,
+provisional partial-line scores, and subpixel scroll rounding. Education review
+hides answer instructions and displays the actual step count.
+
+Local full Docker build could not resolve `deb.debian.org` (exit 100). Direct Live
+health GET returned HTTP 403 in this execution environment. These are recorded
+separately from successful COPY-payload checks; post-merge deployment status must
+be confirmed through the authorized Render workspace.
