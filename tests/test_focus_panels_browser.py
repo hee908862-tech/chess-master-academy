@@ -118,7 +118,7 @@ def test_guest_alternative_keyboard_focus_without_injected_refocus(page,site):
 def test_settings_late_read_after_actual_account_login_is_ignored(page,site):
  import secrets
  a=login(page,site);page.evaluate("api('/learning/settings','POST',{intervals:[2,5]})")
- code='SET-READ-'+secrets.token_hex(4);pin='settings-read-123'
+ code=('SET-READ-'+secrets.token_hex(4)).upper();pin='settings-read-123'
  b=page.request.post(site[0]+'/api/register',data={'code':code,'pin':pin}).json()
  page.request.post(site[0]+'/api/learning/settings',headers={'Authorization':'Bearer '+b['token']},data={'intervals':[3,8]})
  pending=[]
@@ -159,6 +159,22 @@ def test_puzzle_choice_closes_only_after_new_session_success(page,site):
  page.locator('#focusPuzzleSelection > summary').click()
  page.route('**/api/v9/puzzle/start',lambda r:r.fulfill(status=503,json={'detail':'controlled start failure'}))
  page.locator('#v9PuzzleStart').click()
- expect(page.locator('#v9PuzzleBoardFeedback')).to_have_attribute('data-kind','error')
+ expect(page.locator('#v9PuzzleMessage')).to_contain_text('controlled start failure')
  expect(page.locator('#focusPuzzleSelection')).to_have_attribute('open','')
- assert page.locator('#v9PuzzleBoard .sq').evaluate_all('(cells)=>cells.map(c=>c.getAttribute("aria-label"))')==labels
+ expect(page.locator('#v9PuzzleBoard .sq')).to_have_count(0)
+
+
+def test_settings_same_route_during_save_keeps_pending_owner(page,site):
+ login(page,site);page.evaluate("tab('profile/settings')");expect(page.locator('#learningSaveIntervals')).to_be_enabled()
+ pending=[];page.route('**/api/learning/settings',lambda r:pending.append(r))
+ page.locator('#learningIntervals').fill('2,6');page.locator('#learningSaveIntervals').click()
+ page.evaluate("tab('profile/settings')")
+ expect(page.locator('#learningSaveIntervals')).to_be_disabled();expect(page.locator('#learningIntervals')).to_have_value('2,6')
+ for _ in range(100):
+  if pending:break
+  page.wait_for_timeout(10)
+ assert len(pending)==1
+ pending[0].fulfill(response=pending[0].fetch())
+ expect(page.locator('#learningSaveIntervals')).to_be_enabled()
+ expect(page.locator('#learningSettingsStatus')).to_contain_text('저장했습니다')
+ assert page.evaluate("api('/learning/dashboard')")['intervals']==[2,6]

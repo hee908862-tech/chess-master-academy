@@ -35,7 +35,7 @@ function install(){
   const header=details(host,hostId+'FocusScope','사용법 · 범위 · 저장 상태',headerNodes);host.prepend(header);header.open=true;
   educational.push({host,body,bodyId,header,layoutClass,boardId,active:false});
  }
- function arrangeEducational(){for(const item of educational){const {host,body,bodyId,header,layoutClass,boardId}=item,layout=body.querySelector('.'+layoutClass),active=!!layout;if(active!==item.active){item.active=active;header.open=!active;}host.classList.toggle('focus-lesson-active',active);if(!layout||layout.dataset.focusReady)continue;layout.dataset.focusReady='true';
+ function arrangeEducational(){for(const item of educational){const {host,body,bodyId,header,layoutClass,boardId}=item,layout=body.querySelector('.'+layoutClass),active=!!layout;if(active!==item.active){item.active=active;header.open=!active;}host.classList.toggle('focus-lesson-active',active);if(!layout)continue;const panel=$(boardId+'Feedback'),aside=layout.lastElementChild;if(panel&&panel.parentElement!==aside)aside.prepend(panel);if(layout.dataset.focusReady)continue;layout.dataset.focusReady='true';
   const info=layout.lastElementChild;info.classList.add('focus-lesson-panel');const before=[...body.children].slice(0,[...body.children].indexOf(layout));
   const title=before.find(n=>n.tagName==='H3'),progress=before[before.indexOf(title)+1];const record=details(info,bodyId+'Context','누적 기록 · 추가 안내',before.filter(n=>n!==title&&n!==progress));
   // Explanation content exists only when the authoritative mode permits it.
@@ -45,7 +45,7 @@ function install(){
   }
   const explanationNodes=paragraphs.filter(n=>n.parentElement===info);if(explanationNodes.length){const short=document.createElement('p');short.className='focus-reason';const text=explanationNodes.at(-1).textContent;short.textContent=text.length>140?text.slice(0,140)+'…':text;info.prepend(short);details(info,bodyId+'Explanation','배치 · 이유 자세히',explanationNodes);}
   // Keep next/hint/move actions before optional logs and long explanations.
-  const actions=[...body.children].filter(n=>n.tagName==='BUTTON');const primary=document.createElement('div');primary.className='btn-row';primary.append(...actions);info.prepend(primary);
+  const actions=[...body.children].filter(n=>n.tagName==='BUTTON');const primary=document.createElement('div');primary.className='btn-row';primary.append(...actions);info.insertBefore(primary,record);
   for(const n of [...body.children])if(n!==layout&&n!==title&&n!==progress&&!n.classList.contains('focus-lesson-goal'))record.append(n);
  }}
 
@@ -56,7 +56,7 @@ function install(){
  for(const v of document.querySelectorAll('.view'))new MutationObserver(queue).observe(v,{attributes:true,attributeFilter:['class']});
  new MutationObserver(queue).observe($('foundationWorkspace'),{attributes:true,attributeFilter:['hidden']});
  window.addEventListener('popstate',queue);sync();
- window.cmaFocusLayout={details,resumeTraining,puzzleReady,refresh:sync,task(id){if(id!==lastTask){trainingChoice=false;lastTask=id;}applyTraining();queue();}};
+ window.cmaFocusLayout={details,resumeTraining,puzzleReady,prepareLessons:arrangeEducational,refresh:sync,task(id){if(id!==lastTask){trainingChoice=false;lastTask=id;}applyTraining();queue();}};
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
 })();

@@ -15,7 +15,8 @@ def test_actual_pending_and_same_grid_column(page,site,mode,width):
     expect(page.locator('#'+board+'Feedback')).to_be_visible()
     column=page.locator('#'+board).locator('..')
     assert 'board-feedback-column' in column.get_attribute('class')
-    assert column.locator('#'+board+'Feedback').count()==1
+    assert column.locator('..').locator(':scope > *').count()==2
+    assert column.locator('..').locator('.focus-lesson-panel > #'+board+'Feedback').count()==1
     boxes=page.evaluate('id=>{const c=document.getElementById(id).parentElement;return [c.getBoundingClientRect().toJSON(),c.nextElementSibling.getBoundingClientRect().toJSON()]}',board)
     if width==1280:
         assert boxes[1]['x']>=boxes[0]['right']-1

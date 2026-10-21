@@ -78,3 +78,5 @@ body.entry-login #profileSections{display:none!important}
 .focus-lesson-panel{display:flex;flex-direction:column;gap:8px;min-width:0}.focus-lesson-panel>p{margin:0}.focus-lesson-panel .btn-row{gap:6px}
 #reviewBoard[hidden]{display:none!important}
 @media(max-width:850px){.focus-lesson-active .education-layout,.focus-lesson-active .repertoire-layout{grid-template-columns:minmax(0,1fr)}.focus-lesson-active .board{max-width:440px}.focus-lesson-active{padding:8px!important}}
+
+body.focus-activity .view.active{gap:8px}.focus-lesson-active.education{margin-top:0}.focus-lesson-panel .board-feedback{order:-1}.focus-lesson-active .focus-details{margin-top:0}

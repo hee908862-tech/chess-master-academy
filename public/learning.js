@@ -184,11 +184,11 @@
   $('learningReview').onclick=()=>tab('review');
   $('learningRefresh').onclick=load;
   // Settings have a separate read/save lifecycle; changing panels never changes a board verdict.
-  let settingsGeneration=0,settingsReady=false,settingsBusy=false,settingsActive=false;
-  const settingsRetry=button('복습 간격 다시 조회',()=>loadSettings());settingsRetry.id='learningSettingsRetry';$('learningSettingsStatus').after(settingsRetry);
+  let settingsGeneration=0,settingsReady=false,settingsBusy=false,settingsActive=false,settingsOwner=null;
+  const settingsRetry=button('복습 간격 다시 조회',()=>loadSettings(true));settingsRetry.id='learningSettingsRetry';$('learningSettingsStatus').after(settingsRetry);
   function settingsControls(){for(const id of ['learningIntervals','learningSaveIntervals'])$(id).disabled=!settingsReady||settingsBusy;settingsRetry.disabled=settingsBusy;}
   function cancelSettings(){settingsGeneration++;settingsReady=false;settingsBusy=false;settingsActive=false;settingsControls();}
-  async function loadSettings(){const identity=token,stamp=++settingsGeneration;settingsActive=true;settingsReady=false;settingsBusy=true;$('learningIntervals').value='';$('learningSettingsStatus').textContent='현재 계정의 복습 간격을 조회하고 있습니다.';settingsControls();
+  async function loadSettings(force=false){if(!force&&settingsActive&&settingsOwner===token&&(settingsBusy||settingsReady))return;settingsOwner=token;const identity=token,stamp=++settingsGeneration;settingsActive=true;settingsReady=false;settingsBusy=true;$('learningIntervals').value='';$('learningSettingsStatus').textContent='현재 계정의 복습 간격을 조회하고 있습니다.';settingsControls();
     try{if(!identity)throw Error('계정 연결 후 복습 간격을 확인할 수 있습니다.');const d=await api('/learning/dashboard');if(stamp!==settingsGeneration||identity!==token)return;$('learningIntervals').value=d.intervals.join(',');settingsReady=true;$('learningSettingsStatus').textContent='저장된 복습 간격을 확인했습니다. 변경은 다음 완료부터 적용됩니다.';}
     catch(e){if(stamp===settingsGeneration&&identity===token)$('learningSettingsStatus').textContent=e.message+' 조회를 다시 시도하세요. 저장은 아직 사용할 수 없습니다.';}
     finally{if(stamp===settingsGeneration&&identity===token){settingsBusy=false;settingsControls();}}
@@ -224,7 +224,7 @@
     },'선택한 진단의 원본 훈련을 여는 중입니다…');
   };
   const oldTab=tab;
-  tab=function(id){cancelSettings();document.body.classList.toggle('learning-active',id==='training');generation++;selected=null;oldTab(id);if(id==='training'||id==='home')load();};
+  tab=function(id){if(!(id==='profile'&&window.cmaNavigation?.current()==='profile/settings'&&settingsOwner===token))cancelSettings();document.body.classList.toggle('learning-active',id==='training');generation++;selected=null;oldTab(id);if(id==='training'||id==='home')load();};
   const oldSignout=$('signout')?.onclick;
   if($('signout'))$('signout').onclick=function(e){clear();return oldSignout?.call(this,e);};
   const mq=matchMedia('(max-width: 760px)');const details=()=>{$('learningDetails').open=true;};details();mq.addEventListener('change',details);

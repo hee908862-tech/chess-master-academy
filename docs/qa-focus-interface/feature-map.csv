@@ -13,16 +13,16 @@
 전술,과목검색31개·난도·15문제 시작·과목선택 복귀,v9/learning-navigation,목록/시작화면; 진행중 현재 과목/난도요약+변경 진입,선택화면,theme/level 허용목록 URL 유지,기존 제어/진입 유지; 공통 focus-activity/board-feedback 적용 대상에서는 표시만 재배치
 전술,보드·진행/반수·힌트·정답/완료·다음·프리무브,v9/board-tools,보드 중심과 핵심행; 프리무브 상태/취소는 인접 보조행,항상/상황별,숨긴보드 예약제출 방지; 실제 판정 기반,기존 제어/진입 유지; 공통 focus-activity/board-feedback 적용 대상에서는 표시만 재배치
 전술,이수기록·저장과정·재시작 보존확인,v9,과목목록/저장활동 패널,보조,새 시작시 기존 보존확인 유지,기존 제어/진입 유지; 공통 focus-activity/board-feedback 적용 대상에서는 표시만 재배치
-교육,6수업·학습/가린복습·관련기초·권장5/15분,education,교육 선택화면; 현재 실습 중 다른 시작 잠금 이유,선택화면,시간은 권장조합; 자동경로로 과장금지,기존 제어/진입 유지; 공통 focus-activity/board-feedback 적용 대상에서는 표시만 재배치
-교육,목표·보드·직전수·직접착수/칸/답선택·예시·힌트,education,보드 위 과제; 선택지는 핵심행; 예시/도움은 모드 허용대로,항상/상황별,복습에서 답 사전노출 금지,기존 제어/진입 유지; 공통 focus-activity/board-feedback 적용 대상에서는 표시만 재배치
-교육,이유 비교·다음·완료기록·시도마치기·방향·조회·보관결과,education,이유 패널+다음; 방향/마치기 보조; 결과는 교육 기록,보조/상황별,목록복귀는 finish 아님; 계정/CAS 유지,기존 제어/진입 유지; 공통 focus-activity/board-feedback 적용 대상에서는 표시만 재배치
+교육,6수업·학습/가린복습·관련기초·권장5/15분,education,교육 선택화면; 현재 실습 중 다른 시작 잠금 이유,선택화면,시간은 권장조합; 자동경로로 과장금지,educationPathsFocusScope / educationBodyContext / educationBodyExplanation; 목표→board-feedback-column+focus-lesson-panel; 기존 body 내부 조작/잠금 보존
+교육,목표·보드·직전수·직접착수/칸/답선택·예시·힌트,education,보드 위 과제; 선택지는 핵심행; 예시/도움은 모드 허용대로,항상/상황별,복습에서 답 사전노출 금지,educationPathsFocusScope / educationBodyContext / educationBodyExplanation; 목표→board-feedback-column+focus-lesson-panel; 기존 body 내부 조작/잠금 보존
+교육,이유 비교·다음·완료기록·시도마치기·방향·조회·보관결과,education,이유 패널+다음; 방향/마치기 보조; 결과는 교육 기록,보조/상황별,목록복귀는 finish 아님; 계정/CAS 유지,educationPathsFocusScope / educationBodyContext / educationBodyExplanation; 목표→board-feedback-column+focus-lesson-panel; 기존 body 내부 조작/잠금 보존
 훈련선택,새첫수·미출제검증·추천5·이전4단계경로·현재/보관훈련,learning/journey,훈련 선택화면; 실제 활성훈련으로 진입,선택화면,실습 노출 POST 의미 보존; 허브 조회 쓰기0,"focus-layout: trainingLibrary / learning-layout, 현재 경로는 활동 패널"
 훈련실습,제목·모드·목표·보드·정답한수/수순완료·저장,learning/board-feedback,공통 활동 보드열+진행행,항상,원본/새적용/독립검증 구분,"focus-layout: trainingLibrary / learning-layout, 현재 경로는 활동 패널"
 훈련실습,힌트 단계·답안수순·상대응수·상황 무르기·낮은난도,learning,모드 허용 핵심행/도움패널; 난도교체는 별도보조,핵심/보조,검증중 힌트/무르기 불가 유지; 도움쓰기 명시,"focus-layout: trainingLibrary / learning-layout, 현재 경로는 활동 패널"
 훈련실습,개념·규칙관계·기술근거·재생수순·현재문제로·교육링크,learning/mate-explanation,PC 측면/모바일 아래 해설; 관계표시 토글 보드인접,보조,풀이전 노출조건 유지; 원본국면과재생 구분,"focus-layout: trainingLibrary / learning-layout, 현재 경로는 활동 패널"
 훈련결과,같은위치·다음검증·경로다음·추천진행률,learning,완료 상태의 핵심다음행,상황별,5개완료≠독립숙련;7일 조건불변,"focus-layout: trainingLibrary / learning-layout, 현재 경로는 활동 패널"
 훈련기록,오답카드·검증/새문제/상황연습·더보기·능력지도·최근시도,learning,훈련 선택의 기록패널; 내 정보에서 동일기록 연결,보조,새 집계/개인실수노트 추가없음,"focus-layout: trainingLibrary / learning-layout, 현재 경로는 활동 패널"
-훈련설정,복습간격 입력·저장·설정저장오류,learning,설정→학습설정; 결과/판정상태와 분리,설정,다음완료부터 적용; 기존 계약유지,info-layout: profile/settings
+훈련설정,복습간격 입력·저장·설정저장오류,learning,설정→학습설정; 결과/판정상태와 분리,설정,다음완료부터 적용; 기존 계약유지,"profile/settings; 계정별 조회 완료 전 저장 잠금, 별도 세대·재시도·늦은 응답 가드"
 퍼즐,일반/도전 전환·카탈로그 상태/재시도·주제/난도/출제,v9/puzzle-challenge,퍼즐선택; 활동중 변경버튼으로 설정 복귀,선택화면,카탈로그 준비전출제잠금 유지,focusPuzzleSelection + 기존 판정/핵심 조작
 퍼즐실습,보드·색/반수·부분정답/완료·힌트·다음·프리무브,v9,보드+판정저장+핵심행; 도움 기록 경고 인접,항상,자동다음없음; 합법대안≠무조건악수,기존 제어/진입 유지; 공통 focus-activity/board-feedback 적용 대상에서는 표시만 재배치
 연속도전,규칙·난도·시작·저장불러오기·일반으로,puzzle-challenge,시작화면; 진행중 모드복귀·규칙 재보기,선택/보조,규칙확인 경로 보존; 다른 점수와혼합금지,기존 제어/진입 유지; 공통 focus-activity/board-feedback 적용 대상에서는 표시만 재배치
@@ -41,10 +41,10 @@
 오프닝실습,보드·해설·상대대응·후보·다른강의전환,study,보드+측면/하단해설;탐색모드후보만,항상/상황별,혼자두기정답노출경계,focusOpeningSelection + 기존 studyTools/레퍼토리
 오프닝도구,처음부터·이전·되돌린수복원·분기초기화·해설강의복귀,study,보드아래이동행;초기화별도보조,핵심/보조,redo의미와비활성이유유지,focusOpeningSelection + 기존 studyTools/레퍼토리
 오프닝저장,학습위치저장·저장위치이어하기·저장상태,study,보드도구 저장행/선택화면북마크,보조,단일북마크CAS;참고수순저장미지원안내,focusOpeningSelection + 기존 studyTools/레퍼토리
-레퍼토리선택,최대16선택·선택저장·레슨·백/흑·학습/복습시작,repertoire,오프닝의별도선택화면 유지,선택화면,기존강의와두보드동시노출금지,기존 제어/진입 유지; 공통 focus-activity/board-feedback 적용 대상에서는 표시만 재배치
-레퍼토리실습,보드·색/진행·배치/상대목표/계획/예외·등록수·힌트,repertoire,보드중심/해설패널,항상/상황별,가린복습에서DOM/aria 정답누출금지,기존 제어/진입 유지; 공통 focus-activity/board-feedback 적용 대상에서는 표시만 재배치
-레퍼토리결과,재시도·약점부터·같은레슨복습·마치기·보관·입력도움이력,repertoire,실습결과핵심행/기록패널,상황별,첫결과/누적도움/색미기록/한도유지,기존 제어/진입 유지; 공통 focus-activity/board-feedback 적용 대상에서는 표시만 재배치
-레퍼토리복귀,기존탐색보기·홈·저장상태조회,repertoire,상단목록/활동복귀·오류재조회,항상/보조,가린복습→정답탐색은기존도움기록유지,기존 제어/진입 유지; 공통 focus-activity/board-feedback 적용 대상에서는 표시만 재배치
+레퍼토리선택,최대16선택·선택저장·레슨·백/흑·학습/복습시작,repertoire,오프닝의별도선택화면 유지,선택화면,기존강의와두보드동시노출금지,repertoireFocusScope / repertoireBodyContext / repertoireBodyExplanation; 기존 body 내부 조작/잠금/도움 보존
+레퍼토리실습,보드·색/진행·배치/상대목표/계획/예외·등록수·힌트,repertoire,보드중심/해설패널,항상/상황별,가린복습에서DOM/aria 정답누출금지,repertoireFocusScope / repertoireBodyContext / repertoireBodyExplanation; 기존 body 내부 조작/잠금/도움 보존
+레퍼토리결과,재시도·약점부터·같은레슨복습·마치기·보관·입력도움이력,repertoire,실습결과핵심행/기록패널,상황별,첫결과/누적도움/색미기록/한도유지,repertoireFocusScope / repertoireBodyContext / repertoireBodyExplanation; 기존 body 내부 조작/잠금/도움 보존
+레퍼토리복귀,기존탐색보기·홈·저장상태조회,repertoire,상단목록/활동복귀·오류재조회,항상/보조,가린복습→정답탐색은기존도움기록유지,repertoireFocusScope / repertoireBodyContext / repertoireBodyExplanation; 기존 body 내부 조작/잠금/도움 보존
 복기선택,저장대국목록·새로고침·분석·개인훈련추출,v5/learning,기보선택화면;활동중현재대국요약/변경,선택/보조,기보불변/추출명시행동,reviewExplorer/BranchStart는 유효 기보 이후; 기존 복기 컨트롤러 유지
 복기활동,보드·반수·이전/다음·착수목록·평가/해설,v5,보드아래수이동/PC옆기보·모바일기보패널,항상/보조,계정owner·늦은분석성공실패보호,reviewExplorer/BranchStart는 유효 기보 이후; 기존 복기 컨트롤러 유지
 복기분기,여기부터다시두기·색·분기이전/다음/초기화·엔진응수·원본복귀,study,분기명시상태+이동행;원본복귀항상,상황별,임시분기임을명시;페이지이탈기존취소정책,reviewExplorer/BranchStart는 유효 기보 이후; 기존 복기 컨트롤러 유지
