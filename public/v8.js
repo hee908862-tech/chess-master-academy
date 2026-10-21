@@ -70,7 +70,7 @@ async function click(sq){
  const selectedMove=promo?(from+sq+promo):found;
  chosen=null;busy=true;
  try{
-  if(!game){const r=await api('/v8/assessment/answer','POST',{id:current.q.id,move:selectedMove});if(request!==revision)return;window.cmaBoardPresentation.transition('testBoard',r.answer,()=>feedbackOverlay(r));current={phase:'feedback'};}
+  if(!game){const r=await api('/v8/assessment/answer','POST',{id:current.q.id,move:selectedMove});if(request!==revision)return;window.cmaBoardPresentation.transition('testBoard',r.feedback?.answer,()=>feedbackOverlay(r));current={phase:'feedback'};}
   else{
    // Draw the validated selected move immediately, before waiting for AI analysis.
    const originalGame=current.game;

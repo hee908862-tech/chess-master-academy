@@ -41,3 +41,12 @@ def test_two_confirmed_plies_and_reverse_capture_path():
     assert [m['step'] for m in p['forward']]==[0,1]
     assert [m['piece'] for m in p['back']]==['B','q']
     assert [m['step'] for m in p['back']]==[1,0]
+
+def test_submitted_delta_rejects_old_reply_and_uses_exact_final_position():
+    b=chess.Board();b.push_uci('e2e4');b.push_uci('e7e5');b.push_uci('g1f3');b.push_uci('b8c6')
+    before=pieces(b);b.push_uci('f1c4');after=pieces(b)
+    rows=[{'before':before,'after':after,'move':{'submitted':'f1c4','played':past}} for past in [['b8c6','f1c4'],['g1f3','b8c6']]]
+    result=node(rows,'r=>cmaBoardPresentation.plan(r.before,r.after,r.move)')
+    assert all(len(p)==1 and p[0]['from']=='f1' and p[0]['to']=='c4' for p in result)
+    rows[0]['after']=before
+    assert node(rows[:1],'r=>cmaBoardPresentation.plan(r.before,r.after,r.move)')==[None]

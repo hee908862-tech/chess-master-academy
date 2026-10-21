@@ -15,7 +15,9 @@ function advance(before,uci,hint={}){if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uc
  const next={...before},moves=[{from,to,piece:p}];delete next[from];next[to]=p;
  if(p.toLowerCase()==='p'){if(from[0]!==to[0]&&!before[to]){const captured=to[0]+from[1];if(before[captured]!== (p==='P'?'p':'P'))return null;delete next[captured];}if(to[1]==='1'||to[1]==='8'){const promoted=uci[4]||(hint[to]||'').toLowerCase();if(!'qrbn'.includes(promoted)||promoted.length!==1)return null;next[to]=p==='P'?promoted.toUpperCase():promoted;}}
  if(p.toLowerCase()==='k'&&from[1]===to[1]&&Math.abs(xy(from)[0]-xy(to)[0])===2){const rf=(to[0]==='g'?'h':'a')+from[1],rt=(to[0]==='g'?'f':'d')+from[1],rook=p==='K'?'R':'r';if(before[rf]!==rook)return null;delete next[rf];next[rt]=rook;moves.push({from:rf,to:rt,piece:rook});}return {next,moves};}
-function plan(before,after,uci,reverse=false){const sequence=Array.isArray(uci)?uci:[uci];if(!sequence.length||sequence.length>2)return null;
+// A submission uses its exact one-ply result first; only a matching recorded reply may extend it.
+// Historical last-two arrays alone must never replay the preceding opponent move.
+function plan(before,after,uci,reverse=false){if(uci&&typeof uci==='object'&&!Array.isArray(uci)){if(reverse||typeof uci.submitted!=='string')return null;const single=plan(before,after,[uci.submitted]);if(single)return single;const played=uci.played;if(Array.isArray(played)&&played.length===2&&played[0]===uci.submitted)return plan(before,after,played);return null;}const sequence=Array.isArray(uci)?uci:[uci];if(!sequence.length||sequence.length>2)return null;
  if(reverse){const p=plan(after,before,sequence);return p?.map(m=>({from:m.to,to:m.from,piece:m.afterPiece,step:sequence.length-1-m.step}));}
  let board=before,moves=[];for(let i=0;i<sequence.length;i++){const r=advance(board,sequence[i],after);if(!r)return null;moves.push(...r.moves.map(m=>({...m,afterPiece:r.next[m.to],step:i})));board=r.next;}return equal(board,after)?moves:null;}
 

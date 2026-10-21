@@ -32,3 +32,7 @@
 
 최종 검사 완료: 런타임 소스 9f002da24717d8f4f04f318e6a440204633bb174. 전체601 중599통과/2실패(671.85초), 두 실패는 복기 메뉴 테스트의 이동 중 opacity DOM 비교. 테스트 대기1줄만 보완하고 해당파일 전체12통과(43.82초). 애플리케이션 변경 없이 전체 재실행은 하지 않았다. docs/qa-shared-board-feedback/REPORT.md, 원본로그/manifest/PC·모바일 캡처 참조. 구문33통과, diff-check통과. 테스트가 만든 타 단계 캡처/캐시는 미커밋 보존.
 초안PR create는 자동승인검토에서 사용자 직접 승인 미확인으로 미실행 거절. 부모에 전달했고 새 관련 승인 근거 없이 반복/우회하지 않음. 다음: 부모의 직접 승인 원문이 오면 미실행인 PR생성만 한번 재시도 판단, 여전히 거절이면 중단. 별도 단계3 구현 시작하지 말 것. 원격 codehead와 최종 문서 commit은 구분한다.
+
+2026-10-21 후속: 추가 직접 승인 근거로 미실행 PR생성을 한 번 재시도했고 draft PR26 생성 성공: https://github.com/hee908862-tech/chess-master-academy/pull/26 . 승인 차단 해소. e62e75c707023999d08b3b141baef9121a499ff7 기준 전체 재검사 실행 중. /tmp/run_shared_board_final_v2.py, /tmp/cma-shared-board-final-v2-suite-{0,1,2}.log 및 완료 manifest 확인. 기존 final 로그는 덮어쓰지 않는다. 코드/테스트 수정 없이 진행 중이며 완료 결과 전 통과로 집계하지 말 것.
+
+독립 검토 wiring 수정: v8 응답의 feedback.answer 경로 사용. 기초/훈련/도전은 과거 마지막2수를 그대로 재생하지 않고 제출 수1개와 실제 전후배치의 완전일치를 먼저 확인하며, 실제 제출 수로 시작하는 기록된2수도 완전일치할 때만 선택. 따라서 과거응수+마지막수, offset불변 도전완료 모두 마지막 제출수만 표시. 저장·채점·offset 변경 없음. 실제 로컬 API 완료/중간/실패/첫수 browser5검사 + 공통core4검사=9통과(27.54초). 훈련 full-line은 임시 SQLite 계정에 합법5반수 fixture를 구성, 실제 endpoint/브라우저로 검증. v2전체는 이 실제 결함 발견으로 중단했고 최종통과로 집계하지 않는다. 다음 /tmp/run_shared_board_final_v3.py 실행/결과확인, 중복금지.

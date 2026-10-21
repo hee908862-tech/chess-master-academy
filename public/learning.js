@@ -90,7 +90,7 @@
   async function act(action,move){if(!task||task.done)return;const s=task;await run(async()=>{
     const identity=token, rev=generation;
     const r=await api('/learning/action','POST',{session_id:s.session_id,revision:s.revision,action,move});
-    if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;if(action==='move'||action==='undo')window.cmaBoardPresentation.transition('learningBoard',action==='undo'?r.undone_moves:r.played_moves?.length?r.played_moves:move,render,action==='undo');else render();if(r.done)await updateStats();
+    if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;if(action==='move'||action==='undo')window.cmaBoardPresentation.transition('learningBoard',action==='undo'?r.undone_moves:{submitted:move,played:r.played_moves},render,action==='undo');else render();if(r.done)await updateStats();
   });}
   function renderDashboard(){
     if(!dashboard)return;
