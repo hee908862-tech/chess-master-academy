@@ -1,0 +1,28 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+___________________ test_course_board_feedback_column[1280] ____________________
+
+page = <Page url='http://127.0.0.1:55135/#learn/tactics/practice?theme=mateIn1&level=%EC%9E%85%EB%AC%B8'>
+site = ('http://127.0.0.1:55135', 'hIA4ADrEZqEZdhkpQTBXDCb0jZdok5yWVrSZGnnkCXXIR7_M')
+width = 1280
+
+    @pytest.mark.parametrize('width',[320,1280])
+    def test_course_board_feedback_column(page,site,width):
+        from test_study_browser import login
+        page.unroute('**/api/v9/catalog');page.set_viewport_size({'width':width,'height':900});login(page,site)
+        theme=page.evaluate("async()=>{const c=await api('/v9/catalog');return c.themes.find(t=>Object.values(t.counts).some(n=>n>=15)).id}")
+        page.evaluate('async t=>{tab("learn");return cmaOpenV9Course(t)}',theme);page.locator('#v9CourseStart').click()
+        expect(page.locator('#v9CourseBoard .sq')).to_have_count(64)
+        column=page.locator('#v9CourseBoard').locator('..')
+        assert 'board-feedback-column' in column.get_attribute('class')
+        assert column.locator('#v9CourseBoardFeedback').count()==1
+        boxes=page.evaluate('()=>{const c=document.getElementById("v9CourseBoard").parentElement;return [c.getBoundingClientRect().toJSON(),c.nextElementSibling.getBoundingClientRect().toJSON()]}')
+>       if width==1280:assert boxes[1]['x']>=boxes[0]['right']-1 and abs(boxes[0]['y']-boxes[1]['y'])<3
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       assert (873.078125 >= (855.078125 - 1) and 4.0 < 3)
+E        +  where 4.0 = abs((408.78125 - 412.78125))
+
+tests/test_board_feedback_followup_browser.py:101: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_board_feedback_followup_browser.py::test_course_board_feedback_column[1280]
+1 failed, 1 passed, 8 deselected in 10.06s
