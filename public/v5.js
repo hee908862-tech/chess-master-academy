@@ -122,6 +122,11 @@ function v5RenderReview(){
  const previous=reviewMotionContext;reviewMotionContext={game:v5Review,index:i};if(previous?.game===v5Review&&Math.abs(previous.index-i)===1)window.cmaBoardPresentation.transition('reviewBoard',rows[Math.max(i,previous.index)-1].uci,draw,i<previous.index);else draw();
  $('reviewStep').textContent=`${i} / ${rows.length} 반수`;
  document.querySelectorAll('.review-move').forEach((e,n)=>e.classList.toggle('active',n===i-1));
+ v5ReviewStatus();
+}
+function v5ReviewStatus(){
+ if(!v5Review)return;
+ const rows=v5Review.moves,i=v5ReviewIndex;
  const step=i?rows[i-1]:null;
  if(step){$('reviewStatus').textContent=`${step.side} ${step.san} · ${step.category} · 손실 ${step.centipawn_loss}cp\n${step.comment}\n도움: ${reviewAssistanceLabels(step).join(' · ')}\n${step.best_move?'엔진 추천 수: '+step.best_move:''}\n분석: ${step.source}`;$('reviewStatus').style.whiteSpace='pre-line'}
  else $('reviewStatus').textContent='시작 포지션입니다. 착수를 눌러 하나씩 복기하세요.';
@@ -130,10 +135,10 @@ let reviewListReady=false,reviewListRevision=0;
 $('reviewLoad').disabled=true;
 async function v5HistoryList(){
  if(!ready('review'))return;
- const revision=++reviewListRevision,identity=token;reviewListReady=false;$('reviewLoad').disabled=true;$('reviewGameSelect').replaceChildren(new Option('대국 기록 불러오는 중',''));$('reviewStatus').textContent='대국 목록을 불러오고 있습니다.';
+ const revision=++reviewListRevision,identity=token,selected=$('reviewGameSelect').value;reviewListReady=false;$('reviewLoad').disabled=true;$('reviewGameSelect').replaceChildren(new Option('대국 기록 불러오는 중',''));$('reviewStatus').textContent='대국 목록을 불러오고 있습니다.';
  try{const h=await api('/games/history');if(revision!==reviewListRevision||identity!==token)return;$('reviewGameSelect').replaceChildren();
   if(!h.length){const option=document.createElement('option');option.textContent='완료된 대국이 없습니다';option.value='';$('reviewGameSelect').appendChild(option);$('reviewStatus').textContent='대국을 완료하거나 기권하면 기록이 생성됩니다.';return}
-  h.forEach(g=>{const o=document.createElement('option');o.value=g.index;o.textContent=`${g.ended?.slice(0,10)||'날짜 미상'} · ${g.color==='black'?'흑':'백'} · 난이도 ${g.difficulty??'미기록'} · ${{win:'승리',loss:'패배',draw:'무승부'}[g.result]||'결과 확인 필요'} · ${g.plies}반수`;$('reviewGameSelect').appendChild(o)});reviewListReady=true;$('reviewLoad').disabled=false;$('reviewStatus').textContent='대국을 선택한 뒤 분석하세요.';
+  h.forEach(g=>{const o=document.createElement('option');o.value=g.index;o.textContent=`${g.ended?.slice(0,10)||'날짜 미상'} · ${g.color==='black'?'흑':'백'} · 난이도 ${g.difficulty??'미기록'} · ${{win:'승리',loss:'패배',draw:'무승부'}[g.result]||'결과 확인 필요'} · ${g.plies}반수`;$('reviewGameSelect').appendChild(o)});reviewListReady=true;$('reviewLoad').disabled=false;if([...$('reviewGameSelect').options].some(o=>o.value===selected))$('reviewGameSelect').value=selected;if(v5Review)v5ReviewStatus();else $('reviewStatus').textContent='대국을 선택한 뒤 분석하세요.';
  }catch(e){if(revision!==reviewListRevision||identity!==token)return;$('reviewGameSelect').replaceChildren(new Option('목록 확인 실패',''));$('reviewStatus').textContent=e.message+' · 목록 새로고침으로 재시도하세요.';}
 }
 async function v5ReviewLoad(){if(!ready())return;const index=$('reviewGameSelect').value;if(!reviewListReady||!/^\d+$/.test(index)){$('reviewStatus').textContent='목록을 불러온 뒤 분석할 대국을 선택하세요.';return;}const identity=token,listRevision=reviewListRevision;
