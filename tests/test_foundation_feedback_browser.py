@@ -65,6 +65,8 @@ def test_ep_demo_and_overlay_replay_are_read_only(page,site,prior_alternative):
     expect(page.locator('#foundationBoard .target, #foundationBoard .capture, #foundationBoard .selected')).to_have_count(0)
     expect(page.locator('#foundationOutcome')).to_contain_text('읽기 전용 교육 시범')
     expect(page.locator('#foundationOutcome')).not_to_contain_text('직접 두세요')
+    expect(page.locator('#foundationFeedback')).to_contain_text('읽기 전용 교육 예시')
+    expect(page.locator('#foundationFeedback')).not_to_contain_text('표시된 작은 원')
     expect(page.locator('#foundationSave')).to_have_text('실제 실습의 저장 상태: '+original_save+' · 시범은 저장하지 않습니다.')
     expect(page.locator('#foundationVisualLegend')).to_contain_text('교육 예시')
     expect(square(page,'foundationBoard','d7')).to_have_attribute('aria-label','d7 흑 폰')
@@ -77,6 +79,7 @@ def test_ep_demo_and_overlay_replay_are_read_only(page,site,prior_alternative):
     expect(page.locator('#foundationBoard .target, #foundationBoard .capture, #foundationBoard .selected')).to_have_count(0)
     expect(page.locator('#foundationOutcome')).to_have_text(original_outcome)
     expect(page.locator('#foundationSave')).to_have_text(original_save)
+    expect(page.locator('#foundationFeedback')).to_have_text(before['active']['feedback'] or '설명을 보고 직접 시도해 보세요.')
     assert page.evaluate("api('/foundations')")==before and writes==[]
     expect(page.locator('#foundationVisualLegend')).to_contain_text('e5 → d6')
 
