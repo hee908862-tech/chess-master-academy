@@ -49,6 +49,7 @@ def test_complete_all_restore_account_separation_no_credit(foundation):
         assert next(x for x in s['courses'] if x['id']==course['id'])['done']
     assert s['completed']==10 and s['recommended'] is None
     restored=TestClient(c.app,headers=dict(c.headers)).get('/api/foundations').json()
+    assert s.pop('interaction')=='step_complete'
     assert restored==s
     after=dict(server.get_state('INTRO-QA'));after.pop(KEY);assert after==before
     s=send(c,s,'review','rook-bishop');s=send(c,s,'move','rook-bishop','a1a4')
