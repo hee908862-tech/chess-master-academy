@@ -1,11 +1,14 @@
 """Catalogue is public/read-only; submission waits for readiness without queued writes."""
 import uuid
+import json
 import pytest
 from playwright.sync_api import expect
 from test_qa_browser import page,site
 
 @pytest.mark.parametrize('failure',['http','unavailable'])
 def test_delayed_catalog_blocks_submit_and_supports_explicit_retry(page,site,failure):
+    account=page.request.post(site[0]+'/api/register',data={'code':'CAT-'+uuid.uuid4().hex[:10].upper(),'pin':'catalog-test-pin'}).json()
+    page.add_init_script('localStorage.setItem("chess_token",'+json.dumps(account['token'])+');')
     page.unroute('**/api/v9/catalog')
     reads=[];writes=[]
     page.route('**/api/v9/catalog',lambda r:reads.append(r))
@@ -18,6 +21,7 @@ def test_delayed_catalog_blocks_submit_and_supports_explicit_retry(page,site,fai
     if failure=='http':reads[0].fulfill(status=503,json={'detail':'목록 조회 실패'})
     else:reads[0].fulfill(json={'ready':False,'count':0,'themes':[],'levels':['입문','중급','고급']})
     expect(page.locator('#v9CatalogRetry')).to_be_visible()
+    expect(page.locator('#v9PuzzleMessage')).to_contain_text('확인 실패' if failure=='http' else '데이터가 없어')
     expect(page.locator('#v9PuzzleStart')).to_be_disabled()
     page.locator('#v9CatalogRetry').click()
     page.locator('#v9CatalogRetry').evaluate('(e)=>e.onclick()')
