@@ -1,0 +1,35 @@
+/* The active board gets the available space; short/zoomed views retain document scrolling. */
+body.focus-activity .topbar,body.focus-activity #onboardingInvitation{display:none}
+body.focus-activity .main{padding-top:8px}
+body.focus-activity .feature-toolbar{margin:0 0 6px;min-height:44px}
+body.focus-activity .learning-route-nav{margin:0 0 6px}
+body.focus-foundation #foundationAcademy{padding:0!important}
+body.focus-foundation .foundation-work{grid-template-columns:minmax(0,1.4fr) minmax(280px,1fr);gap:18px}
+body.focus-foundation #foundationStepTitle{font-size:18px;margin:0 0 4px;line-height:1.4}
+body.focus-foundation #foundationInstruction,body.focus-foundation #foundationTurn{font-size:15px;line-height:1.5;margin:4px 0}
+body.focus-foundation #foundationBoard{width:100%;max-width:min(560px,max(320px,calc(100dvh - 190px)))}
+body.focus-foundation #foundationLive{margin:0;min-height:76px;padding:10px}
+body.focus-foundation #foundationLive p{margin:0;line-height:1.5;min-height:1.5em}
+body.focus-foundation #foundationSave{font-size:13px}
+body.focus-foundation .foundation-actions{display:flex;flex-direction:column;gap:8px;min-width:0}
+body.focus-foundation #foundationNext .btn{margin:0 6px 6px 0}
+.focus-reason{margin:0;line-height:1.5;font-size:15px;overflow-wrap:anywhere}
+.focus-details{border:1px solid var(--line);border-radius:10px;padding:0 10px;min-width:0;overflow-wrap:anywhere}
+.focus-details>summary{min-height:44px;padding:10px 0;cursor:pointer;line-height:1.5}
+.focus-details:focus-within{outline-offset:2px}
+#foundationExplanation #foundationFeedback{max-height:none;height:auto;overflow:visible;margin:0;padding:8px 0}
+#foundationFocusTools #foundationVisualTools{display:flex;flex-wrap:wrap;gap:6px}
+@media(max-width:850px){
+ body.focus-activity .app{padding:8px!important;padding-bottom:8px!important}
+ body.focus-activity .main{padding:0!important}
+ body.focus-activity .mobile-nav{position:static!important;inset:auto!important;margin-top:12px;width:100%;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+ body.focus-foundation .foundation-work{grid-template-columns:minmax(0,1fr);gap:8px}
+ body.focus-foundation #foundationBoard{max-width:440px}
+ body.focus-foundation #foundationStepTitle{font-size:16px}
+ body.focus-foundation .learning-route-nav{gap:4px}
+ body.focus-foundation #learning-location{display:none}
+}
+@media(max-height:600px){body.focus-foundation #foundationBoard{max-width:480px}}
+body.focus-foundation #foundationInstruction{min-height:1.5em}
+@media(min-width:851px){body.focus-foundation #foundationBoard{max-width:min(560px,max(320px,calc(100dvh - 270px)))}}
+@container(max-width:650px){body.focus-foundation .foundation-work{grid-template-columns:minmax(0,1fr)}}
