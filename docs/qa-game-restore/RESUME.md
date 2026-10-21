@@ -1,13 +1,10 @@
-# 대국 복원 안내 후속
+# 대국 복원 안내 후속 완료
 
-기준 main: 69fbd53987aabb6e6b342067f8de683ffc314a09 (PR28).
-브랜치: fix/game-restore-feedback. 부모가 병합/배포/운영 검사를 담당한다.
-
-확인: 초기 /me → /game 완료 전 정적 게스트/초기판 안내가 남았다. 느린 운영 응답 자체의 원인은 이 수정으로 규명하지 않았다.
-수정: 인증/복원 대기, 실패·조회 재시도, 미확인 초기판 숨김(공간 유지), 새 대국/착수 보호, 요청 세대·계정·착수 revision 가드. 기존 대국 데이터/서버 규칙 변경 없음.
-
-중간 검사 14 passed. 계정 소유자 표시 보호 추가 후 최종 관련 확대 검사 실행 중:
-/tmp/game-restore-final.log (pytest session 61941).
-로그 종료를 확인한 후 증거/최종 결과 업데이트, draft PR 생성. 중복 실행하지 않는다.
-루트 여유 0: 실제 Docker/PG 미실행. /tmp 작업 및 임시 SQLite 계정만 사용.
-운영 QA 대국 e4/c6 및 모든 운영 데이터 접근/변경 금지.
+브랜치 fix/game-restore-feedback. 기준 main 69fbd53987aabb6e6b342067f8de683ffc314a09.
+최종 runtime/test SHA: 10d018f505acd71b35ade76157c20bd078ba937d.
+관련 회귀 67 passed / 0 failed / 0 skipped (227.27초), 일반 Chromium + 임시 SQLite.
+app/audit-ui/game-focus Node 구문 및 git diff --check 통과.
+실행 중 검사 없음. 로그 results.log, 원인/범위 REPORT.md, 캡처 captures/.
+전체 회귀, 실제 Docker 빌드, PostgreSQL, 운영/물리 모바일은 미실행. 루트 여유 0.
+다음: 부모 독립 검토 → 병합/배포/운영 QA. 구현자가 직접 병합하지 않는다.
+운영 QA 대국 e4/c6 및 사용자 데이터 변경 금지.
