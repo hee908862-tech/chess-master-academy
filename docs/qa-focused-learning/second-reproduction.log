@@ -1,0 +1,177 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_saved_education_answer_delayed_return_refetches_authoritative_progress __
+
+page = <Page url='http://127.0.0.1:52395/#learn/education/practice'>
+site = [disposable local fixture redacted]
+
+    def test_saved_education_answer_delayed_return_refetches_authoritative_progress(page,site):
+        login(page,site);page.evaluate("cmaNavigation.go('learn/education')")
+        page.locator('#educationBody article').first.get_by_role('button',name='설명 가리고 복습',exact=True).click()
+        expect(page.locator('#educationBoard')).to_be_visible()
+        page.evaluate("""()=>{window.eduActualApi=api;window.eduReads=0;api=async(...args)=>{if(args[0]==='/education')eduReads++;const value=await eduActualApi(...args);if(args[0]==='/education/action')return new Promise(resolve=>window.releaseSavedAnswer=()=>resolve(value));return value;};}""")
+        square(page,'educationBoard','c3').click();page.wait_for_function('!!window.releaseSavedAnswer')
+        saved=page.evaluate("eduActualApi('/education')")
+        reads=page.evaluate('eduReads')
+        page.evaluate("tab('home');cmaEducation.open()")
+        expect(page.locator('#educationPaths')).to_have_attribute('aria-busy','false')
+>       assert page.evaluate('eduReads')>reads
+E       AssertionError: assert 0 > 0
+E        +  where 0 = evaluate('eduReads')
+E        +    where evaluate = <Page url='http://127.0.0.1:52395/#learn/education/practice'>.evaluate
+
+tests/test_focused_learning_followup.py:118: AssertionError
+____________ test_bare_course_route_late_catalog_does_not_leave_hub ____________
+
+page = <Page url='http://127.0.0.1:52395/#learn/tactics/practice?theme=quietMove&level=%EC%A4%91%EA%B8%89'>
+site = [disposable local fixture redacted]
+
+    def test_bare_course_route_late_catalog_does_not_leave_hub(page,site):
+        from test_qa_browser import CATALOG,TASK
+        pending=[];page.route('**/api/v9/catalog',lambda r:pending.append(r))
+        page.route('**/api/v9/session/course',lambda r:r.fulfill(json={**TASK,'active':True,'theme':'quietMove','level':'중급','session_id':'saved-course'}))
+        page.goto(site[0]+'/#learn/tactics/practice')
+        page.wait_for_function("typeof cmaNavigation!=='undefined'")
+        page.evaluate("cmaNavigation.go('learn')")
+        assert pending
+        pending[0].fulfill(json=CATALOG)
+        expect(page.locator('#tactic-quietMove')).to_have_count(1)
+        page.wait_for_timeout(200)
+>       expect(page.locator('#academyHub')).to_be_visible()
+E       AssertionError: Locator expected to be visible
+E       Actual value: hidden 
+E       Call log:
+E         - Expect "to_be_visible" locator("#academyHub") with timeout 5000ms
+E         - waiting for locator("#academyHub")
+E           14 × locator resolved to <section inert="" hidden="" id="academyHub" class="card feature-hub">…</section>
+E              - unexpected value "hidden"
+E       
+E       Aria snapshot:
+E       - complementary:
+E         - text: ♟ Chess Master Academy AI 체스 학습 아카데미 · v9.0
+E         - navigation:
+E           - button "홈"
+E           - button "배우기"
+E           - button "실력 진단"
+E           - button "대국"
+E           - button "내 기록"
+E           - group: 다른 학습 도구 · 도움말
+E         - text: 나에게 필요한 체스 학습을 찾고, 대국·퍼즐·학습 기록을 여러 기기에서 이어서 확인하세요.
+E       - main:
+E         - complementary:
+E           - text: 진단부터 훈련까지, 사용 안내를 확인하세요. 진행 중인 대국 시계는 멈추지 않습니다.
+E           - button "사용 안내 보기"
+E         - strong: CHESS MASTER ACADEMY
+E         - text: Learn with precision. Play with confidence. BROWSER-QA
+E         - button "계정 연결"
+E         - region "배우기":
+E           - text: 배우기
+E           - button "사용 방법"
+E           - navigation "학습 위치와 돌아가기":
+E             - button "학습 선택으로"
+E             - button "과정 목록으로"
+E             - text: 배우기 › 전술 과목 › 실습
+E           - group:
+E             - strong: 조용한 수 · 난이도 선택
+E             - button "과목 선택"
+E             - text: 난이도
+E             - combobox "난이도":
+E               - option "중급 (15개)" [selected]
+E             - button "새 15문제 과정 시작"
+E             - button "a8 빈 칸"
+E             - button "b8 빈 칸"
+E             - button "c8 빈 칸"
+E             - button "d8 빈 칸"
+E             - button "e8 빈 칸"
+E             - button "f8 빈 칸"
+E             - button "g8 흑 킹"
+E             - button "h8 빈 칸"
+E             - button "a7 빈 칸"
+E             - button "b7 빈 칸"
+E             - button "c7 빈 칸"
+E             - button "d7 백 폰"
+E             - button "e7 빈 칸"
+E             - button "f7 흑 폰"
+E             - button "g7 흑 폰"
+E             - button "h7 빈 칸"
+E             - button "a6 흑 폰"
+E             - button "b6 빈 칸"
+E             - button "c6 빈 칸"
+E             - button "d6 빈 칸"
+E             - button "e6 빈 칸"
+E             - button "f6 빈 칸"
+E             - button "g6 빈 칸"
+E             - button "h6 흑 폰"
+E             - button "a5 빈 칸"
+E             - button "b5 빈 칸"
+E             - button "c5 빈 칸"
+E             - button "d5 빈 칸"
+E             - button "e5 빈 칸"
+E             - button "f5 빈 칸"
+E             - button "g5 빈 칸"
+E             - button "h5 빈 칸"
+E             - button "a4 빈 칸"
+E             - button "b4 흑 폰"
+E             - button "c4 빈 칸"
+E             - button "d4 빈 칸"
+E             - button "e4 빈 칸"
+E             - button "f4 빈 칸"
+E             - button "g4 빈 칸"
+E             - button "h4 빈 칸"
+E             - button "a3 빈 칸"
+E             - button "b3 백 폰"
+E             - button "c3 빈 칸"
+E             - button "d3 백 퀸"
+E             - button "e3 빈 칸"
+E             - button "f3 빈 칸"
+E             - button "g3 빈 칸"
+E             - button "h3 백 폰"
+E             - button "a2 백 폰"
+E             - button "b2 빈 칸"
+E             - button "c2 빈 칸"
+E             - button "d2 빈 칸"
+E             - button "e2 빈 칸"
+E             - button "f2 빈 칸"
+E             - button "g2 백 폰"
+E             - button "h2 백 킹"
+E             - button "a1 빈 칸"
+E             - button "b1 빈 칸"
+E             - button "c1 흑 퀸"
+E             - button "d1 흑 퀸"
+E             - button "e1 빈 칸"
+E             - button "f1 빈 칸"
+E             - button "g1 빈 칸"
+E             - button "h1 빈 칸"
+E             - checkbox "프리무브 v9CourseBoard"
+E             - text: 프리무브 ON/OFF
+E             - button "예약 취소"
+E             - status: 예약 없음 · 상대 응답 대기 중 출발/도착 칸 선택
+E             - group: 보드 표시·프리무브 안내
+E             - text: 15/15 · 1400 퍼즐 레이팅 · 승격 · 1번째 반수
+E             - paragraph: 진행 중인 문제를 복원했습니다.
+E             - button "힌트 · 정답 위치 보기"
+
+tests/test_focused_learning_followup.py:136: AssertionError
+---------------------------- Captured log teardown -----------------------------
+ERROR    asyncio:base_events.py:1833 Exception in callback Connection.dispatch.<locals>._done_callback(<Task cancell..._page.py:298>>) at /tmp/chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:546
+handle: <Handle Connection.dispatch.<locals>._done_callback(<Task cancell..._page.py:298>>) at /tmp/chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:546>
+Traceback (most recent call last):
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/tmp/chess-venv/lib/python3.12/site-packages/playwright/_impl/_connection.py", line 547, in _done_callback
+    exc = future.exception()
+          ^^^^^^^^^^^^^^^^^^
+  File "/tmp/chess-venv/lib/python3.12/site-packages/playwright/_impl/_page.py", line 312, in _on_route
+    handled = await route_handler.handle(route)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/chess-venv/lib/python3.12/site-packages/playwright/_impl/_helper.py", line 443, in handle
+    return await self._handle_internal(route)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/chess-venv/lib/python3.12/site-packages/playwright/_impl/_helper.py", line 485, in _handle_internal
+    return await handled_future
+           ^^^^^^^^^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+=========================== short test summary info ============================
+FAILED tests/test_focused_learning_followup.py::test_saved_education_answer_delayed_return_refetches_authoritative_progress
+FAILED tests/test_focused_learning_followup.py::test_bare_course_route_late_catalog_does_not_leave_hub
+2 failed, 8 deselected in 14.02s
