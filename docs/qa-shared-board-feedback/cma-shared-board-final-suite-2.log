@@ -1,0 +1,80 @@
+......................................FF................................ [ 41%]
+........................................................................ [ 82%]
+..............................                                           [100%]
+=================================== FAILURES ===================================
+___ test_academy_disclosure_preserves_review_branch_and_pending_engine[390] ____
+
+page = <Page url='http://127.0.0.1:35931/#review'>
+site = ('http://127.0.0.1:35931', 'BE904VPC9oLktI6lhtWCSElALeQZaeJlNghD4z0yxPlhxeLc')
+width = 390
+
+    @pytest.mark.parametrize('width',[390,1280])
+    def test_academy_disclosure_preserves_review_branch_and_pending_engine(page,site,width):
+     import chess
+     page.set_viewport_size({'width':width,'height':950});login(page,site)
+     page.route('**/api/games/history',lambda r:r.fulfill(json=[{'index':0,'color':'white','plies':1,'result':'loss'}]))
+     b=chess.Board();b.push_uci('e2e4')
+     original={'color':'white','moves':[{'uci':'e2e4','san':'e4','side':'백','after_fen':b.fen(),'centipawn_loss':0,'category':'참고','comment':'원본'}]}
+     page.route('**/api/games/review/0',lambda r:r.fulfill(json=original))
+     page.evaluate("tab('review')");expect(page.locator('#reviewLoad')).to_be_enabled();page.locator('#reviewLoad').click();expect(page.locator('#reviewStep')).to_contain_text('0 / 1')
+     page.locator('#reviewBranchStart').click();expect(page.locator('#reviewBranchStatus')).to_contain_text('양쪽')
+     click_move(page,'reviewBoard','d2d4');expect(page.locator('#reviewStep')).to_contain_text('분기 1')
+     nav=page.locator('.mobile-nav' if width==390 else '.nav').locator('[data-tab="learn"]')
+     board=page.locator('#reviewBoard').inner_html()
+     for close in ['escape','outside']:
+      nav.click();expect(page.locator('#academyNavigationDialog')).to_be_visible();expect(page.locator('#review')).to_have_class('view active')
+      if close=='escape':page.keyboard.press('Escape')
+      else:page.mouse.click(2,2)
+      expect(nav).to_be_focused();expect(page.locator('#reviewStep')).to_contain_text('분기 1')
+>     assert page.locator('#reviewBoard').inner_html()==board
+E     assert '<button type...pan></button>' == '<button type...pan></button>'
+E       
+E       Skipping 6137 identical leading characters in diff, use -v to show
+E       - p" style="opacity: 0;"><img class="piece-img" src="/assets/assets/pieces/classic/wP.svg" alt="" draggable="false"></div></button><button type="button" class="sq " aria-label="e4 빈 칸" aria-pressed="false"><div class="piece-wrap"></div></button><button type="button" class="sq dark " aria-label="f4 빈 칸" aria-pressed="false"><div class="piece-wrap"></div></button><button type="button" class="sq " aria-label="g4 빈 칸" aria-pressed="false"><div class="piece-wrap"></div></button><button type="button" class="sq ...
+E       
+E       ...Full output truncated (3 lines hidden), use '-vv' to show
+
+tests/test_feature_navigation_browser.py:134: AssertionError
+___ test_academy_disclosure_preserves_review_branch_and_pending_engine[1280] ___
+
+page = <Page url='http://127.0.0.1:35931/#review'>
+site = ('http://127.0.0.1:35931', 'BE904VPC9oLktI6lhtWCSElALeQZaeJlNghD4z0yxPlhxeLc')
+width = 1280
+
+    @pytest.mark.parametrize('width',[390,1280])
+    def test_academy_disclosure_preserves_review_branch_and_pending_engine(page,site,width):
+     import chess
+     page.set_viewport_size({'width':width,'height':950});login(page,site)
+     page.route('**/api/games/history',lambda r:r.fulfill(json=[{'index':0,'color':'white','plies':1,'result':'loss'}]))
+     b=chess.Board();b.push_uci('e2e4')
+     original={'color':'white','moves':[{'uci':'e2e4','san':'e4','side':'백','after_fen':b.fen(),'centipawn_loss':0,'category':'참고','comment':'원본'}]}
+     page.route('**/api/games/review/0',lambda r:r.fulfill(json=original))
+     page.evaluate("tab('review')");expect(page.locator('#reviewLoad')).to_be_enabled();page.locator('#reviewLoad').click();expect(page.locator('#reviewStep')).to_contain_text('0 / 1')
+     page.locator('#reviewBranchStart').click();expect(page.locator('#reviewBranchStatus')).to_contain_text('양쪽')
+     click_move(page,'reviewBoard','d2d4');expect(page.locator('#reviewStep')).to_contain_text('분기 1')
+     nav=page.locator('.mobile-nav' if width==390 else '.nav').locator('[data-tab="learn"]')
+     board=page.locator('#reviewBoard').inner_html()
+     for close in ['escape','outside']:
+      nav.click();expect(page.locator('#academyNavigationDialog')).to_be_visible();expect(page.locator('#review')).to_have_class('view active')
+      if close=='escape':page.keyboard.press('Escape')
+      else:page.mouse.click(2,2)
+      expect(nav).to_be_focused();expect(page.locator('#reviewStep')).to_contain_text('분기 1')
+>     assert page.locator('#reviewBoard').inner_html()==board
+E     assert '<button type...pan></button>' == '<button type...pan></button>'
+E       
+E       Skipping 6137 identical leading characters in diff, use -v to show
+E       - p" style="opacity: 0;"><img class="piece-img" src="/assets/assets/pieces/classic/wP.svg" alt="" draggable="false"></div></button><button type="button" class="sq " aria-label="e4 빈 칸" aria-pressed="false"><div class="piece-wrap"></div></button><button type="button" class="sq dark " aria-label="f4 빈 칸" aria-pressed="false"><div class="piece-wrap"></div></button><button type="button" class="sq " aria-label="g4 빈 칸" aria-pressed="false"><div class="piece-wrap"></div></button><button type="button" class="sq ...
+E       
+E       ...Full output truncated (3 lines hidden), use '-vv' to show
+
+tests/test_feature_navigation_browser.py:134: AssertionError
+=============================== warnings summary ===============================
+../chess-venv/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /tmp/chess-venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_feature_navigation_browser.py::test_academy_disclosure_preserves_review_branch_and_pending_engine[390]
+FAILED tests/test_feature_navigation_browser.py::test_academy_disclosure_preserves_review_branch_and_pending_engine[1280]
+2 failed, 172 passed, 1 warning in 548.22s (0:09:08)

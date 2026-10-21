@@ -70,7 +70,7 @@ async function click(sq){
  const selectedMove=promo?(from+sq+promo):found;
  chosen=null;busy=true;
  try{
-  if(!game){const r=await api('/v8/assessment/answer','POST',{id:current.q.id,move:selectedMove});if(request!==revision)return;feedbackOverlay(r);current={phase:'feedback'};}
+  if(!game){const r=await api('/v8/assessment/answer','POST',{id:current.q.id,move:selectedMove});if(request!==revision)return;window.cmaBoardPresentation.transition('testBoard',r.feedback?.answer,()=>feedbackOverlay(r));current={phase:'feedback'};}
   else{
    // Draw the validated selected move immediately, before waiting for AI analysis.
    const originalGame=current.game;
@@ -78,10 +78,11 @@ async function click(sq){
    optimistic.squares[sq]=optimistic.squares[from];delete optimistic.squares[from];
    if((originalGame.squares[from]||'').toLowerCase()==='p'&&from[0]!==sq[0]&&!originalGame.squares[sq])delete optimistic.squares[sq[0]+from[1]];
    if(promo)optimistic.squares[sq]=(p[from]===p[from].toUpperCase()?promo.toUpperCase():promo.toLowerCase());
-   if(snapshot.session_id)window.cmaBoardTools.begin('testBoard',request,optimistic.squares,'white');else window.cmaBoardTools.unavailable('testBoard');current={phase:'game',session_id:snapshot.session_id,game:optimistic};draw();display('착수가 반영됐습니다. AI가 생각하고 있습니다.');
+   const displayed=window.cmaBoardPresentation.advance(originalGame.squares,selectedMove);if(displayed)optimistic.squares=displayed.next;
+   if(snapshot.session_id)window.cmaBoardTools.begin('testBoard',request,optimistic.squares,'white');else window.cmaBoardTools.unavailable('testBoard');current={phase:'game',session_id:snapshot.session_id,game:optimistic};window.cmaBoardPresentation.transition('testBoard',selectedMove,draw);display('착수가 반영됐습니다. AI가 생각하고 있습니다.');
    const r=await api('/v8/assessment/game-move','POST',{move:selectedMove,session_id:snapshot.session_id,expected_fen:originalGame.fen});if(request!==revision||accountToken!==token)return;evalClockSet(r.clock);
-   if(r.done){showResult(r.result,r.board);}
-   else{current={phase:'game',session_id:r.session_id,game:r.board};progress.textContent=`50번째 평가 · 중급 AI 실전 대국`;display('AI가 응수했습니다. 다음 수를 두세요.');draw();}
+   if(r.done){window.cmaBoardPresentation.transition('testBoard',r.board?.last_move,()=>showResult(r.result,r.board));}
+   else{current={phase:'game',session_id:r.session_id,game:r.board};progress.textContent=`50번째 평가 · 중급 AI 실전 대국`;display('AI가 응수했습니다. 다음 수를 두세요.');window.cmaBoardPresentation.transition('testBoard',r.board?.last_move,draw);}
   }
  }catch(err){if(request===revision){display(err.message,'err');await restore();}}finally{if(request===revision)busy=false;}
  const queued=window.cmaBoardTools.take('testBoard',request,current?.game?.legal,request===revision&&accountToken===token&&current?.session_id===snapshot.session_id&&current?.phase==='game'&&current.game.turn==='white'&&!current.game.is_over&&(evalClock?.white_ms==null||evalClock.white_ms-(Date.now()-evalClockAt)>0));
@@ -185,7 +186,7 @@ async function tap(s){if(!task||task.finished||locked)return;
  const from=selected,m=task.legal.find(u=>u.slice(0,2)===from&&u.slice(2,4)===s);
  if(!m){selected=pos[s]&&pos[s]===pos[s].toUpperCase()?s:null;render();return;}
  selected=null;locked=true;
- try{const r=await api('/v8/mate3/move','POST',{move:m});task=r;render();msg(r.message);if(r.correct)playMoveSound('move');}
+ try{const r=await api('/v8/mate3/move','POST',{move:m});task=r;window.cmaBoardPresentation.transition('v8MateBoard',m,render);msg(r.message);if(r.correct)playMoveSound('move');}
  catch(e){msg(e.message)}finally{locked=false}
 }
 button.onclick=start;
