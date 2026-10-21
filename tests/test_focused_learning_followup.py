@@ -103,3 +103,105 @@ def test_hub_zoom_long_text_and_keyboard_return(page,site):
     expect(page.locator('#foundationHeading')).to_be_focused()
     page.locator('#learn-hub-back').click();expect(page.locator('#learn-choice-basics')).to_be_focused()
     page.screenshot(path='/tmp/cma-focused-evidence/hub-zoom-200.png',full_page=True)
+
+
+def test_saved_education_answer_delayed_return_refetches_authoritative_progress(page,site):
+    login(page,site);page.evaluate("cmaNavigation.go('learn/education')")
+    page.locator('#educationBody article').first.get_by_role('button',name='설명 가리고 복습',exact=True).click()
+    expect(page.locator('#educationBoard')).to_be_visible()
+    page.evaluate("""()=>{window.eduActualApi=api;window.eduReads=0;api=async(...args)=>{if(args[0]==='/education')eduReads++;const value=await eduActualApi(...args);if(args[0]==='/education/action')return new Promise(resolve=>window.releaseSavedAnswer=()=>resolve(value));return value;};}""")
+    square(page,'educationBoard','c3').click();page.wait_for_function('!!window.releaseSavedAnswer')
+    saved=page.evaluate("eduActualApi('/education')")
+    reads=page.evaluate('eduReads')
+    page.evaluate("tab('home');cmaEducation.open()")
+    expect(page.locator('#educationPaths')).to_have_attribute('aria-busy','false')
+    assert page.evaluate('eduReads')>reads
+    expect(page.get_by_role('button',name='이유 확인 · 다음 비교 위치',exact=True)).to_be_visible()
+    page.evaluate('releaseSavedAnswer()')
+    expect(page.get_by_role('button',name='이유 확인 · 다음 비교 위치',exact=True)).to_be_visible()
+    assert page.evaluate("eduActualApi('/education')")==saved
+
+
+def test_bare_course_route_late_catalog_does_not_leave_hub(page,site):
+    from test_qa_browser import CATALOG,TASK
+    pending=[];page.route('**/api/v9/catalog',lambda r:pending.append(r))
+    page.route('**/api/v9/session/course',lambda r:r.fulfill(json={**TASK,'active':True,'theme':'quietMove','level':'중급','session_id':'saved-course'}))
+    page.goto(site[0]+'/#learn/tactics/practice')
+    page.wait_for_function("typeof cmaNavigation!=='undefined'")
+    page.evaluate("cmaNavigation.go('learn')")
+    assert pending
+    pending[0].fulfill(json=CATALOG)
+    expect(page.locator('#tactic-quietMove')).to_have_count(1)
+    page.wait_for_timeout(200)
+    expect(page.locator('#academyHub')).to_be_visible()
+    expect(page.locator('#v9LearnMode')).not_to_be_visible()
+    assert page.evaluate('location.hash')=='#learn'
+
+
+def test_nondefault_level_history_keeps_forward_entries(page,site):
+    from test_qa_browser import CATALOG
+    catalog={**CATALOG,'levels':['입문','중급','고급'],'themes':[{**t,'counts':{'입문':15,'중급':15,'고급':15}} for t in CATALOG['themes']]}
+    page.route('**/api/v9/catalog',lambda r:r.fulfill(json=catalog))
+    open_page(page,site);page.evaluate("cmaNavigation.go('learn/tactics')")
+    page.locator('#tactic-quietMove').click();page.locator('#v9CourseLevel').select_option('고급')
+    selected=page.evaluate('location.hash')
+    page.locator('#learn-list-back').click();page.locator('#tactic-interference').click()
+    length=page.evaluate('history.length')
+    page.go_back();expect(page.locator('#v9CourseCards')).to_be_visible()
+    page.go_back();expect(page.locator('#v9CourseLevel')).to_have_value('고급')
+    assert page.evaluate('location.hash')==selected
+    assert page.evaluate('history.length')==length
+    page.go_forward();expect(page.locator('#v9CourseCards')).to_be_visible()
+    page.go_forward();expect(page.locator('#v9CourseTitle')).to_contain_text('간섭')
+    assert page.evaluate('history.length')==length
+
+
+def test_education_list_focus_returns_to_active_lesson_after_render(page,site):
+    login(page,site);page.evaluate("cmaNavigation.go('learn/education')")
+    lesson=page.locator('#educationBody article').nth(3);lesson_id=lesson.get_attribute('id')
+    lesson.get_by_role('button',name='설명 보며 학습',exact=True).click()
+    expect(page.locator('#educationBoard')).to_be_visible()
+    page.locator('#learn-list-back').click()
+    expect(page.locator('#'+lesson_id)).to_be_focused()
+    assert 0<=page.locator('#'+lesson_id).bounding_box()['y']<100
+
+
+@pytest.mark.parametrize('activity',['new','basics','diagnosis'])
+def test_home_has_one_foundation_entry_with_real_progress(page,site,activity):
+    from pathlib import Path
+    login(page,site);page.set_viewport_size({'width':390,'height':844})
+    if activity!='new':
+        page.locator('#homeBasicsOpen').click();page.locator('#foundationPrimary button').click()
+        square(page,'foundationBoard','a1').click();square(page,'foundationBoard','a4').click()
+        page.locator('#foundationNext').get_by_role('button',name='다음 단계',exact=True).click()
+        expect(page.locator('#foundationStepTitle')).to_contain_text('2/3')
+    if activity=='diagnosis':page.evaluate("api('/journey/start','POST',{mode:'balanced'})")
+    saved=page.evaluate("api('/foundations')")
+    page.evaluate("tab('home')")
+    expect(page.locator('#homeBasicsOpen')).to_be_visible()
+    expect(page.locator('#entrySavedBasics')).not_to_be_visible()
+    if activity=='basics':
+        expect(page.locator('#journeyHome')).not_to_be_visible()
+        expect(page.locator('#homeBasics')).to_contain_text('2/3')
+    elif activity=='diagnosis':expect(page.locator('#journeyHomeOpen')).to_have_text('저장된 진단 이어하기')
+    else:expect(page.locator('#homeBasicsOpen')).to_have_text('기초 배우기 시작')
+    out=Path('/tmp/cma-focused-evidence');out.mkdir(exist_ok=True)
+    page.screenshot(path=str(out/f'home-distinct-{activity}-390.png'),full_page=True)
+    writes=[];page.on('request',lambda r:writes.append(r.url) if '/api/' in r.url and r.method!='GET' else None)
+    page.locator('#homeBasicsOpen').click()
+    if activity!='new':expect(page.locator('#foundationStepTitle')).to_contain_text('2/3')
+    else:expect(page.locator('#foundationPrimary')).to_be_visible()
+    assert page.evaluate("api('/foundations')")==saved and writes==[]
+
+
+def test_level_history_does_not_reuse_cached_different_level_task(page,site):
+    from test_qa_browser import CATALOG,TASK
+    catalog={**CATALOG,'levels':['중급','고급'],'themes':[{**t,'counts':{'중급':15,'고급':15}} for t in CATALOG['themes']]}
+    page.route('**/api/v9/catalog',lambda r:r.fulfill(json=catalog));open_page(page,site)
+    saved={**TASK,'active':True,'theme':'quietMove','level':'중급','session_id':'old-level'}
+    page.route('**/api/v9/session/course',lambda r:r.fulfill(json=saved))
+    page.evaluate("cmaNavigation.go('learn/tactics/practice?theme=quietMove&level=중급')")
+    expect(page.locator('#v9CourseBoard .sq')).to_have_count(64)
+    page.locator('#v9CourseLevel').select_option('고급');page.locator('#learn-list-back').click()
+    page.go_back();expect(page.locator('#v9CourseLevel')).to_have_value('고급')
+    expect(page.locator('#v9CourseBoard .sq')).to_have_count(0)

@@ -99,7 +99,7 @@ async function next(kind){const st=modes[kind];if(!st.solved||st.busy)return;
 }
 async function restore(kind,force=false,choice=null){const navigationVersion=window.cmaNavigation?.version();const st=modes[kind];if(!token||(!force&&st.task)||st.busy)return;const revision=st.revision,identity=token;
  try{const r=await api('/v9/session/'+kind);if(revision!==st.revision||identity!==token||st.busy||!r.active)return;
-  if(kind==='course'){if(navigationVersion!==window.cmaNavigation?.version()||(choice&&(r.theme!==choice.theme||r.level!==choice.level)))return;selectCourse(r.theme);el('v9CourseLevel').value=r.level;courseSaved=r;}
+  if(kind==='course'){if(navigationVersion!==window.cmaNavigation?.version()||(choice&&(r.theme!==choice.theme||r.level!==choice.level)))return;selectCourse(r.theme,{navigate:!choice,level:r.level});courseSaved=r;}
   if(r.result){st.task={session_id:r.session_id,fen:r.result.completed_fen,theme:r.theme,level:r.level};st.side=r.result.completed_fen.split(' ')[1]==='w'?'black':'white';st.solved=true;
    drawBoard(boardName(kind),fromFen(st.task.fen),{flip:st.side==='black'});status(kind,r.result.message);if(kind==='course')el('v9CourseMeta').textContent=`${r.index}/${r.total} 해결 · ${r.done?'과정 완료':'다음 문제 대기'}`;el('v9'+props(kind)+'Next').hidden=false;el('v9'+props(kind)+'Hint').disabled=true;
    window.cmaMate?.show(boardName(kind),r.result.mate_explanation,st.side==='black');
@@ -113,13 +113,13 @@ async function history(){const identity=token;if(!identity)return;try{const d=aw
  }catch(e){if(identity===token)el('v9CourseHistory').textContent=e.message}}
 async function hint(kind){const st=modes[kind];if(!st.task||st.busy||st.solved)return;const revision=st.revision,identity=token;st.busy=true;try{const r=await api(`/v9/${kind}/hint?`+new URLSearchParams({session_id:st.task.session_id,expected_fen:st.task.fen}));if(revision!==st.revision||identity!==token)return;st.hint=[r.from,r.to];status(kind,`추천 이동: ${r.move_label} · ${r.explanation}`);paint(kind)}catch(e){if(revision===st.revision&&identity===token)await failed(kind,e)}finally{if(revision===st.revision)st.busy=false}}
 
-function selectCourse(theme){if(courseTheme===theme&&modes.course.task&&window.cmaNavigation){window.cmaNavigation.tacticSelected();return;}invalidate('course');courseTheme=theme;el('v9LearnMode').hidden=false;const st=modes.course;st.task=null;st.selected=null;st.solved=false;st.last=[];st.mistakes=0;el('v9CourseBoard').replaceChildren();el('v9CourseMeta').textContent='새 과목 대기 중';el('v9CourseNext').hidden=true;el('v9CourseHint').disabled=true;
+function selectCourse(theme,{navigate=true,level=null}={}){if(courseTheme===theme&&modes.course.task&&(!level||modes.course.task.level===level)&&window.cmaNavigation){if(navigate)window.cmaNavigation.tacticSelected();if(level)el('v9CourseLevel').value=level;return;}invalidate('course');courseTheme=theme;el('v9LearnMode').hidden=false;const st=modes.course;st.task=null;st.selected=null;st.solved=false;st.last=[];st.mistakes=0;el('v9CourseBoard').replaceChildren();el('v9CourseMeta').textContent='새 과목 대기 중';el('v9CourseNext').hidden=true;el('v9CourseHint').disabled=true;
  const m=catalog?.themes.find(x=>x.id===theme);
  el('v9CourseTitle').textContent=(m?.name||theme)+' · 난이도 선택';
  const concept=window.cmaAcademyConcept(theme);el('v9CourseMessage').textContent='학습 목표: '+concept.goal+' '+concept.example+' 이 설명은 개념 예시이며 현재 문제의 정답 해설이 아닙니다. 15문제에서 직접 확인해 보세요.';
  el('v9CourseLevel').innerHTML='';for(const level of catalog.levels){const op=new Option(`${level} (${m?.counts[level]||0}개)`,level);op.disabled=(m?.counts[level]||0)<15;el('v9CourseLevel').add(op)}
  const available=[...el('v9CourseLevel').options].filter(o=>!o.disabled);el('v9CourseStart').disabled=!available.length;if(available.length)el('v9CourseLevel').value=available[0].value;else el('v9CourseMessage').textContent='이 과목은 준비된 문제가 부족하여 시작할 수 없습니다.';
- if(window.cmaNavigation)window.cmaNavigation.tacticSelected();else el('v9LearnMode').scrollIntoView({block:'nearest',behavior:'smooth'});
+ if(level)el('v9CourseLevel').value=level;if(navigate&&window.cmaNavigation)window.cmaNavigation.tacticSelected();else if(navigate)el('v9LearnMode').scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 async function init(){try{
  catalog=await api('/v9/catalog');el('v9DataCount').textContent=catalog.ready?`공개 검증 퍼즐 ${catalog.count.toLocaleString()}개`:'공개 문제 데이터 설치 필요';
@@ -144,7 +144,7 @@ el('v9CourseStart').textContent='새 15문제 과정 시작';
 el('v9CourseStart').onclick=()=>start('course');el('v9CourseNext').onclick=()=>next('course');
 el('v9CourseBack').onclick=()=>{if(window.cmaNavigation){window.cmaNavigation.go('learn/tactics');return;}invalidate('course');el('v9LearnMode').hidden=true;courseTheme=null};
 el('v9CourseLevel').addEventListener('change',()=>{if(window.cmaNavigation?.current()==='learn/tactics/practice')window.cmaNavigation.go('learn/tactics/practice',{replace:true,load:false,focus:false});});
-window.cmaTacticView={choice:()=>courseTheme?{theme:courseTheme,level:el('v9CourseLevel').value}:null,async restoreChoice(choice,version){const account=token;await catalogReady;if(account!==token||version!==window.cmaNavigation.version())return false;if(!catalog?.themes.some(t=>t.id===choice.theme)||!catalog.levels.includes(choice.level))return false;selectCourse(choice.theme);el('v9CourseLevel').value=choice.level;window.cmaNavigation.go('learn/tactics/practice',{replace:true,load:false,focus:false});await restore('course',false,choice);return true;},hasSelection:()=>!!courseTheme,refreshSaved:()=>loadSavedCourse(),loadSaved:async()=>{await catalogReady;await restore('course');}};
+window.cmaTacticView={choice:()=>courseTheme?{theme:courseTheme,level:el('v9CourseLevel').value}:null,async restoreChoice(choice,version){const account=token;await catalogReady;if(account!==token||version!==window.cmaNavigation.version())return false;if(!catalog?.themes.some(t=>t.id===choice.theme)||!catalog.levels.includes(choice.level))return false;selectCourse(choice.theme,{navigate:false,level:choice.level});window.cmaNavigation.go('learn/tactics/practice',{replace:true,load:false,focus:false});await restore('course',false,choice);return true;},hasSelection:()=>!!courseTheme,refreshSaved:()=>loadSavedCourse(),loadSaved:async()=>{const account=token,version=window.cmaNavigation?.version();await catalogReady;if(account!==token||version!==window.cmaNavigation?.version())return;await restore('course');}};
 const catalogReady=init();
 window.cmaOpenV9Course=async(theme)=>{await catalogReady;if(!catalog)return false;const m=catalog.themes.find(t=>t.id===theme);if(!m)return false;selectCourse(theme);return true};
 })();
