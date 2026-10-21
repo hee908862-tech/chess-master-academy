@@ -162,7 +162,7 @@ def test_alternative_move_uses_only_verified_large_loss(setup,monkeypatch,loss,e
         if candidates:break
     assert candidates
     for _ in range(index):s=act(c,act(c,s,'skip'),'next')
-    monkeypatch.setattr(journey,'verify_loss',lambda *a:{'loss_cp':loss,'depth':12,'engine':'controlled','policy':'test'})
+    monkeypatch.setattr(journey,'verify_loss',lambda *a:{'status':'verified_error' if loss>=200 else 'unverified','loss_cp':loss,'depth':12,'engine':'controlled','policy':'test'})
     result=act(c,s,'move',candidates[0])
     assert result['feedback']['outcome']==expected
     stored=saved(db)['active']['items'][index]

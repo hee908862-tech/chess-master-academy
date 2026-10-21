@@ -102,18 +102,29 @@ def verify_loss(fen,move,path):
     """Bounded evidence, including why an alternative could not be judged."""
     import chess
     import chess.engine
+    import time
+    import logging
     from pathlib import Path
-    evidence={'status':'unverified','reason':'engine_unavailable','policy':'alternative-v2',
+    started=time.monotonic();timings={};stage='validation'
+    evidence={'timings_ms':timings,'status':'unverified','reason':'engine_unavailable','policy':'alternative-v2',
               'settings':{'threads':1,'hash_mb':16,'seconds_per_position':.3,'max_depth':16,'minimum_depth':10}}
     if not path or not Path(path).is_file():return evidence
     if not _diagnostic_slot.acquire(blocking=False):return {**evidence,'reason':'diagnosis_busy'}
     try:
         board=chess.Board(fen);side=board.turn;m=chess.Move.from_uci(move)
         if not board.is_valid() or m not in board.legal_moves:return {**evidence,'reason':'invalid_position_or_move'}
-        with open_engine(path,timeout=3) as engine:
+        stage='startup'
+        with open_engine(path,timeout=3,timings=timings) as engine:
+            stage='configure';t=time.monotonic()
             engine.configure({'Threads':1,'Hash':16})
-            first=engine.analyse(board,chess.engine.Limit(time=.3,depth=16));board.push(m)
-            second=engine.analyse(board,chess.engine.Limit(time=.3,depth=16)) if not board.is_game_over() else {'score':chess.engine.PovScore(chess.engine.Cp(0),side),'depth':first.get('depth',0)}
+            timings['configure_ms']=round((time.monotonic()-t)*1000,3)
+            stage='analysis_before';t=time.monotonic()
+            try:first=engine.analyse(board,chess.engine.Limit(time=.3,depth=16))
+            finally:timings['analysis_before_ms']=round((time.monotonic()-t)*1000,3)
+            board.push(m);stage='analysis_after';t=time.monotonic()
+            try:second=engine.analyse(board,chess.engine.Limit(time=.3,depth=16)) if not board.is_game_over() else {'score':chess.engine.PovScore(chess.engine.Cp(0),side),'depth':first.get('depth',0)}
+            finally:timings['analysis_after_ms']=round((time.monotonic()-t)*1000,3)
+            stage='evaluation'
             depths=[first.get('depth',0),second.get('depth',0)]
             a=first['score'].pov(side);b=second['score'].pov(side)
             evidence.update(engine=engine.id.get('name'),depths=depths,depth=min(depths),before_cp=a.score(),after_cp=b.score(),before_mate=a.mate(),after_mate=b.mate())
@@ -124,5 +135,9 @@ def verify_loss(fen,move,path):
                     'reason':'large_loss' if loss>=200 else 'similar_evaluation' if loss<=35 else 'uncertain_difference'}
     except EngineBusy:return {**evidence,'reason':'engine_busy'}
     except (ValueError,KeyError,OSError,chess.engine.EngineError,TimeoutError) as exc:
-        return {**evidence,'reason':'engine_failure','error_type':type(exc).__name__}
-    finally:_diagnostic_slot.release()
+        evidence.pop('loss_cp',None)
+        return {**evidence,'reason':'engine_failure','error_type':type(exc).__name__,'failure_stage':getattr(exc,'engine_failure_stage',stage)}
+    finally:
+        timings['total_ms']=round((time.monotonic()-started)*1000,3)
+        logging.getLogger(__name__).info('diagnostic_engine_timing stage=%s timings_ms=%s',stage,timings)
+        _diagnostic_slot.release()

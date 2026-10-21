@@ -356,7 +356,7 @@ def attach_journey(app, ns):
                     state['reserved'].append({'puzzle_id':item['puzzle_id'],'fen':b.fen()})
                     if body.move!=expected and not b.is_checkmate():
                         if engine_evidence:item['engine_evidence']=engine_evidence
-                        if engine_evidence and engine_evidence.get('loss_cp',0)>=200:
+                        if engine_evidence and engine_evidence.get('status')=='verified_error' and engine_evidence.get('loss_cp',0)>=200:
                             item['engine_evidence']=engine_evidence
                             finish_item(s,False,'이 수에서 유리함을 놓친 것으로 분석됐어요. 상대의 위협과 후보 수를 비교해 보세요.',outcome='verified_error')
                         elif item['competency']=='mate' and b.is_stalemate():
