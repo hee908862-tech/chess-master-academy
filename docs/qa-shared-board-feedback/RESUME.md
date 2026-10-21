@@ -29,3 +29,6 @@
 초기 공통+기초 집중25통과(/tmp/cma-shared-board-focused.log). 이후 두 반수/모드 연결 추가분은 /tmp/cma-shared-board-integrated.log 실행 중: 완료/실패 확인 전 재실행하지 말 것. 전체회귀/최종캡처/DockerPG는 아직 미실행. 미검증 중간 코드 병합 금지. 운영은 부모 담당, 계정 접근 시도 안 함.
 
 최종 회귀 준비: 원격 ffd653f452a9aa8d523b96356cfbb2bc116d1d20 이후 v8 실제 표시 착수와 모션 경계 검사를 보완했다. 통합 70통과/1실패는 이동 중 opacity DOM 비교였으며, settled DOM을 기다리고 기존 동일성/CAS 검증을 유지한 후속11검사 통과(36.38초). 규칙/경계11통과, 초기공통+기초25통과는 각 이전 코드 기준이다. 최종 전체 회귀는 /tmp/run_shared_board_final.py 및 /tmp/cma-shared-board-final-suite-*.log, manifest JSON을 확인한다. 실행 중이면 중복 시작하지 않는다. 루트0, /tmp7.6GiB; Docker/PostgreSQL 미실행. 운영 변경 없음.
+
+최종 검사 완료: 런타임 소스 9f002da24717d8f4f04f318e6a440204633bb174. 전체601 중599통과/2실패(671.85초), 두 실패는 복기 메뉴 테스트의 이동 중 opacity DOM 비교. 테스트 대기1줄만 보완하고 해당파일 전체12통과(43.82초). 애플리케이션 변경 없이 전체 재실행은 하지 않았다. docs/qa-shared-board-feedback/REPORT.md, 원본로그/manifest/PC·모바일 캡처 참조. 구문33통과, diff-check통과. 테스트가 만든 타 단계 캡처/캐시는 미커밋 보존.
+초안PR create는 자동승인검토에서 사용자 직접 승인 미확인으로 미실행 거절. 부모에 전달했고 새 관련 승인 근거 없이 반복/우회하지 않음. 다음: 부모의 직접 승인 원문이 오면 미실행인 PR생성만 한번 재시도 판단, 여전히 거절이면 중단. 별도 단계3 구현 시작하지 말 것. 원격 codehead와 최종 문서 commit은 구분한다.

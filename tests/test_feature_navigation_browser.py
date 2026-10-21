@@ -125,6 +125,7 @@ def test_academy_disclosure_preserves_review_branch_and_pending_engine(page,site
  page.locator('#reviewBranchStart').click();expect(page.locator('#reviewBranchStatus')).to_contain_text('양쪽')
  click_move(page,'reviewBoard','d2d4');expect(page.locator('#reviewStep')).to_contain_text('분기 1')
  nav=page.locator('.mobile-nav' if width==390 else '.nav').locator('[data-tab="learn"]')
+ expect(page.locator('.cma-motion-ghost')).to_have_count(0)
  board=page.locator('#reviewBoard').inner_html()
  for close in ['escape','outside']:
   nav.click();expect(page.locator('#academyNavigationDialog')).to_be_visible();expect(page.locator('#review')).to_have_class('view active')
