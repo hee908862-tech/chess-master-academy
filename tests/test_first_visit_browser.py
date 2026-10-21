@@ -57,7 +57,7 @@ def test_existing_login_keeps_saved_activity_and_cancel_is_safe(guest,site):
     expect(p.locator('#entryReturn')).to_be_visible(timeout=20000)
     assert p.evaluate("api('/foundations')")==saved
     expect(p.locator('#homeBasics')).to_contain_text('나이트와 퀸')
-    expect(p.locator('#homeBasicsOpen')).to_contain_text('기초 배우기 이어하기')
+    expect(p.locator('#homeBasicsOpen')).to_have_text('이어서 배우기')
 
 @pytest.mark.parametrize('width,height',[(1366,768),(360,800),(320,640),(844,390)])
 def test_guest_layout_and_all_destinations_require_auth(guest,site,width,height):
@@ -135,7 +135,7 @@ def test_returning_action_precedes_optional_guides_and_group_location(guest,site
     p.locator('#codeField').fill('HOME-'+secrets.token_hex(4));p.locator('#pinField').fill('trial-test-pin42');p.locator('#signup').click()
     expect(p.locator('#foundationWorkspace')).to_be_visible(timeout=20000)
     p.evaluate("tab('home')")
-    expect(p.locator('#homeBasicsOpen')).to_contain_text('기초 배우기 이어하기')
+    expect(p.locator('#homeBasicsOpen')).to_have_text('이어서 배우기')
     expect(p.locator('#onboardingInvitation')).to_be_hidden();expect(p.locator('#startingLevelInvitation')).to_be_hidden()
     r=p.locator('#homeBasicsOpen').bounding_box();assert r['y']>=0 and r['y']+r['height']<p.locator('.mobile-nav').bounding_box()['y']
     p.locator('#homeExplore > summary').click();expect(p.locator('#startingLevelInvitation')).to_be_visible()
