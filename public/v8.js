@@ -27,14 +27,14 @@ function feedbackOverlay(data){
  $$('v8Verdict').style.color=fb.correct?'#74e2c2':'#ffabb1';
  $$('v8VerdictDetails').textContent=`${fb.domain} · 난이도 ${fb.difficulty}/7 · ${fb.seconds}초 · ${fb.points}점`;
  $$('v8AnswerText').textContent=`모범 착수: ${nameMove(fb.original_fen,fb.answer)}`;
- lastAnswer=fb;
+ lastAnswer=fb;window.cmaFeedback.set('testBoard',{title:fb.correct?'첫 수 판정 · 정답':'첫 수 판정 · 기준 답안 비교',save:'이전 버전 진단 기록 저장됨',kind:fb.correct?'complete':'ready',detail:'이 진단은 첫 수 채점입니다. 전체 수순 검증과 구분합니다.',facts:null});
  if(fb.correct)window.cmaMate?.show('testBoard',fb.mate_explanation,fb.original_fen.split(' ')[1]==='b');
  drawBoard('testBoard',fromFen(fb.answer_fen),{flip:fb.original_fen.split(' ')[1]==='b',last:[fb.answer.slice(0,2),fb.answer.slice(2,4)]});
  const squares=board.querySelectorAll('.sq');for(const sq of squares){const a=sq.getAttribute('aria-label')?.split(' ')[0];if(a===fb.answer.slice(2,4))sq.classList.add('v8-correct');}
  display('모범 착수와 채점 결과를 확인한 뒤 다음 문제를 누르세요.');
 }
 function nameMove(fen,uci){const p=fromFen(fen)[uci.slice(0,2)];const sym=({P:'',N:'N',B:'B',R:'R',Q:'Q',K:'K'})[(p||'P').toUpperCase()]||'';return sym+uci.slice(0,2)+' → '+sym+uci.slice(2,4)}
-function showQuestion(r){
+function showQuestion(r){window.cmaFeedback.set('testBoard',{title:'직접 판단하세요 · 첫 수 평가',save:'서버 문제 상태 확인됨',kind:'ready',detail:'답안 제출 전 정답 해설을 표시하지 않습니다.',facts:null});
  window.cmaBoardTools.cancel('testBoard');current={phase:'questions',q:r.question};clearPreviousResult();chosen=null;hideOverlay();lastAnswer=null;
  progress.textContent=`문항 ${r.index+1} / 49 · ${r.domain} · 난이도 ${r.question.difficulty}/7`;
  display(r.question.description+(r.question.opponent_last_move?` · 상대 직전 수: ${r.question.opponent_last_move} (청록 표시)`:' · 직전 수 기록이 없어 표시할 수 없습니다.'));

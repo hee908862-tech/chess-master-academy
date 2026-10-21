@@ -1,3 +1,4 @@
+from board_facts import learning_facts
 from engine_budget import open_engine, EngineBusy
 """Evidence-based learning, isolated from legacy progress JSON writes.
 New records use one locked row per account (SQLite BEGIN IMMEDIATE / PostgreSQL
@@ -386,7 +387,7 @@ def attach_learning(app, ns):
                 'category': None if verify and not s['done'] else CATEGORIES[card['category']],
                 'concept': None if verify and not s['done'] else CONCEPTS[card['category']],
                 'source': card['source'], 'goal': s['goal'], 'message': s.get('message', ''),
-                'played_moves':s.get('moves',[])[-2:], 'opponent_last_move': s.get('opponent_last_move'), 'hint_level': s['hints'],
+                'board_explanation':learning_facts(card,s), 'played_moves':s.get('moves',[])[-2:], 'opponent_last_move': s.get('opponent_last_move'), 'hint_level': s['hints'],
                 'context': card.get('context', '직전 위치 기록이 없어 변화의 의미를 추측하지 않습니다.'),
                 'explanation': s.get('explanation'), 'playback': s.get('playback', []),
                 'learning_link':None if verify and not s['done'] else copy.deepcopy(link), 'growth_task':s.get('growth_task'), 'outcome': s.get('outcome'), 'selection': None if verify and not s['done'] else s.get('selection'), 'path_id': s.get('path_id'), 'premove': False}
