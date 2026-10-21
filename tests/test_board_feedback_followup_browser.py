@@ -80,18 +80,18 @@ def test_settings_preserve_actual_board_verdict(page,site):
     from test_study_browser import login
     login(page,site);page.evaluate("tab('training')");page.locator('#learningFresh').click()
     expect(page.locator('#learningBoardFeedback')).to_be_visible()
-    before=page.locator('#learningBoardFeedback').inner_text()
+    before=page.locator('#learningBoardFeedback').text_content()
     saved=page.evaluate("api('/learning/dashboard')")['active']
     page.route('**/api/learning/settings',lambda r:r.fulfill(status=503,json={'detail':'settings unavailable'}))
     page.evaluate("tab('profile/settings')")
     page.locator('#learningSaveIntervals').click()
     expect(page.locator('#learningSettingsStatus')).to_contain_text('settings unavailable')
-    assert page.locator('#learningBoardFeedback').inner_text()==before
+    assert page.locator('#learningBoardFeedback').text_content()==before
     assert page.evaluate("api('/learning/dashboard')")['active']==saved
     page.unroute('**/api/learning/settings')
     page.locator('#learningSaveIntervals').click()
     expect(page.locator('#learningSettingsStatus')).to_contain_text('복습 간격을 저장')
-    assert page.locator('#learningBoardFeedback').inner_text()==before
+    assert page.locator('#learningBoardFeedback').text_content()==before
     assert page.evaluate("api('/learning/dashboard')")['active']==saved
 
 @pytest.mark.parametrize('width',[320,1280])

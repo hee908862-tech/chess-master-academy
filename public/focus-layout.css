@@ -65,3 +65,8 @@ body.focus-activity .board-feedback{margin:6px 0;padding:8px}
 body.entry-login #profile>.entry-auth-layout{display:block!important}
 body.entry-login #profileSections{display:none!important}
 @media(max-width:650px){#profileSections{display:grid;grid-template-columns:1fr 1fr}}
+
+#guestPractice{gap:8px}#guestPractice .feature-toolbar h2{font-size:18px;margin:0;line-height:1.4}#guestPractice .feature-toolbar{align-items:center}
+#guestScope>summary{min-height:44px;padding:10px;cursor:pointer}#guestScope{border:1px solid var(--line);border-radius:10px}
+#guestPractice #guestGoal{margin:4px 0 8px;line-height:1.5}#guestPractice #guestTitle{margin:4px 0}
+#guestOutcome{min-height:3em;margin:0;line-height:1.5}

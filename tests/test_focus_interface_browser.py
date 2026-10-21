@@ -29,4 +29,5 @@ def test_foundation_focused_bounds_and_readonly_details(page,site,size):
  expect(page.locator('#foundationNext')).to_contain_text('다음 단계')
  if size[1]>=720:assert page.locator('#foundationNext').bounding_box()['y']<size[1]-44
  Path('docs/qa-focus-interface/captures').mkdir(parents=True,exist_ok=True)
+ page.wait_for_timeout(350) # Only settle animation for the evidence image.
  page.screenshot(path=f'docs/qa-focus-interface/captures/foundation-{size[0]}-{size[1]}.png',full_page=True)
