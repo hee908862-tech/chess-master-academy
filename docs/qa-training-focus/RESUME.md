@@ -1,7 +1,9 @@
-# 재개
+# 완료 / 재개 지점
 
-작업트리 /tmp/cma-training-focus, branch fix/training-focus-actions, base335311263840ea6a089371e9c2c37c8ba3f2d7b4.
-중간 원격 cb31dc70e12ba063b8ad20e5f394fd5fffa5c7b4 (PC/390/320/200% 관련53통과).
-500px 기초·훈련·게스트 핵심 조작 보완 완료, 최종76건 /tmp/cma-training-final2.log 및 XML 진행 중. session27465. 먼저 프로세스/종료로그 확인, 중복실행 금지.
-런타임3파일 표시만 수정. 기존 변경/증거/DB 보존. 운영데이터/병합/배포금지.
-다음: 최종 결과/캡처 확인→증거 갱신→push→별도draftPR. 이전672통과는이번코드전체통과가아님.
+작업트리 /tmp/cma-training-focus, branch fix/training-focus-actions.
+base335311263840ea6a089371e9c2c37c8ba3f2d7b4.
+최종 코드/검사 SHA8fe80e69a7b36fa26d032b29d6887a6b562067ed, 이후 증거/문서만 추가.
+관련76개 전체 통과326.48초, 실패/오류/중복/skip0. 실행 프로세스 종료 확인. final-76.log/XML 및 command.txt/test-list 참조.
+JS구문/diff검사 통과. 원격CI실행없음. Docker/PG/물리모바일/운영QA미실행. 이전PR30 전체672는 이번 검사아님.
+Draft PR31: https://github.com/hee908862-tech/chess-master-academy/pull/31
+다음: 부모 독립리뷰/운영검증. 직접 병합/배포금지. 기존 별도QA캡처 변경/캐시/사용자자료/DB보존.

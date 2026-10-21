@@ -1,0 +1,46 @@
+.F......                                                                 [100%]
+=================================== FAILURES ===================================
+_________ test_midwidth_board_and_primary_completion_actions[training] _________
+
+page = <Page url='http://127.0.0.1:51151/#training'>
+site = ('http://127.0.0.1:51151', 'fyuTPd8l2pbQGwu71VNIGN-CMfIsdPW--DpR4c3P1SXss79B')
+mode = 'training'
+
+    @pytest.mark.parametrize('mode',['foundation','training','guest'])
+    def test_midwidth_board_and_primary_completion_actions(page,site,mode):
+     page.set_viewport_size({'width':500,'height':757})
+     if mode=='foundation':
+      foundation(page,site)
+      page.locator('#foundationBoard [aria-label^="a1 "]').click();page.locator('#foundationBoard [aria-label^="a4 "]').click()
+      expect(page.locator('#foundationOutcome')).to_contain_text('단계 완료')
+      board='foundationBoard';actions=['foundationNext'];save='/foundations'
+     elif mode=='training':
+      login(page,site);page.evaluate("tab('training')");page.locator('#learningFresh').click()
+      expect(page.locator('#learningBoard .sq')).to_have_count(64)
+      page.locator('#learningControls').get_by_role('button',name='힌트 1단계',exact=True).click()
+      expect(page.locator('#learningControls')).to_contain_text('힌트 2단계')
+      board='learningBoard';actions=['learningControls'];save='/learning/dashboard'
+     else:
+      context=page.context.browser.new_context(viewport={'width':500,'height':757});page=context.new_page()
+      page.goto(site[0]);page.locator('#firstEntry').get_by_role('button',name='기초·예제 퍼즐도 저장 없이 체험').click()
+      page.get_by_role('button',name='비숍은 대각선으로',exact=True).click()
+      page.locator('#guestBoard [aria-label^="c1 "]').click();page.locator('#guestBoard [aria-label^="g5 "]').click()
+      expect(page.locator('#guestOutcome')).to_contain_text('실습 목표 확인')
+      board='guestBoard';actions=['guestAgain','guestNext','guestContinue'];save=None
+     expect(page.locator('.cma-motion-ghost')).to_have_count(0)
+     page.evaluate('scrollTo(0,0)');page.evaluate('()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
+     ids=[board]+actions;boxes={i:page.locator('#'+i).bounding_box() for i in ids}
+     tag=os.environ.get('CMA_CAPTURE_TAG','after')+'-500-'+mode
+     out=Path('docs/qa-training-focus');out.mkdir(exist_ok=True)
+     (out/(tag+'.json')).write_text(json.dumps(boxes,indent=2));page.screenshot(path=str(out/(tag+'.png')),full_page=True)
+     assert boxes[board]['width']>=350,boxes
+     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+>    for name,b in boxes.items():assert 0<=b['y'] and b['y']+b['height']<=757,(name,boxes)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E    AssertionError: ('learningControls', {'learningBoard': {'x': 50, 'y': 179, 'width': 400, 'height': 400}, 'learningControls': {'x': 8, 'y': 722, 'width': 484, 'height': 44}})
+E    assert (0 <= 722 and (722 + 44) <= 757)
+
+tests/test_midwidth_focus.py:39: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_midwidth_focus.py::test_midwidth_board_and_primary_completion_actions[training]
+1 failed, 7 passed in 37.53s
