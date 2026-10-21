@@ -1,0 +1,4 @@
+Delayed catalog: empty theme POST, HTTP 400 (existing defect reproduced).
+Loaded catalog: random theme POST, HTTP 200, feedback present.
+.
+1 passed in 9.80s
