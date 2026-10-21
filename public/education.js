@@ -17,9 +17,9 @@ async function request(action,extra={}){const navigationVersion=window.cmaNaviga
  catch(e){if(stamp===generation&&identity===token){failed=true;status.textContent=e.message+' 저장 상태를 다시 확인하세요.';}return false;}
  finally{if(stamp===generation){busy=false;controls();draw();}}}
 function render(){body.replaceChildren();if(!data||!opened)return;const r=listVisible?null:data.active;host.dataset.practice=String(!!r);
- if(listVisible&&data.active)btn(body,'저장된 교육 실습 이어하기',()=>window.cmaNavigation.go('learn/education/practice'));
+ if(listVisible&&data.active){const resume=btn(body,'저장된 교육 실습 이어하기',()=>window.cmaNavigation.go('learn/education/practice'));resume.dataset.navigation='true';make(body,'p','현재 교육 실습을 이어가거나 실습의 결과 보관 버튼으로 마친 뒤 다른 수업을 시작하세요. 목록 이동만으로 보관하거나 중단하지 않습니다.');}
  if(!data.can_start)make(body,'p','보관 한도입니다. 현재 시도 종료·기존 결과 조회·다른 학습 탐색은 가능합니다. 새 기록을 위해 기존 기록을 자동 삭제하지 않습니다.');
- if(!r){for(const c of data.catalog){const card=make(body,'article');card.id='education-lesson-'+c.id;make(card,'h3',c.title);make(card,'p',c.intro);const m=data.metrics[c.id];if(m)make(card,'p',`교육 완료 ${m.completed} · 시도 ${m.attempts} · 누적 도움 ${m.hints} · 다른 응답 ${m.misses}`);for(const [mode,label] of [['learn','설명 보며 학습'],['review','설명 가리고 복습']]){const b=btn(card,label,()=>request('start',{lesson_id:c.id,mode}));b.id='education-start-'+c.id+'-'+mode;b.dataset.blocked=String(!data.can_start);}
+ if(!r){for(const c of data.catalog){const card=make(body,'article');card.id='education-lesson-'+c.id;make(card,'h3',c.title);make(card,'p',c.intro);const m=data.metrics[c.id];if(m)make(card,'p',`교육 완료 ${m.completed} · 시도 ${m.attempts} · 누적 도움 ${m.hints} · 다른 응답 ${m.misses}`);for(const [mode,label] of [['learn','설명 보며 학습'],['review','설명 가리고 복습']]){const b=btn(card,label,()=>request('start',{lesson_id:c.id,mode}));b.id='education-start-'+c.id+'-'+mode;b.dataset.blocked=String(!data.can_start||!!data.active);}
  btn(card,'관련 기존 기초 보기',async()=>{if(window.cmaNavigation)window.cmaNavigation.go('learn/basics');else window.cmaAcademyNavigate?.('basics');const identity=token,stamp=generation;await window.cmaFoundations?.load();if(identity!==token||stamp!==generation||!$('learn').classList.contains('active'))return;$('foundationCourseList').open=true;const target=document.querySelector(`[data-course="${c.prerequisite}"]`);if(target){target.tabIndex=-1;target.focus();target.scrollIntoView({block:'start'});}});}}
  else{
  make(body,'h3',r.title);make(body,'p',`${r.mode==='review'?'복습':'학습'} · 관찰 ${r.index+1}/3 · 이번 도움 ${r.hints} · 다른 응답 ${r.misses}`);
@@ -46,6 +46,6 @@ async function click(square){const r=data?.active;if(!r||busy||failed)return;if(
 function clear(){data=null;owner=token;selected=null;body.replaceChildren();status.textContent='저장 상태를 확인하세요.';}
 const previous=tab;tab=function(id){++generation;busy=false;if(owner!==token)clear();previous(id);controls();if(id==='learn'&&opened&&!window.cmaNavigation)request();};
 $('signout')?.addEventListener('click',()=>{++generation;busy=false;clear();});
-window.cmaEducation={open(){if(window.cmaNavigation){window.cmaNavigation.education();return;}opened=true;tab('learn');host.scrollIntoView({block:'start'});},show(list){opened=true;listVisible=list;if(owner!==token||!data)return request();render();},hasActive:()=>owner===token&&!!data?.active};
+window.cmaEducation={open(){if(window.cmaNavigation){window.cmaNavigation.education();return;}opened=true;tab('learn');host.scrollIntoView({block:'start'});},show(list){opened=true;listVisible=list;if(!token){clear();status.textContent='계정을 연결하면 교육 수업을 선택하고 저장된 실습을 이어갈 수 있습니다.';const login=btn(body,'계정 연결 후 교육 선택',()=>ready('learn/education'));login.dataset.navigation='true';controls();return;}if(owner!==token||!data)return request();render();controls();},hasActive:()=>owner===token&&!!data?.active};
 const hub=$('academyHub');if(hub)btn(hub,'기초 적용 · 짧은 교육 경로',()=>window.cmaEducation.open());
 })();

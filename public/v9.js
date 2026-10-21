@@ -75,10 +75,10 @@ async function tap(kind,sq){const st=modes[kind];if(st.busy){window.cmaBoardTool
    await refreshSummaryOnly();if(kind==='course'&&r.done)await history();
   }else{st.task=r;status(kind,r.reply?`정답: ${selectedMove} · 상대 응수: ${r.reply}. 마지막 이동 칸을 강조했습니다. 다음 수를 찾아보세요.`:r.message);paint(kind);}
  }catch(e){if(revision===st.revision&&accountToken===token)await failed(kind,e)}finally{if(revision===st.revision)st.busy=false;}
- const queued=window.cmaBoardTools.take(boardName(kind),task,st.task?.legal,revision===st.revision&&accountToken===token&&!st.solved&&st.task?.session_id===task.session_id&&st.task?.id===task.id&&st.task?.fen.split(' ')[1]===(st.side==='white'?'w':'b'));
+ const queued=window.cmaBoardTools.take(boardName(kind),task,st.task?.legal,revision===st.revision&&accountToken===token&&!el(boardName(kind)).closest('[hidden],[inert]')&&el(boardName(kind)).closest('.view.active')&&!st.solved&&st.task?.session_id===task.session_id&&st.task?.id===task.id&&st.task?.fen.split(' ')[1]===(st.side==='white'?'w':'b'));
  if(queued){st.selected=queued.from;await tap(kind,queued.to);}
 }
-async function start(kind){if(!ready(kind==='course'?'learn':'puzzle'))return;const st=modes[kind];if(st.busy)return;
+async function start(kind){if(!ready(kind==='course'?(window.cmaNavigation?.tacticDestination()||'learn'):'puzzle'))return;const st=modes[kind];if(st.busy)return;
  let replacement=null;
  if(kind==='course'){const identity=token,rev=st.revision;st.busy=true;try{const saved=await api('/v9/session/course');if(identity!==token||rev!==st.revision)return;if(saved.active&&!saved.done){if(!confirm('저장된 과정의 착수·힌트·진행을 보존하고 새 과정을 시작할까요? 저장된 과정 목록에서 다시 이어갈 수 있습니다.'))return;replacement=saved.replace_token;}}catch(e){if(identity===token)status(kind,e.message);return;}finally{if(identity===token&&rev===st.revision)st.busy=false;}}
  invalidate(kind);const revision=st.revision,identity=token;st.busy=true;try{
@@ -97,9 +97,9 @@ async function next(kind){const st=modes[kind];if(!st.solved||st.busy)return;
  status(kind,'다음 상황입니다. 상대의 위협과 후속 수순까지 계산해 보세요.');paint(kind);
  }catch(e){if(revision===st.revision&&identity===token)await failed(kind,e)}finally{if(revision===st.revision)st.busy=false}
 }
-async function restore(kind,force=false){const navigationVersion=window.cmaNavigation?.version();const st=modes[kind];if(!token||(!force&&st.task)||st.busy)return;const revision=st.revision,identity=token;
+async function restore(kind,force=false,choice=null){const navigationVersion=window.cmaNavigation?.version();const st=modes[kind];if(!token||(!force&&st.task)||st.busy)return;const revision=st.revision,identity=token;
  try{const r=await api('/v9/session/'+kind);if(revision!==st.revision||identity!==token||st.busy||!r.active)return;
-  if(kind==='course'){if(navigationVersion!==window.cmaNavigation?.version())return;selectCourse(r.theme);el('v9CourseLevel').value=r.level;courseSaved=r;}
+  if(kind==='course'){if(navigationVersion!==window.cmaNavigation?.version()||(choice&&(r.theme!==choice.theme||r.level!==choice.level)))return;selectCourse(r.theme);el('v9CourseLevel').value=r.level;courseSaved=r;}
   if(r.result){st.task={session_id:r.session_id,fen:r.result.completed_fen,theme:r.theme,level:r.level};st.side=r.result.completed_fen.split(' ')[1]==='w'?'black':'white';st.solved=true;
    drawBoard(boardName(kind),fromFen(st.task.fen),{flip:st.side==='black'});status(kind,r.result.message);if(kind==='course')el('v9CourseMeta').textContent=`${r.index}/${r.total} 해결 · ${r.done?'과정 완료':'다음 문제 대기'}`;el('v9'+props(kind)+'Next').hidden=false;el('v9'+props(kind)+'Hint').disabled=true;
    window.cmaMate?.show(boardName(kind),r.result.mate_explanation,st.side==='black');
@@ -143,7 +143,8 @@ el('v9PuzzleStart').onclick=()=>start('puzzle');el('v9PuzzleNext').onclick=()=>n
 el('v9CourseStart').textContent='새 15문제 과정 시작';
 el('v9CourseStart').onclick=()=>start('course');el('v9CourseNext').onclick=()=>next('course');
 el('v9CourseBack').onclick=()=>{if(window.cmaNavigation){window.cmaNavigation.go('learn/tactics');return;}invalidate('course');el('v9LearnMode').hidden=true;courseTheme=null};
-window.cmaTacticView={hasSelection:()=>!!courseTheme,refreshSaved:()=>loadSavedCourse(),loadSaved:async()=>{await catalogReady;await restore('course');}};
+el('v9CourseLevel').addEventListener('change',()=>{if(window.cmaNavigation?.current()==='learn/tactics/practice')window.cmaNavigation.go('learn/tactics/practice',{replace:true,load:false,focus:false});});
+window.cmaTacticView={choice:()=>courseTheme?{theme:courseTheme,level:el('v9CourseLevel').value}:null,async restoreChoice(choice,version){const account=token;await catalogReady;if(account!==token||version!==window.cmaNavigation.version())return false;if(!catalog?.themes.some(t=>t.id===choice.theme)||!catalog.levels.includes(choice.level))return false;selectCourse(choice.theme);el('v9CourseLevel').value=choice.level;window.cmaNavigation.go('learn/tactics/practice',{replace:true,load:false,focus:false});await restore('course',false,choice);return true;},hasSelection:()=>!!courseTheme,refreshSaved:()=>loadSavedCourse(),loadSaved:async()=>{await catalogReady;await restore('course');}};
 const catalogReady=init();
 window.cmaOpenV9Course=async(theme)=>{await catalogReady;if(!catalog)return false;const m=catalog.themes.find(t=>t.id===theme);if(!m)return false;selectCourse(theme);return true};
 })();
