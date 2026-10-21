@@ -10,3 +10,5 @@
 .board-facts{margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:10px}.board-facts[hidden]{display:none}.board-scope summary{min-height:44px;padding:10px 0}
 
 .journey-board-panel .board{max-width:560px;width:100%}.learning-position .board{width:100%;max-width:560px}.feature-jumps{margin-bottom:8px}.board-feedback{overflow-anchor:none}#learningSetup>.row:has(h2){display:none}#learningSetup .tag{display:none}
+
+.board-feedback-column{min-width:0;max-width:100%;align-self:start}.board-feedback-column>.board{width:100%;max-width:560px}

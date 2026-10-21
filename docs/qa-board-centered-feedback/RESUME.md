@@ -23,3 +23,13 @@
 추가 보완: 200% 확대 grid 넘침 수정, 최초 비동기 조회 종료 후 관계 표시 fixture 검사. 새 브라우저10통과(29.37초). 이후 실제 이미지에서 훈련 추천/설정 카드가 보드보다 앞선 점을 확인해 활성 훈련시 뒤로 재배치하고 새로고침은 툴바 유지. 다수 수순 API의 실제 관계 표시 assertion 추가. 최근 묶음은9통과/2실패/3오류 후 중단: Chromium Target crashed, pthread_create EAGAIN(11), JS 초기 로딩 미완료. PID1 아래 약19464좀비, 원인확정/삭제없음. 일반 Chromium 재확인2개 시작오류. /tmp/cma-centered-recovery.log 보존. 제한적 single-process/no-zygote 대안 /tmp/cma-centered-low-resource.log 진행, 일반검사와구분. 루트0 /tmp자료보존. 최종전체/DockerPG 미실행.
 
 제한적 동일환경 대안 성공: CMA_LOW_RESOURCE=1, pytest -p cma_reap_tests (문서에 복제), Chromium single-process/no-zygote/disable-gpu. 최신 실제 훈련 다수 수순·관계표시2통과(23.62초), 일반 퍼즐 실제 API 오답→중간→완료→명시적 다음 및 core3통과(17.64초). 이 모드는 일반 멀티프로세스 Chromium과 구분한다. 전체는 두 pytest 묶음으로 /tmp/run_centered_final.py, /tmp/cma-centered-final-suite-*.log 및 manifest 확인. 새 전체검사 전 프로세스 확인, 중복금지. 일반브라우저/PG/Docker 최종전체는 미실행 제약 유지.
+
+## Independent review follow-up (after 85915a3)
+- Fixed initial opening/review position failure remaining pending with null state; retry preserves original records.
+- Legacy V8 feedback now changes across game/results/start/restore failure/recovery.
+- Settings-only learning run no longer replaces board verdict with pending.
+- Education/repertoire publish pending without rebuilding board; course/education/repertoire board and panel share a grid column.
+- `node tests/board_feedback_recovery.cjs`: PASS actual controller code with DOM/transport doubles (not browser evidence). Changed JS syntax PASS.
+- Previous full attempt at 85915a3 interrupted after repeated EAGAIN: suite0 31 passed/2 failed/8 errors; suite1 3 passed/2 failed/2 errors. NOT full regression pass. Logs /tmp/cma-centered-final-suite-{0,1}.log and manifest /tmp/cma-centered-final-suites.json preserved.
+- Next: sequential constrained Chromium focused follow-up, PC captures for three grid boards, classify failures, full regression only if environment permits. Standard Chromium fork/thread exhaustion, root disk full; Docker/PG not rerun.
+- Draft PR creation denied (not executed) by automatic approval review claiming stage3 lacks direct user authorization. Parent notified; do not retry without materially new relevant evidence.

@@ -39,7 +39,7 @@
   async function run(fn,waiting='저장 중입니다. 상황 대국은 엔진 응수를 기다려 주세요.'){
     if(busy)return;
     busy=true;renderControls();lockControls();
-    $('learningMessage').textContent=waiting;if(task)window.cmaFeedback.set('learningBoard',{title:'요청 처리 중',save:'서버 응답 대기',kind:'pending',detail:waiting,facts:null});
+    $('learningMessage').textContent=waiting; // Board actions publish their own pending state; settings do not replace a board verdict.
     const identity=token,rev=generation;let succeeded=false;
     try{await fn();succeeded=true;}
     catch(e){if(identity===token&&rev===generation){$('learningMessage').textContent=e.message;window.cmaFeedback.set('learningBoard',{title:'처리 결과 미확인 · 저장 상태 확인',save:'저장 여부 미확인',kind:'error',detail:e.message+' 기록 새로고침으로 확인하세요.',facts:null});}}
