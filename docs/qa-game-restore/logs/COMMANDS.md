@@ -16,3 +16,5 @@ CMA_JOURNEY_INDEX=/tmp/chess-journey-index.json.gz
 카탈로그 보완 ba13b6c:
 - catalog-fix-14.log: 같은 공통 환경 + `tests/test_puzzle_catalog_ready.py tests/test_board_feedback_browser.py` (14 통과).
 - 이전 catalog-diagnosis.log / catalog_diagnosis.py는 수정 전 0459e5d의 실패 원인 재현 자료로 유지한다.
+
+7c36cc6 최종 카탈로그 보완: 같은 집중 명령으로 catalog-confirmed-14.log (14 통과). 빈 보드 실패 안내를 함께 검증하며, 파라미터별 별도 계정을 사용해 기존 문제 복원 검사와 구분한다.
