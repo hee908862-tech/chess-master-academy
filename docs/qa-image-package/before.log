@@ -1,0 +1,22 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____________________ test_copy_covers_local_runtime_imports ____________________
+
+package = PosixPath('/tmp/pytest-of-agent/pytest-15/image-copy0')
+
+    def test_copy_covers_local_runtime_imports(package):
+        local = {p.stem for p in ROOT.glob('*.py')}
+        missing = set()
+        for file in package.glob('*.py'):
+            for node in ast.walk(ast.parse(file.read_text())):
+                imports = ([x.name.split('.')[0] for x in node.names] if isinstance(node, ast.Import)
+                           else [node.module.split('.')[0]] if isinstance(node, ast.ImportFrom) and node.module else [])
+                missing.update((file.name, name) for name in imports if name in local and not (package / (name + '.py')).is_file())
+>       assert not missing, f'Local runtime imports absent from Docker COPY: {sorted(missing)}'
+E       AssertionError: Local runtime imports absent from Docker COPY: [('learning_server.py', 'board_facts')]
+E       assert not {('learning_server.py', 'board_facts')}
+
+tests/test_image_runtime_package.py:70: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_image_runtime_package.py::test_copy_covers_local_runtime_imports
+1 failed, 2 deselected in 0.19s
