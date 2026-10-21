@@ -107,6 +107,7 @@ def test_first_visit_auto_board_and_late_resume_does_not_replace_move(page,site)
     page.evaluate("""() => {const original=api;window.holdOpening=true;api=function(p,...a){if(p==='/study/openings'&&window.holdOpening){window.holdOpening=false;return new Promise(resolve=>window.releaseOpening=resolve);}return original(p,...a);};}""")
     page.get_by_role('button',name='저장 위치 이어하기',exact=True).click()
     click_move(page,'studyOpeningBoard','d2d4');expect(page.locator('#studyMessage')).to_contain_text('등록된')
+    expect(page.locator('.cma-motion-ghost')).to_have_count(0)
     before=page.locator('#studyOpeningBoard').inner_html()
     page.evaluate('d=>window.releaseOpening(d)',saved);page.wait_for_timeout(150)
     assert page.locator('#studyOpeningBoard').inner_html()==before

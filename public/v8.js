@@ -18,6 +18,7 @@ function evalClockDraw(){const el=$$('v8Outcome');if(!el||!evalClock||current?.p
  el.textContent=`평가 대국 10+5 · 백 ${fmt(w)} · 흑 ${fmt(b)} · 힌트/무르기 없음`;
 }
 setInterval(evalClockDraw,1000);
+function boardStatus(title,save,kind='ready',detail=''){window.cmaFeedback.set('testBoard',{title,save,kind,detail,facts:null});}
 function display(msg,klass=''){status.textContent=msg;status.className='notice '+klass;}
 function hideOverlay(){const o=$$('v8Overlay');o.hidden=true;}
 function feedbackOverlay(data){
@@ -27,14 +28,14 @@ function feedbackOverlay(data){
  $$('v8Verdict').style.color=fb.correct?'#74e2c2':'#ffabb1';
  $$('v8VerdictDetails').textContent=`${fb.domain} · 난이도 ${fb.difficulty}/7 · ${fb.seconds}초 · ${fb.points}점`;
  $$('v8AnswerText').textContent=`모범 착수: ${nameMove(fb.original_fen,fb.answer)}`;
- lastAnswer=fb;
+ lastAnswer=fb;window.cmaFeedback.set('testBoard',{title:fb.correct?'첫 수 판정 · 정답':'첫 수 판정 · 기준 답안 비교',save:'이전 버전 진단 기록 저장됨',kind:fb.correct?'complete':'ready',detail:'이 진단은 첫 수 채점입니다. 전체 수순 검증과 구분합니다.',facts:null});
  if(fb.correct)window.cmaMate?.show('testBoard',fb.mate_explanation,fb.original_fen.split(' ')[1]==='b');
  drawBoard('testBoard',fromFen(fb.answer_fen),{flip:fb.original_fen.split(' ')[1]==='b',last:[fb.answer.slice(0,2),fb.answer.slice(2,4)]});
  const squares=board.querySelectorAll('.sq');for(const sq of squares){const a=sq.getAttribute('aria-label')?.split(' ')[0];if(a===fb.answer.slice(2,4))sq.classList.add('v8-correct');}
  display('모범 착수와 채점 결과를 확인한 뒤 다음 문제를 누르세요.');
 }
 function nameMove(fen,uci){const p=fromFen(fen)[uci.slice(0,2)];const sym=({P:'',N:'N',B:'B',R:'R',Q:'Q',K:'K'})[(p||'P').toUpperCase()]||'';return sym+uci.slice(0,2)+' → '+sym+uci.slice(2,4)}
-function showQuestion(r){
+function showQuestion(r){window.cmaFeedback.set('testBoard',{title:'직접 판단하세요 · 첫 수 평가',save:'서버 문제 상태 확인됨',kind:'ready',detail:'답안 제출 전 정답 해설을 표시하지 않습니다.',facts:null});
  window.cmaBoardTools.cancel('testBoard');current={phase:'questions',q:r.question};clearPreviousResult();chosen=null;hideOverlay();lastAnswer=null;
  progress.textContent=`문항 ${r.index+1} / 49 · ${r.domain} · 난이도 ${r.question.difficulty}/7`;
  display(r.question.description+(r.question.opponent_last_move?` · 상대 직전 수: ${r.question.opponent_last_move} (청록 표시)`:' · 직전 수 기록이 없어 표시할 수 없습니다.'));
@@ -47,7 +48,7 @@ function draw(){
  const q=current.q;const targets=chosen?(q.legal||[]).filter(u=>u.slice(0,2)===chosen).map(u=>({to:u.slice(2,4)})):[];
  drawBoard('testBoard',fromFen(q.fen),{flip:q.fen.split(' ')[1]==='b',opponent:q.opponent_last_move?[q.opponent_last_move.slice(0,2),q.opponent_last_move.slice(2,4)]:[],selected:chosen,targets,onClick:click});
  }else if(current.phase==='game'){
- const g=current.game;const targets=chosen?(g.legal||[]).filter(m=>m.from===chosen):[];
+ const g=current.game;boardStatus((g.turn==='black'?'흑':'백')+' 차례 · 평가 대국',g.turn==='black'?'응수 확인 중':'서버 대국 상태 확인됨',g.turn==='black'?'pending':'ready','첫 수 문항과 별도인 평가 대국입니다. 힌트·무르기는 제공하지 않습니다.');const targets=chosen?(g.legal||[]).filter(m=>m.from===chosen):[];
  drawBoard('testBoard',g.squares,{selected:chosen,targets,last:g.last_move?[g.last_move.slice(0,2),g.last_move.slice(2,4)]:[],onClick:click});
  }
 }
@@ -94,13 +95,13 @@ function startGame(r){hideOverlay();chosen=null;current={phase:'game',session_id
  display('중급 AI와 실제 종료까지 대국합니다. 제한시간: 10분 + 착수당 5초.');draw();}
 function loadingState(on){loading=on;$$('v8Start').disabled=on||current?.phase==='unknown';$$('v8Retry').disabled=on;clearTimeout(slowTimer);
  if(on)slowTimer=setTimeout(()=>display('진단 준비가 지연되고 있습니다. 서버 응답을 기다리는 중이며 다시 시작하지 않아도 됩니다.'),12000);}
-async function start(){if(!ready('assessment')||busy||loading)return;busy=true;loadingState(true);const request=++revision,identity=token;window.cmaBoardTools.cancel('testBoard');current={phase:'loading'};clearPreviousResult();evalClockSet(null);hideOverlay();board.replaceChildren();progress.textContent='새 진단 시작 중';display('새 진단을 준비하고 있습니다.');
+async function start(){if(!ready('assessment')||busy||loading)return;busy=true;loadingState(true);const request=++revision,identity=token;window.cmaBoardTools.cancel('testBoard');current={phase:'loading'};boardStatus('진단 시작 중','시작 응답 대기','pending');clearPreviousResult();evalClockSet(null);hideOverlay();board.replaceChildren();progress.textContent='새 진단 시작 중';display('새 진단을 준비하고 있습니다.');
  try{const r=await api('/v8/assessment/start','POST');if(request!==revision||identity!==token)return;showQuestion(r);}
- catch(e){if(request===revision){current={phase:'unknown'};progress.textContent='진단 시작 여부 확인 필요';display(e.message+' · 상태 다시 확인 버튼으로 저장된 진단을 확인하세요.','err');}}
+ catch(e){if(request===revision){current={phase:'unknown'};boardStatus('진단 시작 여부 확인 필요','저장 여부 미확인','error','상태 다시 확인으로 복구하세요.');progress.textContent='진단 시작 여부 확인 필요';display(e.message+' · 상태 다시 확인 버튼으로 저장된 진단을 확인하세요.','err');}}
  finally{if(request===revision){busy=false;loadingState(false);}}}
 async function next(){if(busy)return;busy=true;const request=++revision;
  try{const r=await api('/v8/assessment/next','POST');if(request!==revision)return;if(r.phase==='game')startGame(r);else showQuestion(r);}catch(e){if(request===revision)display(e.message,'err')}finally{if(request===revision)busy=false}}
-function showResult(r,finalBoard){window.cmaBoardTools.cancel('testBoard');current={phase:'results'};chosen=null;lastAnswer=null;evalClockSet(null);hideOverlay();
+function showResult(r,finalBoard){window.cmaBoardTools.cancel('testBoard');current={phase:'results'};boardStatus('평가 전체 완료','서버 결과 확인됨','complete','첫 수 문항과 평가 대국을 포함한 이전 버전 진단 결과입니다.');chosen=null;lastAnswer=null;evalClockSet(null);hideOverlay();
  if(finalBoard)drawBoard('testBoard',finalBoard.squares);else board.replaceChildren();
  progress.textContent='50단계 종합 평가 완료';
  $$('v8Outcome').textContent=`${r.stage} · 내부 실력 지수 ${r.index}/1000 · ${r.delta===null?'첫 진단':(r.delta>=0?'+':'')+r.delta+' 변동'}`;
@@ -116,14 +117,14 @@ function showResult(r,finalBoard){window.cmaBoardTools.cancel('testBoard');curre
  const advice=document.createElement('p');advice.textContent=`강점: ${r.strengths.join(', ')} / 보완: ${r.weaknesses.join(', ')}. 공식 Elo와 직접 환산되지 않는 내부 지수입니다.`;info.append(advice);
  display('평가 결과가 계정에 저장되었습니다.');loadHistory();loadRecommendations();
 }
-async function restore(){if(!token){progress.textContent='로그인 후 진단을 시작할 수 있습니다.';display('진단과 결과 저장을 위해 로그인하세요.');return;}if(loading)return;loadingState(true);window.cmaBoardTools.cancel('testBoard');const request=++revision,identity=token;busy=true;chosen=null;
+async function restore(){if(!token){window.cmaFeedback.clear('testBoard');progress.textContent='로그인 후 진단을 시작할 수 있습니다.';display('진단과 결과 저장을 위해 로그인하세요.');return;}if(loading)return;loadingState(true);window.cmaBoardTools.cancel('testBoard');const request=++revision,identity=token;busy=true;chosen=null;
  // Remove optimistic positions and input while reconciling with authoritative state.
- board.replaceChildren();current={phase:'loading'};evalClockSet(null);clearPreviousResult();$$('v8Outcome').textContent='진단 상태 확인 중입니다.';progress.textContent='진단 상태 확인 중';display('진단 상태를 불러오고 있습니다.');
+ board.replaceChildren();current={phase:'loading'};boardStatus('진단 상태 확인 중','조회 응답 대기','pending');evalClockSet(null);clearPreviousResult();$$('v8Outcome').textContent='진단 상태 확인 중입니다.';progress.textContent='진단 상태 확인 중';display('진단 상태를 불러오고 있습니다.');
  try{const r=await api('/v8/assessment/status');if(request!==revision||identity!==token)return;
  if(r.phase==='results'&&r.result){showResult(r.result,r.board);return;}
  if(r.active){if(r.phase==='questions')showQuestion(r);else if(r.phase==='feedback'){current={phase:'feedback'};feedbackOverlay(r);}else if(r.phase==='game')startGame(r);}
- else if(r.recent)showResult(r.recent);else {current=null;hideOverlay();progress.textContent='진단 시작 대기';display('진행 중인 진단이 없습니다. 새 진단을 시작하세요.');$$('v8Outcome').textContent='새 진단을 시작하세요.';loadRecommendations();}
- }catch(e){if(request===revision){current={phase:'unknown'};display(e.message+' · 상태 다시 확인 버튼으로 재시도하세요.','err')}}finally{if(request===revision){busy=false;loadingState(false);}}}
+ else if(r.recent)showResult(r.recent);else {current=null;window.cmaFeedback.clear('testBoard');hideOverlay();progress.textContent='진단 시작 대기';display('진행 중인 진단이 없습니다. 새 진단을 시작하세요.');$$('v8Outcome').textContent='새 진단을 시작하세요.';loadRecommendations();}
+ }catch(e){if(request===revision){current={phase:'unknown'};boardStatus('진단 상태 조회 실패','저장 여부 미확인','error','상태 다시 확인으로 재시도하세요.');display(e.message+' · 상태 다시 확인 버튼으로 재시도하세요.','err')}}finally{if(request===revision){busy=false;loadingState(false);}}}
 
 function renderProfile(data){if(!data)return;
  const p=$$('v8ProfileResult');if(!p)return;

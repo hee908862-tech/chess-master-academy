@@ -117,7 +117,7 @@ let reviewMotionContext=null;
 function v5RenderReview(){
  if(!v5Review)return;
  const rows=v5Review.moves;const i=v5ReviewIndex;
- const fen=i?rows[i-1].after_fen:chessStart;
+ const fen=i?rows[i-1].after_fen:chessStart;window.cmaFeedback.set('reviewBoard',{title:'원본 복기 · '+i+' / '+rows.length+' 반수',save:'읽기 전용 · 원본 기보 유지',kind:'ready',detail:(fen.split(' ')[1]==='b'?'흑':'백')+' 차례의 저장된 위치입니다. 여기부터 다시 두기는 별도 임시 분기입니다.',facts:null});
  const draw=()=>drawBoard('reviewBoard',fromFen(fen),{flip:v5Review.color==='black',last:i?[rows[i-1].uci.slice(0,2),rows[i-1].uci.slice(2,4)]:[]});
  const previous=reviewMotionContext;reviewMotionContext={game:v5Review,index:i};if(previous?.game===v5Review&&Math.abs(previous.index-i)===1)window.cmaBoardPresentation.transition('reviewBoard',rows[Math.max(i,previous.index)-1].uci,draw,i<previous.index);else draw();
  $('reviewStep').textContent=`${i} / ${rows.length} 반수`;
