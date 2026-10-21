@@ -98,9 +98,14 @@ def test_missing_module_regression_is_detected(tmp_path):
 def test_focus_assets_are_in_copy_payload(package):
     import re
     html=(package/'public/index.html').read_text()
-    for asset in ['focus-layout.js','focus-layout.css','guest-practice.js','info-layout.js']:
+    for asset in ['focus-layout.js','focus-layout.css','guest-practice.js','info-layout.js','academy-upgrade.js','academy-upgrade.css','diagnostic-replay.js']:
         assert '/assets/'+asset in html
         assert (package/'public'/asset).is_file()
     guest=(package/'public/guest-practice.js').read_text()
     for path in re.findall(r"['\"](/assets/[^'\"]+)['\"]",guest):
         assert (package/'public'/path.removeprefix('/assets/')).is_file(),path
+
+
+def test_piece_license_in_package(package):
+    assert (package/"public/assets/pieces/chessnut-source/LICENSE.txt").is_file()
+    assert (package/"public/assets/pieces/chessnut-source/SOURCE.txt").is_file()

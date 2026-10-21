@@ -10,6 +10,11 @@ from education_content import LESSONS, BY_ID, VERSION
 from repertoire_server import archive, records, can_start, reserve_attempt, now
 
 KEY='education_paths_v1'
+PREVIOUS_VERSION='5b6d92b69ed145a65770'
+
+def compatible(run):
+    return run['version']==VERSION or (run['version']==PREVIOUS_VERSION and run.get('snapshot')==BY_ID.get(run.get('lesson_id')))
+
 MAX_BYTES=1048576
 MAX_EVENTS=256
 class Action(BaseModel):
@@ -34,6 +39,7 @@ def prior_context(step):
 def payload(s):
     r=copy.deepcopy(s.get('active'))
     if r:
+        supported=compatible(r)
         step=r.pop('snapshot')['steps'][r['index']]
         reveal=r['mode']=='learn' or r['hinted'] or r['answered']
         r['step']={k:step[k] for k in ('id','kind','choices') if k in step}
@@ -42,7 +48,7 @@ def payload(s):
         r['step']['reason']=step['reason'] if r['answered'] or r['hinted'] else None
         r['step']['examples']=step['answers'] if reveal and step['kind']=='move' else []
         b=chess.Board(r['fen']);r['legal']=[u.uci() for u in b.legal_moves] if r['phase']=='playing' and not r['answered'] else []
-        r['outdated']=r['version']!=VERSION
+        r['outdated']=not supported
         if r['outdated']:r['legal']=[]
     return dict(revision=s.get('revision',0),active=r,can_start=can_start(s),metrics=s.get('metrics',{}),
         history=[{k:x.get(k) for k in ('id','title','mode','phase','index','hints','misses','at')} for x in records(s)],
@@ -75,7 +81,7 @@ def attach_education(app,ns):
             if not r or r['id']!=req.attempt_id:raise HTTPException(409,'시도가 바뀌었습니다. 저장 상태를 확인하세요.')
             if req.action=='finish':archive(s)
             else:
-                if r['version']!=VERSION:raise HTTPException(409,'콘텐츠 버전이 변경됐습니다. 기존 시도를 보관한 뒤 새 버전을 시작하세요.')
+                if not compatible(r):raise HTTPException(409,'콘텐츠 버전이 변경됐습니다. 기존 시도를 보관한 뒤 새 버전을 시작하세요.')
                 if r['phase']!='playing':raise HTTPException(409,'완료 결과를 먼저 보관하세요.')
                 step=r['snapshot']['steps'][r['index']];metric=s['metrics'][r['lesson_id']]
                 if req.action=='next':

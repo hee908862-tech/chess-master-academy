@@ -30,9 +30,9 @@ def test_guest_examples_are_ephemeral_and_do_not_write(page,site,width):
  guest.locator('#guestContinue').click();expect(guest.locator('#codeField')).to_be_visible()
  assert writes==[]
  guest.reload();assert guest.locator('#guestBoard .sq').count()==0
- guest.evaluate("tab('guestPractice')");expect(guest.locator('#guestChoices button')).to_have_count(3)
+ guest.evaluate("tab('guestPractice')");expect(guest.locator('#guestChoices button')).to_have_count(4)
  guest.get_by_role('button',name='비숍은 대각선으로',exact=True).click()
- guest.reload();expect(guest.locator('#guestChoices button')).to_have_count(3)
+ guest.reload();expect(guest.locator('#guestChoices button')).to_have_count(4)
  expect(guest.locator('#guestActivity')).to_be_hidden()
  assert writes==[]
  context.close()
@@ -56,9 +56,9 @@ def test_guest_load_failure_retry_and_late_exit_are_readonly(page,site):
  expect(p.locator('#guestBoard .sq')).to_have_count(0)
  p.unroute('**/assets/guest-examples.json')
  p.locator('#firstEntry').get_by_role('button',name='기초·예제 퍼즐도 저장 없이 체험').click()
- expect(p.locator('#guestChoices button')).to_have_count(3)
+ expect(p.locator('#guestChoices button')).to_have_count(4)
  p.get_by_role('button',name='비숍은 대각선으로',exact=True).click()
  p.go_back();expect(p.locator('#home')).to_have_class('view active')
- p.go_forward();expect(p.locator('#guestChoices button')).to_have_count(3)
+ p.go_forward();expect(p.locator('#guestChoices button')).to_have_count(4)
  expect(p.locator('#guestActivity')).to_be_hidden();assert writes==[]
  context.close()

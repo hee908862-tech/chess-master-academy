@@ -5,6 +5,7 @@ import math
 import threading
 _diagnostic_slot=threading.BoundedSemaphore(1)
 from competencies import COMPETENCIES, position_key
+from skill_index import VERSION as SKILL_VERSION, score_areas, summary as skill_summary
 
 VERSION='growth-v1'
 BANDS=((600,1200),(1200,1800))
@@ -29,10 +30,13 @@ def area_score(items):
 def decorate(report):
     """Called only for new sessions. Old reports are never rewritten."""
     if report.get('mode') not in MODES:return report
-    report['score_version']=VERSION
+    new_scale=report.get('scoring_version')==SKILL_VERSION
+    report['score_version']=SKILL_VERSION if new_scale else VERSION
+    scores=score_areas(report['items']) if new_scale else None
+    if new_scale:report['internal_skill']=skill_summary(scores)
     for area in report['areas']:
         items=[i for i in report['items'] if i['competency']==area['id']]
-        area['performance']=area_score(items)
+        area['performance']=scores[area['id']] if new_scale else area_score(items)
         attempted=sum(bool(i.get('submitted')) for i in items)
         area['observation']=f"{len(items)}문제 중 {attempted}개에 도전해 {area['full_success']}개 수순을 끝까지 풀었어요."
         if not COMPETENCIES[area['id']]['measured']:area['observation']='아직 측정하지 않은 분야예요. 점수를 만들지 않습니다.'
@@ -62,13 +66,13 @@ def decorate(report):
         mixed=next((a for a in measured if a not in chosen),measured[0]);source=next(i for i in report['items'] if i['competency']==mixed['id'])
         plan.append({'id':str(len(plan)+1),'competency':mixed['id'],'item_id':source['id'],'kind':'application','label':mixed['label']+' · 함께 확인하기','reason':'다른 분야의 새 문제로 배운 판단을 넓혀 보세요.'})
     report['training_plan']=plan
-    report['snapshot']={'version':VERSION,'assessment_version':report['version'],'competency_version':report['competency_version'],'mode':report['mode'],
+    report['snapshot']={'version':report['score_version'],'assessment_version':report['version'],'competency_version':report['competency_version'],'mode':report['mode'],
                         'scope':report['measurement_scope'],'corpus':report.get('corpus_sha256'),'at':report['at'],'areas':{a['id']:copy.deepcopy(a['performance']) for a in report['areas']}}
     return report
 
 
 def latest_cycle_report(reports):
-    return next((r for r in reversed(reports) if r.get('score_version')==VERSION and r.get('mode') in MODES),None)
+    return next((r for r in reversed(reports) if r.get('score_version') in (VERSION,SKILL_VERSION) and r.get('mode') in MODES),None)
 
 
 def cycle_status(report,learning):

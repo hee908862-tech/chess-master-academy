@@ -11,12 +11,14 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Literal
 import chess
+from skill_index import VERSION as SKILL_VERSION
 from growth_model import decorate, latest_cycle_report, cycle_status, MODES, verify_loss
 from fastapi import Header, HTTPException
 from pydantic import BaseModel
 from competencies import VERSION, COMPETENCIES, position_key, line_positions
 from v9_server import LIB, DATA_FILE
 from mate_explanation import explain_mate
+from diagnostic_replay import replay_snapshot
 from journey_evidence import JOURNEY_VERSION, COVERAGE_POLICY, CUED, UNCUED, recheck_gate, additional_plan, build_report, learning_observation
 
 
@@ -187,7 +189,9 @@ def attach_journey(app, ns):
         if s.get('mode')=='gentle':q['goal']='백 차례예요. 말을 누른 뒤 이동할 칸을 누르세요.' if b.turn else '흑 차례예요. 말을 누른 뒤 이동할 칸을 누르세요.'
         out['starting_conditions']=copy.deepcopy(s.get('starting_conditions'))
         out['question']=q
-        if s['phase']=='feedback': out['feedback']=copy.deepcopy(item['feedback'])
+        if s['phase']=='feedback':
+            out['feedback']=copy.deepcopy(item['feedback'])
+            out['feedback']['replay']=replay_snapshot(item, s.get('played') if item.get('complete') else None)
         return out
 
     def begin_item(s):
@@ -212,6 +216,14 @@ def attach_journey(app, ns):
                 'active':payload(state['active']) if state['active'] else None,
                 'latest':state['results'][-1] if state['results'] else None,'cycle_report':latest_cycle_report(state['results']),'results':state['results'],
                 'legacy_notice':'이전 버전 진단 기록은 보존됩니다. 점수는 버전 간 비교하지 않습니다.'}
+
+    @app.get('/api/journey/replay/{report_id}/{item_id}')
+    def replay(report_id: str, item_id: str, authorization: str | None = Header(default=None)):
+        code=auth(authorization)
+        saved_report=report(code,report_id)
+        item=next((i for i in (saved_report or {}).get('items',[]) if i.get('id')==item_id),None)
+        if not item:raise HTTPException(404,'이 계정의 진단 문항이 없습니다.')
+        return replay_snapshot(item)
 
     @app.post('/api/journey/start')
     def start(body:Start, authorization: str | None = Header(default=None)):
@@ -266,6 +278,7 @@ def attach_journey(app, ns):
         s={'session_id':secrets.token_hex(16),'revision':0,'version':'journey-v4' if body.mode in MODES else 'journey-entry-v1' if body.mode=='gentle' else JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':measurement_scope,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
         s['starting_conditions']={'self_choice':starting.get('choice','unselected'),'mode':body.mode,'assessment_scope':'full_line','bands':sorted({tuple(i['band']) for i in items}),'helped':False}
         if body.mode in MODES:s['corpus_sha256']=hashlib.sha256(DATA_FILE.read_bytes()).hexdigest()
+        if body.mode in MODES:s['scoring_version']=SKILL_VERSION
         begin_item(s); state['active']=s
         for item in items:
             board=chess.Board(item['fen'])
@@ -295,6 +308,7 @@ def attach_journey(app, ns):
     def finish(s, previous):
         result=build_report(s,previous,now())
         result['starting_conditions']=copy.deepcopy(s.get('starting_conditions'))
+        if s.get('scoring_version'):result['scoring_version']=s['scoring_version']
         if s.get('corpus_sha256'):result['corpus_sha256']=s['corpus_sha256']
         return decorate(result)
 

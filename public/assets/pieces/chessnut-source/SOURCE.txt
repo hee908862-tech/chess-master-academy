@@ -1,0 +1,5 @@
+Chessnut pieces by Alexis Luengas, Copyright 2015.
+https://github.com/LexLuengas/chessnut-pieces
+Apache License 2.0. Original white SVG geometry retained for both colors.
+CMA changes: color palettes; removed document type and generator metadata.
+Bundled source SVG whitespace normalized; drawing geometry unchanged.
