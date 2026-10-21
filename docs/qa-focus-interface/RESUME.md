@@ -30,3 +30,7 @@
 
 후속 선택군 완료:40통과3실패(/tmp/cma-focus-related-final2.log). 설정/게스트/교육/레퍼토리/기존study는 통과. 남은3은 반응형 테스트가 대시보드 복원 전 초기 선택화면을 보고 클릭하던 동기화 문제. 실제 조회 응답 및 active 보드가 보일 때까지 기다린 후 공개 선택버튼을 누르게 보완했고 /tmp/cma-focus-responsive-final.log 9개 실행 중. 제품 복원/저장 동작은 변경하지 않음.
 코드 구문12JS+Python생성기 통과. 정상Chromium 픽셀 education1280(판정 옆열)/repertoire390(보드 다음 판정) 직접 확인. 좁은 긴 조작은 정상 문서스크롤.
+
+원격 코드17c4d8b08341154c083ac69ddbe90a8e5d99a974 저장확인. 반응형 최종9/9 통과(27.20초). 최신 수집672개, /tmp/cma-focus-final-run.py 실행 중(4 SQLite 격리 suite/정상 Chromium). /tmp/cma-focus-final/manifest.json PID와suite로그 확인 후 종료결과 회수; 중복실행금지. 검사가끝나면 /tmp/chess-venv/bin/python /tmp/cma-focus-final-verify.py 로 collection/JUnit 대조. 실행중런타임/테스트파일고정.
+
+전체672 종료: 17c4d8b는671통과1실패, 누락/중복0. 실패는 새 검사가 user 갱신(/me)만으로 로그인 완료를 판단하고 /game 복원 뒤 auth 홈 이동 전에 설정으로 이동한 경계였다. 실패 당시 실제 화면은 #home. 런타임 변경 없이 /game을 의도적으로 지연하여 user 갱신 후에도 로그인 화면임을 확인→해제→#home 완료→설정 진입→옛 A 응답 해제 순서로 검사한다. 값3,8/저장활성/설정가시성 assertion 유지. 원인 한정 검사1건8.82초 통과(/tmp/cma-focus-login-boundary.log). 전체 원시 자료는 full-17c4에 보존. 다음은 이 테스트 보완 포함 전체672 최종 재실행이며 이전 결과를 전체 통과로 바꾸지 않는다.

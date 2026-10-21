@@ -131,11 +131,26 @@ def test_settings_late_read_after_actual_account_login_is_ignored(page,site):
   if pending:break
   page.wait_for_timeout(10)
  assert pending
+ # /me updates user before auth() finishes restoring /game and navigating home.
+ # Hold that boundary deliberately; do not mistake identity arrival for login completion.
+ game_reads=[]
+ def game_read(route):
+  if route.request.headers.get('authorization')=='Bearer '+a:route.continue_()
+  else:game_reads.append(route)
+ page.route('**/api/game',game_read)
  page.evaluate("tab('profile/account')");page.locator('#codeField').fill(code);page.locator('#pinField').fill(pin);page.locator('#signin').click()
  page.wait_for_function('c=>user?.code===c',arg=code)
+ expect(page.locator('#profile')).to_be_visible()
+ for _ in range(100):
+  if game_reads:break
+  page.wait_for_timeout(10)
+ assert game_reads
+ for r in game_reads:r.fulfill(response=r.fetch())
+ expect(page).to_have_url(__import__('re').compile(r'#home$'))
  page.evaluate("tab('profile/settings')");expect(page.locator('#learningIntervals')).to_have_value('3,8')
  for r in pending:r.fulfill(response=r.fetch())
  expect(page.locator('#learningIntervals')).to_have_value('3,8');expect(page.locator('#learningSaveIntervals')).to_be_enabled()
+ expect(page.locator('#profileSettings')).to_be_visible()
 
 
 def test_training_first_read_error_remains_visible_without_board(page,site):
