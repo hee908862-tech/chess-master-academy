@@ -48,16 +48,35 @@ def test_promotion_picker_selected_piece_goal_and_cancel(page,site,promotion):
     if promotion!='q':expect(page.locator('#foundationOutcome')).to_contain_text('합법적인 다른 수')
 
 
-def test_ep_demo_and_overlay_replay_are_read_only(page,site):
-    start(page,site,'en-passant');before=page.evaluate("api('/foundations')")
+@pytest.mark.parametrize('prior_alternative',[False,True])
+def test_ep_demo_and_overlay_replay_are_read_only(page,site,prior_alternative):
+    start(page,site,'en-passant')
+    if prior_alternative:
+        square(page,'foundationBoard','e5').click();square(page,'foundationBoard','e6').click()
+        expect(page.locator('#foundationOutcome')).to_contain_text('합법적인 다른 수')
+        expect(page.locator('#foundationAcademy')).to_have_attribute('aria-busy','false')
+    before=page.evaluate("api('/foundations')")
+    original_outcome=page.locator('#foundationOutcome').inner_text();original_save=page.locator('#foundationSave').inner_text()
     writes=[];page.on('request',lambda r:writes.append(r.url) if '/api/' in r.url and r.method!='GET' else None)
-    page.locator('#foundationDemoStart').click();expect(page.locator('#foundationVisualLegend')).to_contain_text('교육 예시')
+    square(page,'foundationBoard','e5').click()
+    expect(square(page,'foundationBoard','e5')).to_have_attribute('aria-pressed','true')
+    assert page.locator('#foundationBoard .target').count()>0
+    page.locator('#foundationDemoStart').click()
+    expect(page.locator('#foundationBoard .target, #foundationBoard .capture, #foundationBoard .selected')).to_have_count(0)
+    expect(page.locator('#foundationOutcome')).to_contain_text('읽기 전용 교육 시범')
+    expect(page.locator('#foundationOutcome')).not_to_contain_text('직접 두세요')
+    expect(page.locator('#foundationSave')).to_have_text('실제 실습의 저장 상태: '+original_save+' · 시범은 저장하지 않습니다.')
+    expect(page.locator('#foundationVisualLegend')).to_contain_text('교육 예시')
     expect(square(page,'foundationBoard','d7')).to_have_attribute('aria-label','d7 흑 폰')
     page.screenshot(path='/tmp/cma-foundation-feedback-captures/ep-before.png',full_page=True)
     page.locator('#foundationDemoNext').click();expect(square(page,'foundationBoard','d5')).to_have_attribute('aria-label','d5 흑 폰')
+    expect(page.locator('#foundationBoard .target, #foundationBoard .capture, #foundationBoard .selected')).to_have_count(0)
     page.screenshot(path='/tmp/cma-foundation-feedback-captures/ep-after.png',full_page=True)
     page.locator('#foundationVisualToggle').click();expect(page.locator('.foundation-arrows')).to_have_count(0)
     page.locator('#foundationVisualToggle').click();page.locator('#foundationDemoReturn').click()
+    expect(page.locator('#foundationBoard .target, #foundationBoard .capture, #foundationBoard .selected')).to_have_count(0)
+    expect(page.locator('#foundationOutcome')).to_have_text(original_outcome)
+    expect(page.locator('#foundationSave')).to_have_text(original_save)
     assert page.evaluate("api('/foundations')")==before and writes==[]
     expect(page.locator('#foundationVisualLegend')).to_contain_text('e5 → d6')
 

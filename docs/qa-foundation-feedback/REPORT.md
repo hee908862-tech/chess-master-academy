@@ -45,3 +45,5 @@
 캡처 실제 픽셀 확인: [360px 완료](captures/complete-360.png), [PC 완료](captures/complete-1280.png), [위협과 이동 지시 구분](captures/threat-390.png), [보호와 완료 경로](captures/protection-390.png), [앙파상 전](captures/ep-before.png), [앙파상 후](captures/ep-after.png), [흑 320px](captures/black-320-1.png), [CSS 확대](captures/black-1280-2.png). 체크 표시/승격 선택지 가림 및 클릭 가능 여부는 실제 브라우저 assertion으로 확인했다. 캡처는 물리 모바일 검증이 아니다.
 
 원격 코드 head의 status/check run/Actions는 모두0건이었다. 최종 문서 head도 별도 조회하여 PR에 기록한다. 병합·배포는 수행하지 않았다. 공통 모션과 다른 보드 적용은 다음 단계이며 전체 사용자 요청 완료가 아니다.
+
+PR25 독립 검토 후속: 시범 중 판정은 읽기 전용 교육 안내, 저장 문구는 실제 실습 상태라는 접두사와 시범 비저장 안내로 구분한다. 복귀하면 저장해 둔 원래 판정/저장 문구를 정확히 복원한다. 시범 진입에서 selected를 비우고 렌더에서도 선택/합법목적지를 억제한다. e5 선택→전/후 시범→복귀, 최초/합법 대안 판정 각각 복원, 잔여 표시0/서버쓰기0을 포함한 집중 브라우저17개 통과(demo-followup.log), JS구문/diff check 통과. 이전 전체587은 3c8215f 기준이며 이 작은 후속에는 전체를 반복하지 않았다.
