@@ -1,0 +1,33 @@
+....F                                                                    [100%]
+=================================== FAILURES ===================================
+_____ test_saved_training_core_actions_layout_and_preservation[1280-720-2] _____
+
+page = <Page url='http://127.0.0.1:42357/#training'>
+site = ('http://127.0.0.1:42357', 'd0hcJANMoq447sYdf2ik0aqPA-fipvLDdtopzzD_opigUglY')
+width = 1280, height = 720, zoom = 2
+
+    @pytest.mark.parametrize('width,height,zoom',[(1180,757,1),(1280,720,1),(390,844,1),(320,844,1),(1280,720,2)])
+    def test_saved_training_core_actions_layout_and_preservation(page,site,width,height,zoom):
+     page.set_viewport_size({'width':width,'height':height})
+     login(page,site)
+     page.evaluate("api('/learning/start','POST',{fresh:true})")
+     page.reload();page.evaluate("tab('training')")
+     expect(page.locator('#learningBoard .sq')).to_have_count(64)
+     expect(page.locator('#learningBoardFeedback')).to_be_visible()
+     if zoom!=1:page.evaluate('z=>document.documentElement.style.zoom=z',str(zoom))
+     page.evaluate('document.fonts.ready');page.evaluate('()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
+     before=page.evaluate("api('/learning/dashboard')")['active']
+     writes=[];page.on('request',lambda r:writes.append(r.url) if r.method=='POST' else None)
+     boxes={k:page.locator('#'+k).bounding_box() for k in ['learningBoard','learningBoardFeedback','learningControls']}
+     out=Path('docs/qa-training-focus');out.mkdir(exist_ok=True)
+     tag=os.environ.get('CMA_CAPTURE_TAG','after')+f'-{width}-{height}-zoom{zoom}'
+     (out/(tag+'.json')).write_text(json.dumps(boxes,indent=2))
+     page.screenshot(path=str(out/(tag+'.png')),full_page=True)
+     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+>    assert boxes['learningBoard']['width']>=280
+E    assert 202 >= 280
+
+tests/test_training_focus_layout.py:27: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_training_focus_layout.py::test_saved_training_core_actions_layout_and_preservation[1280-720-2]
+1 failed, 4 passed in 18.54s

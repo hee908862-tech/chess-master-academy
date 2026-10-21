@@ -80,3 +80,9 @@ body.entry-login #profileSections{display:none!important}
 @media(max-width:850px){.focus-lesson-active .education-layout,.focus-lesson-active .repertoire-layout{grid-template-columns:minmax(0,1fr)}.focus-lesson-active .board{max-width:440px}.focus-lesson-active{padding:8px!important}}
 
 body.focus-activity .view.active{gap:8px}.focus-lesson-active.education{margin-top:0}.focus-lesson-panel .board-feedback{order:-1}.focus-lesson-active .focus-details{margin-top:0}
+
+/* Keep the existing board size; verdict/help actions use the adjacent learning panel. */
+#trainingCore{display:flex;flex-direction:column;gap:8px;min-width:0;margin-bottom:12px}#trainingCore>.board-feedback,#trainingCore>p{margin:0}#trainingCore #learningControls{gap:8px;flex-wrap:wrap}#trainingCore #learningGoal,#trainingCore #learningLink{font-size:.9rem;line-height:1.5;overflow-wrap:anywhere}
+#training{container-type:inline-size}
+@container(max-width:700px){body.focus-activity #training .learning-layout{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:850px){body.focus-activity #training .learning-layout{row-gap:8px}}

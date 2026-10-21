@@ -1,0 +1,37 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____ test_saved_training_core_actions_layout_and_preservation[1180-757-1] _____
+
+page = <Page url='http://127.0.0.1:46361/#training'>
+site = ('http://127.0.0.1:46361', 'aZH7YZHLRGeJevYd7--1a03A1zNQyXzZ2LAd9RH6IWu4OANi')
+width = 1180, height = 757, zoom = 1
+
+    @pytest.mark.parametrize('width,height,zoom',[(1180,757,1),(1280,720,1),(390,844,1),(320,844,1),(1280,720,2)])
+    def test_saved_training_core_actions_layout_and_preservation(page,site,width,height,zoom):
+     page.set_viewport_size({'width':width,'height':height})
+     login(page,site)
+     page.evaluate("api('/learning/start','POST',{fresh:true})")
+     page.reload();page.evaluate("tab('training')")
+     expect(page.locator('#learningBoard .sq')).to_have_count(64)
+     expect(page.locator('#learningBoardFeedback')).to_be_visible()
+     if zoom!=1:page.evaluate('z=>document.documentElement.style.zoom=z',str(zoom))
+     page.evaluate('document.fonts.ready');page.evaluate('()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
+     before=page.evaluate("api('/learning/dashboard')")['active']
+     writes=[];page.on('request',lambda r:writes.append(r.url) if r.method=='POST' else None)
+     boxes={k:page.locator('#'+k).bounding_box() for k in ['learningBoard','learningBoardFeedback','learningControls']}
+     out=Path('docs/qa-training-focus');out.mkdir(exist_ok=True)
+     tag=os.environ.get('CMA_CAPTURE_TAG','after')+f'-{width}-{height}-zoom{zoom}'
+     (out/(tag+'.json')).write_text(json.dumps(boxes,indent=2))
+     page.screenshot(path=str(out/(tag+'.png')),full_page=True)
+     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+     assert boxes['learningBoard']['width']>=280
+     if width>=1180 and zoom==1:
+>     for key,box in boxes.items():assert box['y']>=0 and box['y']+box['height']<=height,(key,boxes)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E     AssertionError: ('learningBoardFeedback', {'learningBoard': {'x': 247.203125, 'y': 264.171875, 'width': 487, 'height': 487}, 'learning... 501.421875, 'height': 70}, 'learningControls': {'x': 240, 'y': 841.171875, 'width': 501.421875, 'height': 46.390625}})
+E     assert (765.171875 >= 0 and (765.171875 + 70) <= 757)
+
+tests/test_training_focus_layout.py:29: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_training_focus_layout.py::test_saved_training_core_actions_layout_and_preservation[1180-757-1]
+1 failed, 4 deselected in 8.91s
