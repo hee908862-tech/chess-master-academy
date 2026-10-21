@@ -1,0 +1,18 @@
+#learn [hidden],#learn [inert],#homeBasics[hidden]{display:none!important}
+#learn #v9LearnRoot{padding:0;background:none;border:0;box-shadow:none}
+#academyHub h1{font-size:26px;margin:0 0 8px}#academyHub p{margin:0 0 14px}
+#academyHub .feature-options .btn{min-height:60px}
+.learning-route-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.learning-route-nav .btn{min-height:44px}.learning-route-nav span{font-size:14px;color:var(--muted)}
+#learn #foundationAcademy,#learn #academyTactics{margin:0;border-top:0;padding:16px}
+#learn #foundationWorkspace{padding:0}#learn #foundationStepTitle{margin-top:0}
+#learn #academyTactics>summary{list-style:none;pointer-events:none}
+#learn #foundationCourseList>summary{min-height:44px}
+#homeBasics h2{font-size:23px;margin:0 0 8px}#homeBasics p{margin:0 0 12px}
+body.entry-guest #home>#homeBasics{display:block!important}
+#learn .feature-toolbar{margin-bottom:8px}
+@media(max-width:650px){#academyHub .feature-options{grid-template-columns:1fr 1fr}#academyHub .feature-options .btn{padding:10px;font-size:14px}#learn .card{border-radius:16px}#learn #foundationAcademy,#learn #academyTactics{padding:10px}.learning-route-nav{gap:6px}.learning-route-nav span{flex-basis:100%}}
+
+@media(max-width:850px){body.learning-practice .topbar{display:none}body.learning-practice .mobile-nav{position:static!important;inset:auto!important;width:100%;margin-top:12px}body.learning-practice .app{padding-bottom:12px!important}}
+
+#educationPaths[data-practice=true]>#educationOpen,#educationPaths[data-practice=true]>p:not(#educationStatus){display:none}

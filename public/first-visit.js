@@ -48,7 +48,7 @@ const nav=document.querySelector('.nav'),extra=document.createElement('details')
 for(const b of [...nav.children])if(b.dataset.tab&&!labels[b.dataset.tab])extra.append(b);
 for(const id of Object.keys(labels)){const b=nav.querySelector(`[data-tab="${id}"]`);if(b){b.textContent=labels[id];nav.append(b);}}
 nav.append(extra);$('moreNavigation').textContent='기능 전체 · 도움말';$('profile').querySelector('.feature-toolbar').append($('moreNavigation'));
-$('homeExplore').prepend($('startingLevelInvitation'));$('journeyHome').querySelector('h1').nextElementSibling.hidden=true;$('journeyHome').querySelector('h1').textContent='지금 이어갈 활동';$('journeyHome').querySelector('.tag').textContent='저장된 진행과 다음 학습';
+$('homeExplore').prepend($('startingLevelInvitation'));$('journeyHome').querySelector('h1').nextElementSibling.hidden=true;$('journeyHome').querySelector('.tag').textContent='저장된 진행과 다음 학습';
 const savedBasics=make(home,'section',null,'card');savedBasics.id='entrySavedBasics';savedBasics.hidden=true;const basicsText=make(savedBasics,'p');button(savedBasics,'entryResumeBasics','기초 실습 이어하기',()=>window.cmaFoundations.openRecommended());$('journeyHome').after(savedBasics);
 const priorFoundation=window.cmaHomeFoundation;window.cmaHomeFoundation=d=>{priorFoundation?.(d);savedBasics.hidden=!token||!d?.active||d.active.done;if(!savedBasics.hidden)basicsText.textContent=`기초 · ${d.active.course_title} · ${d.active.step+1}/${d.active.total}단계 · ${d.active.title}`;};
 const activity=$('journeyActivity');if(activity)$('journeyHome').after(activity);

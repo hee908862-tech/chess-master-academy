@@ -24,7 +24,7 @@ def test_main_actions_contrast_keyboard_and_narrow_layout(page,site,width,height
     login(page,site);page.set_viewport_size(dict(width=width,height=height))
     OUT.mkdir(exist_ok=True);measurements={}
     for view,selector in [('home','#journeyHomeOpen'),('play','#newGame'),('diagnosis','#journeyStart'),('training','#learningFresh'),('learn','#foundationPrimary button')]:
-        page.evaluate('v=>tab(v)',view)
+        page.evaluate("v=>v==='learn'?cmaNavigation.go('learn/basics'):tab(v)",view)
         target=page.locator(selector);expect(target).to_be_visible();expect(target).to_be_enabled()
         page.keyboard.press('Tab');target.focus();target.scroll_into_view_if_needed();page.wait_for_timeout(200)
         expect(target).to_be_focused()
@@ -40,7 +40,7 @@ def test_main_actions_contrast_keyboard_and_narrow_layout(page,site,width,height
 
 
 def test_foundation_waiting_error_reason_and_primary_disabled_style(page,site):
-    login(page,site);page.set_viewport_size(dict(width=360,height=800));page.evaluate("tab('learn')")
+    login(page,site);page.set_viewport_size(dict(width=360,height=800));page.evaluate("cmaNavigation.go('learn/basics')")
     target=page.locator('#foundationPrimary button');expect(target).to_be_enabled()
     waits=[];page.route('**/api/foundations/action',lambda r:waits.append(r))
     target.click()
