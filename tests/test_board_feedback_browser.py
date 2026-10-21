@@ -79,3 +79,30 @@ def test_fact_visibility_position_cleanup_and_no_writes(page,site):
     page.evaluate("drawBoard('learningBoard',fromFen(chessStart))")
     expect(page.locator('#learningBoardFacts')).not_to_be_visible();expect(page.locator('.feedback-fact-label')).to_have_count(0)
     assert writes==[]
+
+
+def test_real_puzzle_wrong_intermediate_completion_and_explicit_next(page,site):
+    import chess
+    from test_board_motion_wiring_browser import move
+    page.unroute('**/api/v9/catalog');login(page,site);page.evaluate("tab('puzzle')")
+    with page.expect_response(lambda r:r.url.endswith('/v9/puzzle/start')) as response:
+        page.locator('#v9PuzzleStart').click()
+    task=response.value.json();expect(page.locator('#v9PuzzleBoardFeedback')).to_contain_text('직접 풀어보세요')
+    line=LIB[task['id']]['moves'][1:];b=chess.Board(task['fen'])
+    wrong=[]
+    for m in b.legal_moves:
+        after=b.copy();after.push(m)
+        if m.uci()!=line[0] and not after.is_checkmate():wrong.append(m.uci())
+    if wrong:
+        r=move(page,'v9PuzzleBoard',wrong[0],'/v9/puzzle/move');assert not r['correct']
+        expect(page.locator('#v9PuzzleBoardFeedback')).to_contain_text('기준과 다름')
+    for u in line[::2]:
+        r=move(page,'v9PuzzleBoard',u,'/v9/puzzle/move')
+        if r['solved']:
+            expect(page.locator('#v9PuzzleBoardFeedback')).to_contain_text('문제 완료');break
+        expect(page.locator('#v9PuzzleBoardFeedback')).to_contain_text('한 수 정답')
+        expect(page.locator('#v9PuzzleBoardFeedback')).not_to_contain_text('문제 완료')
+    expect(page.locator('#v9PuzzleNext')).to_be_visible()
+    assert page.locator('#v9PuzzleBoard .sq:enabled').count()==0
+    saved=page.evaluate("api('/v9/session/puzzle')")
+    assert saved['result']['completed_fen']==r['completed_fen']
