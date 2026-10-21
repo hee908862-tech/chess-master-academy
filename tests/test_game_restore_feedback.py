@@ -1,5 +1,6 @@
 """Delayed auth/session reads: real Chromium, disposable local account, no game writes."""
 import chess
+import pytest
 from playwright.sync_api import expect
 from test_qa_browser import page, site, open_page
 from test_board_interaction import board_data
@@ -82,3 +83,41 @@ def test_account_switch_hides_prior_board_until_new_account_lookup(page,site):
     reads[0].fulfill(json=summary)
     expect(page.locator('#gameStatus')).to_contain_text('색상과 시간을 선택')
     assert page.evaluate('game') is None
+
+
+@pytest.mark.parametrize('operation',['move','new'])
+def test_pending_game_request_then_real_account_login_restores_b_without_waiting_for_a(page,site,operation):
+    import uuid
+    from test_qa_browser import square
+    open_page(page,site);page.evaluate("tab('play')")
+    page.evaluate("b=>showGame({...b,session_id:'account-a'},'A 대국')",restored()['board'])
+    moves=[];page.route('**/api/game/'+operation,lambda r:moves.append(r))
+    if operation=='move':
+        square(page,'gameBoard','g1').click();square(page,'gameBoard','f3').click()
+    else:
+        page.locator('#gameSettings > summary').click();page.locator('#newGame').click()
+    page.wait_for_function('gameBusy')
+    for _ in range(100):
+        if moves:break
+        page.wait_for_timeout(20)
+    assert len(moves)==1
+    # B is a real new local account. The existing login handler must release A's busy ownership.
+    code='RESTORE-'+uuid.uuid4().hex[:12].upper();pin='local-test-pin'
+    b=page.request.post(site[0]+'/api/register',data={'code':code,'pin':pin}).json()
+    page.evaluate("tab('profile')")
+    page.locator('#codeField').fill(code);page.locator('#pinField').fill(pin)
+    page.locator('#signin').click()
+    page.wait_for_function("code=>user?.code===code&&!gameBusy&&gameRestoreState==='ready'",arg=code)
+    assert page.evaluate('game') is None
+    # Release A after B has fully restored: neither board nor busy state may change.
+    moves[0].fulfill(json={'board':restored()['board'],'session_id':'account-a','clock':None})
+    page.wait_for_timeout(150)
+    assert page.evaluate('game') is None
+    assert page.evaluate('gameBusy') is False
+    page.evaluate("tab('play')")
+    expect(page.locator('#newGame')).to_be_enabled()
+    page.unroute('**/api/game/'+operation)
+    # B can start its own disposable local game; A's original server state is not written here.
+    if not page.locator('#gameSettings').evaluate('(e)=>e.open'):page.locator('#gameSettings > summary').click()
+    page.locator('#aiLevel').select_option('1');page.locator('#newGame').click()
+    page.wait_for_function("game&&!gameBusy&&game.session_id!=='account-a'")

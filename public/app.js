@@ -14,6 +14,12 @@ let prefs=loadPrefs();
 let token=localStorage.getItem('chess_token')||sessionStorage.getItem('chess_token')||'';
 let gameRequest=0;
 let gameRestoreGeneration=0,gameOwner='',gameRestoreState=token?'pending':'ready';
+// Only discard the previous account's client-side work; never write/reset its server game.
+function resetGameAccount(){
+ ++gameRequest;++gameRestoreGeneration;gameBusy=false;game=null;gameOwner='';selectedGame=null;
+ window.cmaBoardTools?.cancel('gameBoard');cancelPromotion();setGameClock(null);
+ gameRestoreFeedback(token?'pending':'ready',token?'계정을 확인하고 저장된 대국을 불러오고 있습니다.':'로그인 후 저장된 대국을 확인하거나 새 대국을 시작하세요.');drawGame();
+}
 function gameRestoreBlocked(){return !!token&&gameRestoreState!=='ready';}
 function gameRestoreFeedback(state,message){
  gameRestoreState=state;
@@ -23,7 +29,7 @@ function gameRestoreFeedback(state,message){
  $('newGame').disabled=gameRestoreBlocked();
  let retry=$('gameRestoreRetry');if(!retry){retry=document.createElement('button');retry.id='gameRestoreRetry';retry.className='btn';retry.textContent='대국 상태 다시 확인';retry.onclick=()=>refresh();$('gameStatus').after(retry);}
  retry.hidden=state!=='error';
- if(message){notice('gameStatus',message,state==='error'?'err':'');$('turnIndicator').textContent=state==='error'?'대국 상태 확인 필요':'저장된 대국 확인 중…';}
+ if(message){notice('gameStatus',message,state==='error'?'err':'');$('turnIndicator').textContent=state==='ready'?'로그인 후 대국을 시작하세요.':state==='error'?'대국 상태 확인 필요':'저장된 대국 확인 중…';}
  window.cmaGameActions?.();
 }
 let user=null,game=null,selectedGame=null,playerColor='white',gameBusy=false,gameClock=null,gameClockAt=0,puzzleItems=[],puzzleIdx=0,selectedPuzzle=null,audioCtx=null;
@@ -59,9 +65,9 @@ function ready(destination){if(!token){loginDestination=destination||document.qu
 let refreshGeneration=0;
 async function refresh(){const accountToken=token,request=++refreshGeneration;++gameRestoreGeneration;if(!token){$('userBadge').textContent='게스트';gameRestoreFeedback('ready');return}$('userBadge').textContent='계정 확인 중…';if(!game||gameOwner!==token)gameRestoreFeedback('pending','계정을 확인하고 저장된 대국을 불러오고 있습니다.');try{const result=await api('/me');if(token!==accountToken||request!==refreshGeneration)return;user=result;renderSummary();await resumeGame();if(token!==accountToken||request!==refreshGeneration)return;renderWinrates();if(!window.practiceModeInitialized)await loadPuzzles();}catch(err){if(token!==accountToken||request!==refreshGeneration)return;if(err.status===401){token='';localStorage.removeItem('chess_token');sessionStorage.removeItem('chess_token');}if(!game||gameOwner!==token)gameRestoreFeedback('error',err.status===401?'로그인이 만료됐습니다. 다시 로그인해 저장된 대국을 확인하세요.':'계정 확인 실패 · 저장된 대국 여부를 아직 확인하지 못했습니다. '+err.message);notice('accountStatus',err.message,'err')}}
 let authGeneration=0;window.cmaCancelAuth=()=>{++authGeneration;loginDestination=null;};
-async function auth(mode){const request=++authGeneration,account=token;const code=$('codeField').value.trim(),pin=$('pinField').value;try{const result=await api(mode==='signup'?'/register':'/login','POST',{code,pin});if(request!==authGeneration||token!==account)return;token=result.token;localStorage.setItem('chess_token',token);$('pinField').value='';notice('accountStatus','로그인되었습니다. 모든 기록은 서버에 저장됩니다.','ok');await refresh();if(request!==authGeneration)return;const destination=loginDestination||'home';loginDestination=null;window.cmaAuthNavigating=true;try{tab(destination)}finally{window.cmaAuthNavigating=false}}catch(e){if(request===authGeneration)notice('accountStatus',e.message,'err')}}
+async function auth(mode){const request=++authGeneration,account=token;const code=$('codeField').value.trim(),pin=$('pinField').value;try{const result=await api(mode==='signup'?'/register':'/login','POST',{code,pin});if(request!==authGeneration||token!==account)return;token=result.token;resetGameAccount();localStorage.setItem('chess_token',token);$('pinField').value='';notice('accountStatus','로그인되었습니다. 모든 기록은 서버에 저장됩니다.','ok');await refresh();if(request!==authGeneration)return;const destination=loginDestination||'home';loginDestination=null;window.cmaAuthNavigating=true;try{tab(destination)}finally{window.cmaAuthNavigating=false}}catch(e){if(request===authGeneration)notice('accountStatus',e.message,'err')}}
 let logoutGeneration=0;
-$('signup').onclick=()=>auth('signup');$('signin').onclick=()=>auth('signin');$('signout').onclick=async()=>{const account=token,request=++logoutGeneration;window.cmaBoardTools.cancelAll();try{if(account)await api('/logout','POST')}catch(e){if(token===account&&request===logoutGeneration)notice('accountStatus','로그아웃하지 못했습니다. 다시 시도해 주세요. '+e.message,'err');return;}if(token!==account||request!==logoutGeneration)return;token='';user=null;localStorage.removeItem('chess_token');sessionStorage.removeItem('chess_token');gameRestoreFeedback('ready');$('userBadge').textContent='게스트';notice('accountStatus','로그아웃했습니다.','');tab('profile')};
+$('signup').onclick=()=>auth('signup');$('signin').onclick=()=>auth('signin');$('signout').onclick=async()=>{const account=token,request=++logoutGeneration;window.cmaBoardTools.cancelAll();try{if(account)await api('/logout','POST')}catch(e){if(token===account&&request===logoutGeneration)notice('accountStatus','로그아웃하지 못했습니다. 다시 시도해 주세요. '+e.message,'err');return;}if(token!==account||request!==logoutGeneration)return;token='';user=null;localStorage.removeItem('chess_token');sessionStorage.removeItem('chess_token');resetGameAccount();$('userBadge').textContent='게스트';notice('accountStatus','로그아웃했습니다.','');tab('profile')};
 function setGameClock(clock){gameClock=clock||null;gameClockAt=Date.now();drawClock()}
 function drawClock(){const e=$('gameClock');if(!e)return;
  if(!gameClock||gameClock.mode==='unlimited'||gameClock.white_ms==null){e.textContent='시간 무제한';return;}
@@ -143,7 +149,7 @@ async function onGameSquare(s){
  if(chosen&&game.legal.some(m=>m.from===chosen&&m.to===s)){
   const from=chosen,prior=game,request=++gameRequest,accountToken=token,viewVersion=window.cmaBoardTools.version();gameBusy=true;window.cmaGameActions?.();
   const promotion=await choosePromotion(from,s,prior.squares[from],prior.legal);
-  if(promotion===null||prior!==game||accountToken!==token||viewVersion!==window.cmaBoardTools.version()){gameBusy=false;window.cmaGameActions?.();return;}
+  if(promotion===null||prior!==game||accountToken!==token||viewVersion!==window.cmaBoardTools.version()){if(request===gameRequest&&accountToken===token){gameBusy=false;window.cmaGameActions?.();}return;}
   if(playerClockExpired()){gameBusy=false;window.cmaGameActions?.();window.cmaBoardTools.cancel('gameBoard');await resumeGame();return;}
   selectedGame=null;
   const capture=Boolean(prior.squares[s]) || ((prior.squares[from]||'').toLowerCase()==='p'&&from[0]!==s[0]);
@@ -189,13 +195,13 @@ $('newGame').onclick=async()=>{
  try{const requestedColor=$('playerColor').value;const r=await api('/game/new','POST',{color:requestedColor,difficulty:Number($('aiLevel')?.value||5),time_mode:$('timeMode')?.value||'unlimited'});
  if(request!==gameRequest||accountToken!==token)return;
  playerColor=r.player_color||requestedColor;showGame({...r.board,session_id:r.session_id},r.message);setGameClock(r.clock);
- }catch(e){notice('gameStatus',e.message,'err')}finally{if(request===gameRequest)gameBusy=false;window.cmaGameActions?.();}
+ }catch(e){if(request===gameRequest&&accountToken===token)notice('gameStatus',e.message,'err')}finally{if(request===gameRequest&&accountToken===token)gameBusy=false;window.cmaGameActions?.();}
 };
 $('resign').onclick=async()=>{
  if(!ready()||!game||game.is_over||gameBusy||gameRestoreBlocked())return;if(!confirm('현재 대국을 기권하시겠습니까?'))return;
- window.cmaBoardTools.cancel('gameBoard');gameBusy=true;window.cmaGameActions?.();
- try{await api('/game/resign','POST');game=null;setGameClock(null);drawGame();$('turnIndicator').textContent='대국 종료 · 기권';notice('gameStatus','기권으로 대국이 종료됐습니다.');await refreshSummaryOnly();renderWinrates()}
- catch(e){notice('gameStatus',e.message,'err')}finally{gameBusy=false;window.cmaGameActions?.();}
+ window.cmaBoardTools.cancel('gameBoard');const request=++gameRequest,accountToken=token;gameBusy=true;window.cmaGameActions?.();
+ try{await api('/game/resign','POST');if(request!==gameRequest||accountToken!==token)return;game=null;setGameClock(null);drawGame();$('turnIndicator').textContent='대국 종료 · 기권';notice('gameStatus','기권으로 대국이 종료됐습니다.');await refreshSummaryOnly();renderWinrates()}
+ catch(e){if(request===gameRequest&&accountToken===token)notice('gameStatus',e.message,'err')}finally{if(request===gameRequest&&accountToken===token){gameBusy=false;window.cmaGameActions?.();}}
 };
 function currentPuzzle(){return puzzleItems[puzzleIdx]}
 async function loadPuzzles(){try{puzzleItems=await api('/puzzles');$('puzzleSelect').innerHTML='';puzzleItems.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${i+1}. ${p.theme} · ${p.difficulty}`;$('puzzleSelect').appendChild(o)});showPuzzle()}catch(e){notice('puzzleStatus',e.message,'err')}}

@@ -6,7 +6,7 @@
   const hint=ui('v7Hint','button','💡 추천 수 힌트');const undo=ui('v7Undo','button','↶ 한 수 무르기');
   actionGroup.append(hint,undo);playStatus.parentElement.insertBefore(actionGroup,playStatus.nextSibling);
   hint.onclick=async()=>{
-    if(!ready()||gameBusy||!game||game.is_over)return;
+    if(!ready()||gameBusy||gameRestoreBlocked()||!game||game.is_over)return;
     const current=game,identity=token,revision=gameRequest;
     hint.disabled=true;gameBusy=true;window.cmaGameActions?.();
     try{const data=await api('/v7/game/hint?'+new URLSearchParams({...(current?.session_id?{session_id:current.session_id}:{}),...(current?.fen?{expected_fen:current.fen}:{})}));
@@ -18,7 +18,7 @@
     }catch(e){if(token===identity&&gameRequest===revision)notice('gameStatus',e.message,'err')}finally{hint.disabled=false;if(gameRequest===revision)gameBusy=false;window.cmaGameActions?.();}
   };
   undo.onclick=async()=>{
-    if(!ready()||gameBusy||!game||game.is_over)return;
+    if(!ready()||gameBusy||gameRestoreBlocked()||!game||game.is_over)return;
     const current=game,identity=token,revision=gameRequest;
     window.cmaBoardTools.cancel('gameBoard');cancelPromotion();gameBusy=true;window.cmaGameActions?.();undo.disabled=true;
     try{const data=await api('/v7/game/undo','POST',{session_id:current?.session_id,expected_fen:current?.fen});if(token!==identity||gameRequest!==revision||game!==current)return;playerColor=data.player_color;window.cmaBoardPresentation.transition('gameBoard',data.undone_moves,()=>showGame({...data.board,session_id:data.session_id},`이전 ${data.removed_plies}반수를 되돌렸습니다.`),true);}
