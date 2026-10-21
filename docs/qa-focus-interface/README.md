@@ -1,6 +1,6 @@
 # 집중형 UI 검증 근거
 
-검사 코드: `17c4d8b08341154c083ac69ddbe90a8e5d99a974`, 기준 main: `931fc3d0d15ac6a8249d7f044d595dff0e25614b`.
+검사 코드: `19992bf8ac980ce0543ef56c6fbda6090fdad4ba`, 기준 main: `931fc3d0d15ac6a8249d7f044d595dff0e25614b`.
 
 ## 요구사항과 반영
 
@@ -22,10 +22,11 @@
 - 후속 선택군: 40통과/3실패. 남은3건은 복원 조회 전 선택 화면을 클릭하던 검사 동기화; 조회 및 실제 active 보드 준비 후 공개 선택 경로를 거치게 수정했다.
 - 최신 반응형9건 전부 통과. 실제 판정·데이터·포커스·폭 assertion을 유지했다.
 - 변경 JavaScript12개 `node --check`, Python 생성기 `py_compile` 통과.
-- 최종 전체672건: **실행 중, 결과 미확정**. 종료 후 `full-final/verification.json`으로 수집/실행/누락/중복을 확정한다.
+- 전체17c4d8b: 671통과/1실패,672실행,누락/중복0. 새 계정 검사가 /me의 user 갱신만으로 로그인 완료를 판단했다. /game 지연→홈 복귀 완료→설정 이동으로 동기화 보완; 기존 설정값·버튼 활성 assertion과 늦은 A 응답 검증 유지. 런타임 추가 변경 없음. 원인 한정 검사1건 통과. 원시 로그 `full-17c4/`.
+- 최종 전체672건: **672통과/실패0/오류0/건너뜀0**, 681.78초. 수집672/실행672, 누락0/중복0/예상외0. `full-final/verification.json`과 4개 원시 로그/JUnit/manifest에 확정. 정상 Chromium·격리 SQLite 실행. 코드·검사 파일 SHA256 대조 일치. Starlette httpx 사용 중단 예정 경고가 각 군1개이며 실패가 아니다.
 
 ## 실행 방법과 한계
 
 `PYTHONPATH=.:tests:docs/qa-board-centered-feedback`, `STOCKFISH_PATH=/tmp/stockfish/stockfish-ubuntu-x86-64-avx2`, `CMA_JOURNEY_INDEX=/tmp/chess-journey-index.json.gz`를 사용한다. 최종 실행 스크립트는 파일 단위로 4개 격리 SQLite 검사군에 배분하고 정상 multiprocess Chromium을 사용한다. 로그·JUnit·수집 목록과 동일 코드 SHA를 보존한다.
 
-실제 Docker 빌드/컨테이너 HTTP 및 PostgreSQL은 루트 디스크0 여유로 **미실행**. 패키징 검사 통과를 실제 이미지 실행으로 주장하지 않는다. 물리 모바일, 실제 초보자 사용성, 운영 계정 QA 역시 이 로컬 검증에 포함하지 않는다. 긴 문장·짧은 화면·모바일의 긴 조작에는 문서 스크롤을 허용한다. 운영 DB/계정/기보 변경, 초기화, 병합·배포를 실행하지 않았다.
+실제 Docker 빌드/컨테이너 HTTP 및 PostgreSQL은 루트 디스크0 여유로 **미실행**. 패키징 검사 통과를 실제 이미지 실행으로 주장하지 않는다. 물리 모바일, 실제 초보자 사용성, 운영 계정 QA 역시 이 로컬 검증에 포함하지 않는다. 긴 문장·짧은 화면·모바일의 긴 조작에는 문서 스크롤을 허용한다. 운영 DB/계정/기보 변경이나 사용자 기록 초기화, 병합·배포를 실행하지 않았다. 테스트는 임시 로컬 계정/격리 DB 또는 제어된 응답 대역을 사용한다.

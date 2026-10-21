@@ -1,3 +1,11 @@
+# 최종 재개 상태
+
+검사 코드 head: 19992bf8ac980ce0543ef56c6fbda6090fdad4ba (runtime는17c4d8b와동일, 로그인 완료 동기화 테스트 보완).
+전체672/672통과,누락/중복/건너뜀/오류/실패0,681.78초. full-final의manifest/JUnit/원시로그/collection/verification보존. 실행중검사없음. 이후커밋은증거/문서/캡처만이며code-files.sha256대조일치.
+branch feat/focused-activity-ui. 작업트리 /tmp/cma-focused-ui. 기존자동생성타QA캡처와캐시는삭제하지않고보존한다. 실제Docker/PG/운영/물리모바일/실제초보사용성미검증. 직접병합/배포금지.
+다음: 원격증거저장→draft PR 생성/정확한head와CI조회→부모독립검토. 재실행필요시기존DB/로그를덮지말고새출력디렉터리사용. 원시결과확인명령: /tmp/chess-venv/bin/python /tmp/cma-focus-final2-verify.py.
+
+## 이전 작업 기록 (최종 결과와 구분)
 # 집중형 UI 단계1 체크포인트
 
 기준 main931fc3d. 기초·대국 집중배치31검사통과,정상Chromium PC/좁은캡처확인.
