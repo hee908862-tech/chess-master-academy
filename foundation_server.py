@@ -43,6 +43,14 @@ def visual_context(course_id, step_index, step, progress, board):
     if step['kind']=='move' and not solved and ply<len(step['line']):
         u=step['line'][ply]
         arrows.append({'from':u[:2],'to':u[2:4],'kind':'guide','label':'이동 안내: '+u[:2]+' → '+u[2:4]})
+    if step['kind']=='move' and solved and ply:
+        u=step['line'][ply-1]
+        arrows.append({'from':u[:2],'to':u[2:4],'kind':'guide','label':'완료한 이동: '+u[:2]+' → '+u[2:4]+' · 이유는 아래 해설에서 확인'})
+    for arrow in arrows:
+        source=chess.parse_square(arrow['from']);target=chess.parse_square(arrow['to'])
+        if sorted((abs(chess.square_file(source)-chess.square_file(target)),abs(chess.square_rank(source)-chess.square_rank(target))))==[1,2]:
+            arrow['via']=arrow['from'][0]+arrow['to'][1]
+            arrow['label']+=' · L자 방향 표시 (중간 칸에 멈추지 않음)'
     if course_id=='value-protection':
         if step_index==1 and not solved:
             a,t=chess.A8,chess.A4
