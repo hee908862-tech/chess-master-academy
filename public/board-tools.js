@@ -15,7 +15,7 @@ function decorate(id){clearMarks(id);const w=waits.get(id),b=document.getElement
  const dot=document.createElementNS(ns,'circle');dot.setAttribute('cx',z[0]);dot.setAttribute('cy',z[1]);dot.setAttribute('r','.23');dot.setAttribute('fill','#f39cff');svg.append(line,dot);b.append(svg);
 }
 function cancel(id){waits.delete(id);clearMarks(id);message(id,'예약 없음 · 상대 응답 대기 중 출발/도착 칸 선택');generation++}
-function cancelAll(){window.cancelPromotion?.();for(const id of controls.keys())cancel(id)}
+function cancelAll(){window.cmaBoardPresentation?.cancelAll();window.cancelPromotion?.();for(const id of controls.keys())cancel(id)}
 function pick(id,square){const w=waits.get(id);if(!enabled||!w)return;const piece=w.position[square],own=piece&&((piece===piece.toUpperCase())===(w.side==='white'));
  if(w.to||w.from===square){w.from=null;w.to=null}
  if(!w.from){if(own)w.from=square}else{w.to=square}

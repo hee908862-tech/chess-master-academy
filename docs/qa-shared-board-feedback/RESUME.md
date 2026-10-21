@@ -20,3 +20,7 @@
 4. reduced-motion 즉시 표시, 화면 이탈/계정 변경/빠른 복기 탐색 cancellation, 흑 시점/키보드/승격 취소/시계/프리무브/느린 응답을 검사한다. 새 FEN에서 잔여 표시는0이다.
 
 단계3 전체 레이아웃/피드백 확장은 포함하지 않는다. 첫 논리 단위 구현과 검사 후 작은 commit/push로 보존하고 해당 SHA·실행한 검사·미검증을 이 문서에 갱신한다. 새 전체 검사 전 이전 프로세스/로그를 확인해 중복 실행하지 않는다.
+
+런타임 체크포인트: main 140f97760a1b1c9935612219fe1c92b865bcdf71을 병합했다. PR25 원격 최종590bde3는 main에 포함된다. 공통 board-presentation.js는 모든 drawBoard 배치의 기하학적 공격(핀된 공격 포함)을 계산하고, 명시적 UCI와 전후 배치가 정확히 맞는 경우만 모션을 생성한다. 기존 animateBoardTransition은 새 공통 구현으로 대체했다. 초기 규칙 대조/특수 수·역방향 계획2검사 통과(/tmp/cma-board-presentation-core.log). 아직 모드별 연결/브라우저/전체 검증 전이며 중간 코드 병합 금지.
+
+다음: BoardStudy/복기 cursor/무르기, 기초/훈련/진단의 명시적 수순 연결, 전환 연속 프레임 계약. 실제 브라우저 cancellation/중복모션/resize/reduced-motion 및 모든 기존 기능 회귀. 현재 큰 레이아웃 개편은 하지 않는다.
