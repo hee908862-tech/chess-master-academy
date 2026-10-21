@@ -28,3 +28,5 @@ CMA_JOURNEY_INDEX=/tmp/chess-journey-index.json.gz
 
 포커스 한정진단: 공통환경 + `pytest -p cma_reap_tests -q -s /tmp/pr29_focus_diagnosis.py` → focus-diagnosis.log, focus-timeline.json.
 보완 후: 공통환경 + `pytest -p cma_reap_tests -q tests/test_education_browser.py` → education-focus-fixed-12.log (12통과43.98초). 전체재실행전.
+
+최종 ab52af7 고정 실행: `python /tmp/cma-pr29-final-646.py` (final-646/runner.py), 공통환경에서 `pytest --collect-only -q` → collection.log, `python /tmp/pr29-final-646-audit.py` → 646/646 통과 및 중복/누락0. 모든 묶음exit0,684.48초.
