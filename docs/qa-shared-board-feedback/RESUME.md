@@ -1,6 +1,6 @@
 # 2단계 공통 보드 체크·모션 재개
 
-상태: 구조 조사/설계 체크포인트. 런타임 구현·검사는 아직 시작하지 않음. PR25의 추가 검토 지적을 우선 수정한다.
+상태: 런타임 구현 및 집중 검사 완료, 최종 전체 회귀 준비. 아래 이전 체크포인트는 작업 이력이다.
 
 - 작업트리 /tmp/cma-shared-board-feedback, 브랜치 feat/shared-board-feedback.
 - 의존 기준: feat/foundation-board-feedback의 590bde31d71f2236215b519599e0f862cf9d504d (PR25 미병합). 후속 PR은 이 브랜치 의존을 명시하고 부모가 PR25 병합 후 main 기준으로 정리한다.
@@ -27,3 +27,5 @@
 
 모드 연결 중간 체크포인트: 기존 대국 모션 단일 대체, BoardStudy/원본 복기1반수 전후, 대국 무르기의 서버가 반환한 실제 제거 수순, 전술 상대 응수, 기초/훈련/레퍼토리/교육/도전/진단의 명시적 착수와 읽기 전용 복기 프레임을 연결했다. 기초·훈련·도전의 played_moves 및 undo 응답 undone_moves는 이미 적용된 수순만 반환하며 저장 모델은 바꾸지 않는다. 최대2반수 계획과 특수 수/역방향을 검증한다. 단순 배치 diff는 모션을 만들지 않는다.
 초기 공통+기초 집중25통과(/tmp/cma-shared-board-focused.log). 이후 두 반수/모드 연결 추가분은 /tmp/cma-shared-board-integrated.log 실행 중: 완료/실패 확인 전 재실행하지 말 것. 전체회귀/최종캡처/DockerPG는 아직 미실행. 미검증 중간 코드 병합 금지. 운영은 부모 담당, 계정 접근 시도 안 함.
+
+최종 회귀 준비: 원격 ffd653f452a9aa8d523b96356cfbb2bc116d1d20 이후 v8 실제 표시 착수와 모션 경계 검사를 보완했다. 통합 70통과/1실패는 이동 중 opacity DOM 비교였으며, settled DOM을 기다리고 기존 동일성/CAS 검증을 유지한 후속11검사 통과(36.38초). 규칙/경계11통과, 초기공통+기초25통과는 각 이전 코드 기준이다. 최종 전체 회귀는 /tmp/run_shared_board_final.py 및 /tmp/cma-shared-board-final-suite-*.log, manifest JSON을 확인한다. 실행 중이면 중복 시작하지 않는다. 루트0, /tmp7.6GiB; Docker/PostgreSQL 미실행. 운영 변경 없음.

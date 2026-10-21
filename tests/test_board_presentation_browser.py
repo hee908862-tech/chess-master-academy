@@ -40,3 +40,44 @@ def test_current_check_label_cleanup_and_opening_history_motion(page,site):
     expect(page.locator('#studyOpeningBoard .cma-check')).to_have_count(0)
     page.evaluate("tab('home')")
     expect(page.locator('.cma-motion-ghost')).to_have_count(0)
+
+def test_motion_account_tab_and_reduced_preference_cancel_without_writes(page,site):
+    login(page,site);other=page.evaluate("async()=> (await api('/register','POST',{code:'MOTION-'+crypto.randomUUID().slice(0,8),pin:'local-motion-pin'})).token")
+    page.evaluate("""()=>{tab('play');const original=Element.prototype.animate;Element.prototype.animate=function(k,o){return original.call(this,k,{...o,duration:2000});};window.runFixture=()=>{drawBoard('gameBoard',fromFen(chessStart));const p=fromFen(chessStart);p.e4=p.e2;delete p.e2;cmaBoardPresentation.transition('gameBoard','e2e4',()=>drawBoard('gameBoard',p));};}""")
+    writes=[];page.on('request',lambda r:writes.append(r.url) if r.method=='POST' else None)
+    page.evaluate('runFixture()');expect(page.locator('.cma-motion-ghost')).to_have_count(1)
+    page.emulate_media(reduced_motion='reduce');expect(page.locator('.cma-motion-ghost')).to_have_count(0)
+    page.emulate_media(reduced_motion='no-preference');page.evaluate('runFixture()')
+    page.evaluate('identity=>{token=identity;}',other)
+    expect(page.locator('.cma-motion-ghost')).to_have_count(0)
+    assert page.locator('#gameBoard .piece-wrap[style*="opacity: 0"]').count()==0
+    page.evaluate('runFixture()');page.evaluate("tab('home')")
+    expect(page.locator('.cma-motion-ghost')).to_have_count(0)
+    assert writes==[]
+
+
+def test_two_ply_capture_reverse_and_fast_replacement_has_no_residual_ghost(page,site):
+    login(page,site);page.evaluate("tab('play')")
+    before='3q2k1/8/8/3p4/2B5/8/8/6K1 w - - 0 1';b=chess.Board(before)
+    for u in ['c4d5','d8d5']:b.push_uci(u)
+    result=page.evaluate("""r=>{const original=Element.prototype.animate;Element.prototype.animate=function(k,o){return original.call(this,k,{...o,duration:2000});};drawBoard('gameBoard',fromFen(r.before));cmaBoardPresentation.transition('gameBoard',['c4d5','d8d5'],()=>drawBoard('gameBoard',fromFen(r.after)));const forward=document.querySelectorAll('.cma-motion-ghost').length;cmaBoardPresentation.transition('gameBoard',['c4d5','d8d5'],()=>drawBoard('gameBoard',fromFen(r.before)),true);return {forward,reverse:document.querySelectorAll('.cma-motion-ghost').length};}""",{'before':before,'after':b.fen()})
+    assert result=={'forward':2,'reverse':2}
+    page.evaluate('cmaBoardPresentation.cancelAll()')
+    expect(page.locator('.cma-motion-ghost')).to_have_count(0)
+    assert page.locator('#gameBoard .piece-wrap[style*="opacity: 0"]').count()==0
+
+@pytest.mark.parametrize('width',[390,1280])
+def test_real_opening_api_checkmate_display_and_black_orientation_capture(page,site,width):
+    from pathlib import Path
+    page.set_viewport_size({'width':width,'height':900});login(page,site);page.evaluate("tab('opening')")
+    expect(page.locator('#studyOpeningBoard .sq:enabled')).to_have_count(64)
+    for u in ['e2e4','e7e5','f1c4','b8c6','d1h5','g8f6','h5f7']:
+        click_move(page,'studyOpeningBoard',u)
+        if u!='h5f7':expect(page.locator('#studyOpeningBoard .sq:enabled')).to_have_count(64)
+    expect(page.locator('#studyOpeningBoard .cma-check')).to_have_attribute('aria-label','e8 흑 킹 · 체크 당한 킹')
+    expect(page.locator('#studyOpeningBoard .sq:enabled')).to_have_count(0)
+    page.get_by_label('오프닝 보드 방향',exact=True).select_option('black')
+    expect(page.locator('#studyOpeningBoard .sq').first).to_have_attribute('aria-label','h1 백 룩')
+    expect(page.locator('.cma-motion-ghost')).to_have_count(0)
+    out=Path('/tmp/cma-shared-board-captures');out.mkdir(exist_ok=True)
+    page.screenshot(path=str(out/f'opening-checkmate-black-{width}.png'),full_page=True)
