@@ -32,3 +32,12 @@ def test_explicit_move_plans_castling_capture_ep_promotion_and_reverse():
         assert len(p['forward'])==(2 if u in ('e1g1','e8c8') else 1)
     rows[0]['after']['a3']='Q'
     assert node(rows[:1],"r=>cmaBoardPresentation.plan(r.before,r.after,r.uci)")==[None]
+
+def test_two_confirmed_plies_and_reverse_capture_path():
+    b=chess.Board('3q2k1/8/8/3p4/2B5/8/8/6K1 w - - 0 1');before=pieces(b);moves=['c4d5','d8d5']
+    for u in moves:assert chess.Move.from_uci(u) in b.legal_moves;b.push_uci(u)
+    row={'before':before,'after':pieces(b),'moves':moves}
+    p=node([row],"r=>({forward:cmaBoardPresentation.plan(r.before,r.after,r.moves),back:cmaBoardPresentation.plan(r.after,r.before,r.moves,true)})")[0]
+    assert [m['step'] for m in p['forward']]==[0,1]
+    assert [m['piece'] for m in p['back']]==['B','q']
+    assert [m['step'] for m in p['back']]==[1,0]

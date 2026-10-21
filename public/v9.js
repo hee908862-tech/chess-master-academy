@@ -71,9 +71,9 @@ async function tap(kind,sq){const st=modes[kind];if(st.busy){window.cmaBoardTool
   st.mistakes=0;st.last=[from,sq];
   if(r.solved){window.cmaMate?.show(boardName(kind),r.mate_explanation,st.side==='black');window.cmaBoardTools.cancel(boardName(kind));st.solved=true;status(kind,r.done?(kind==='puzzle'?r.message:`${r.message} · 첫 시도 정답 ${r.correct_count}/${r.total} ${r.mastered?'· 숙련 달성':''}`):r.message);
    el('v9'+props(kind)+'Next').hidden=false;
-   if(r.completed_fen)drawBoard(boardName(kind),fromFen(r.completed_fen),{flip:st.side==='black',last:st.last});
+   if(r.completed_fen){const draw=()=>drawBoard(boardName(kind),fromFen(r.completed_fen),{flip:st.side==='black',last:st.last});if(r.reply)window.cmaBoardPresentation.transition(boardName(kind),r.reply,draw);else draw();}
    await refreshSummaryOnly();if(kind==='course'&&r.done)await history();
-  }else{st.task=r;status(kind,r.reply?`정답: ${selectedMove} · 상대 응수: ${r.reply}. 마지막 이동 칸을 강조했습니다. 다음 수를 찾아보세요.`:r.message);paint(kind);}
+  }else{st.task=r;status(kind,r.reply?`정답: ${selectedMove} · 상대 응수: ${r.reply}. 마지막 이동 칸을 강조했습니다. 다음 수를 찾아보세요.`:r.message);if(r.reply)window.cmaBoardPresentation.transition(boardName(kind),r.reply,()=>paint(kind));else paint(kind);}
  }catch(e){if(revision===st.revision&&accountToken===token)await failed(kind,e)}finally{if(revision===st.revision)st.busy=false;}
  const queued=window.cmaBoardTools.take(boardName(kind),task,st.task?.legal,revision===st.revision&&accountToken===token&&!el(boardName(kind)).closest('[hidden],[inert]')&&el(boardName(kind)).closest('.view.active')&&!st.solved&&st.task?.session_id===task.session_id&&st.task?.id===task.id&&st.task?.fen.split(' ')[1]===(st.side==='white'?'w':'b'));
  if(queued){st.selected=queued.from;await tap(kind,queued.to);}

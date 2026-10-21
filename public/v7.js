@@ -21,7 +21,7 @@
     if(!ready()||gameBusy||!game||game.is_over)return;
     const current=game,identity=token,revision=gameRequest;
     window.cmaBoardTools.cancel('gameBoard');cancelPromotion();gameBusy=true;window.cmaGameActions?.();undo.disabled=true;
-    try{const data=await api('/v7/game/undo','POST',{session_id:current?.session_id,expected_fen:current?.fen});if(token!==identity||gameRequest!==revision||game!==current)return;playerColor=data.player_color;showGame({...data.board,session_id:data.session_id},`이전 ${data.removed_plies}반수를 되돌렸습니다.`);}
+    try{const data=await api('/v7/game/undo','POST',{session_id:current?.session_id,expected_fen:current?.fen});if(token!==identity||gameRequest!==revision||game!==current)return;playerColor=data.player_color;window.cmaBoardPresentation.transition('gameBoard',data.undone_moves,()=>showGame({...data.board,session_id:data.session_id},`이전 ${data.removed_plies}반수를 되돌렸습니다.`),true);}
     catch(e){if(token===identity&&gameRequest===revision)notice('gameStatus',e.message,'err')}finally{undo.disabled=false;if(gameRequest===revision)gameBusy=false;window.cmaGameActions?.();}
   };
   const openingView=document.getElementById('opening');

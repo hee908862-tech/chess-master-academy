@@ -65,7 +65,7 @@ def visual_context(course_id, step_index, step, progress, board):
         prior=chess.Board('7k/3p4/8/4P3/8/8/8/6K1 b - - 0 1');before=prior.fen();prior.push_uci('d7d5')
         if prior.fen()==board.fen():
             demonstration={'label':'교육 예시 · 저장된 실제 대국의 직전 수가 아닙니다','before_fen':before,'move':'d7d5','after_fen':prior.fen()}
-    return {'fen':board.fen(),'arrows':arrows,'check_king':king,'checkers':checkers,
+    return {'played_moves':step.get('line',[])[:ply][-2:],'fen':board.fen(),'arrows':arrows,'check_king':king,'checkers':checkers,
             'ending':('checkmate' if board.is_checkmate() else 'stalemate' if board.is_stalemate() else None) if solved else None,
             'demonstration':demonstration}
 

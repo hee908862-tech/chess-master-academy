@@ -24,3 +24,6 @@
 런타임 체크포인트: main 140f97760a1b1c9935612219fe1c92b865bcdf71을 병합했다. PR25 원격 최종590bde3는 main에 포함된다. 공통 board-presentation.js는 모든 drawBoard 배치의 기하학적 공격(핀된 공격 포함)을 계산하고, 명시적 UCI와 전후 배치가 정확히 맞는 경우만 모션을 생성한다. 기존 animateBoardTransition은 새 공통 구현으로 대체했다. 초기 규칙 대조/특수 수·역방향 계획2검사 통과(/tmp/cma-board-presentation-core.log). 아직 모드별 연결/브라우저/전체 검증 전이며 중간 코드 병합 금지.
 
 다음: BoardStudy/복기 cursor/무르기, 기초/훈련/진단의 명시적 수순 연결, 전환 연속 프레임 계약. 실제 브라우저 cancellation/중복모션/resize/reduced-motion 및 모든 기존 기능 회귀. 현재 큰 레이아웃 개편은 하지 않는다.
+
+모드 연결 중간 체크포인트: 기존 대국 모션 단일 대체, BoardStudy/원본 복기1반수 전후, 대국 무르기의 서버가 반환한 실제 제거 수순, 전술 상대 응수, 기초/훈련/레퍼토리/교육/도전/진단의 명시적 착수와 읽기 전용 복기 프레임을 연결했다. 기초·훈련·도전의 played_moves 및 undo 응답 undone_moves는 이미 적용된 수순만 반환하며 저장 모델은 바꾸지 않는다. 최대2반수 계획과 특수 수/역방향을 검증한다. 단순 배치 diff는 모션을 만들지 않는다.
+초기 공통+기초 집중25통과(/tmp/cma-shared-board-focused.log). 이후 두 반수/모드 연결 추가분은 /tmp/cma-shared-board-integrated.log 실행 중: 완료/실패 확인 전 재실행하지 말 것. 전체회귀/최종캡처/DockerPG는 아직 미실행. 미검증 중간 코드 병합 금지. 운영은 부모 담당, 계정 접근 시도 안 함.

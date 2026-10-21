@@ -90,7 +90,7 @@
   async function act(action,move){if(!task||task.done)return;const s=task;await run(async()=>{
     const identity=token, rev=generation;
     const r=await api('/learning/action','POST',{session_id:s.session_id,revision:s.revision,action,move});
-    if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;render();if(r.done)await updateStats();
+    if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;if(action==='move'||action==='undo')window.cmaBoardPresentation.transition('learningBoard',action==='undo'?r.undone_moves:r.played_moves?.length?r.played_moves:move,render,action==='undo');else render();if(r.done)await updateStats();
   });}
   function renderDashboard(){
     if(!dashboard)return;
@@ -156,7 +156,7 @@
     const target=selected?(t?.legal||[]).filter(u=>u.slice(0,2)===selected).map(u=>({to:u.slice(2,4)})):[];
     if(t?.fen||concept?.concept_position?.fen)drawBoard('learningBoard',fromFen(frame?.fen||t?.fen||concept?.concept_position?.fen||chessStart),{flip:(t?.side||concept?.concept_position?.side)==='black',selected,targets:target,opponent:!frame&&t?.opponent_last_move?[t.opponent_last_move.slice(0,2),t.opponent_last_move.slice(2,4)]:[],last:frame?[frame.move.slice(0,2),frame.move.slice(2,4)]:[],onClick:t&&!t.done&&!frame?click:undefined});else $('learningBoard').replaceChildren();
     $('learningPlayback').replaceChildren();
-    if(t?.playback?.length){$('learningPlayback').append(button('현재 문제로',()=>{playbackIndex=-1;render();}));t.playback.forEach((f,i)=>$('learningPlayback').append(button(`${i+1}. ${f.san}`,()=>{playbackIndex=i;selected=null;render();})));}
+    if(t?.playback?.length){$('learningPlayback').append(button('현재 문제로',()=>{playbackIndex=-1;render();}));t.playback.forEach((f,i)=>$('learningPlayback').append(button(`${i+1}. ${f.san}`,()=>{const previous=playbackIndex;playbackIndex=i;selected=null;if(previous>=0&&Math.abs(previous-i)===1)window.cmaBoardPresentation.transition('learningBoard',t.playback[Math.max(previous,i)].move,render,i<previous);else render();})));}
     renderControls();lockControls();
   }
   function renderControls(){

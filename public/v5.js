@@ -113,11 +113,13 @@ const assistanceGuide=document.createElement('p');assistanceGuide.className='lea
 assistanceGuide.textContent='힌트 채택: 이 위치에서 제공된 추천 수와 실제 착수가 일치합니다. 힌트 제공 · 다른 수: 추천을 제공했지만 다른 수를 뒀습니다. 무르기 후 재착수: 되돌린 위치에서 다시 둔 수입니다. 두 도움은 함께 표시합니다. 같은 대국의 같은 위치에서 앞서 받은 도움도 포함합니다. 과거 기록 없음은 도움을 안 썼다는 뜻이 아닙니다. 서버가 힌트를 제공한 기록이며 실제 화면 열람 여부는 확정하지 않습니다.';
 $('reviewStatus').before(assistanceGuide);
 // Completed games: selectable ply-by-ply, preserving both players' moves and evidence.
+let reviewMotionContext=null;
 function v5RenderReview(){
  if(!v5Review)return;
  const rows=v5Review.moves;const i=v5ReviewIndex;
  const fen=i?rows[i-1].after_fen:chessStart;
- drawBoard('reviewBoard',fromFen(fen),{flip:v5Review.color==='black',last:i?[rows[i-1].uci.slice(0,2),rows[i-1].uci.slice(2,4)]:[]});
+ const draw=()=>drawBoard('reviewBoard',fromFen(fen),{flip:v5Review.color==='black',last:i?[rows[i-1].uci.slice(0,2),rows[i-1].uci.slice(2,4)]:[]});
+ const previous=reviewMotionContext;reviewMotionContext={game:v5Review,index:i};if(previous?.game===v5Review&&Math.abs(previous.index-i)===1)window.cmaBoardPresentation.transition('reviewBoard',rows[Math.max(i,previous.index)-1].uci,draw,i<previous.index);else draw();
  $('reviewStep').textContent=`${i} / ${rows.length} 반수`;
  document.querySelectorAll('.review-move').forEach((e,n)=>e.classList.toggle('active',n===i-1));
  const step=i?rows[i-1]:null;

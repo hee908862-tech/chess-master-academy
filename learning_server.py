@@ -386,7 +386,7 @@ def attach_learning(app, ns):
                 'category': None if verify and not s['done'] else CATEGORIES[card['category']],
                 'concept': None if verify and not s['done'] else CONCEPTS[card['category']],
                 'source': card['source'], 'goal': s['goal'], 'message': s.get('message', ''),
-                'opponent_last_move': s.get('opponent_last_move'), 'hint_level': s['hints'],
+                'played_moves':s.get('moves',[])[-2:], 'opponent_last_move': s.get('opponent_last_move'), 'hint_level': s['hints'],
                 'context': card.get('context', '직전 위치 기록이 없어 변화의 의미를 추측하지 않습니다.'),
                 'explanation': s.get('explanation'), 'playback': s.get('playback', []),
                 'learning_link':None if verify and not s['done'] else copy.deepcopy(link), 'growth_task':s.get('growth_task'), 'outcome': s.get('outcome'), 'selection': None if verify and not s['done'] else s.get('selection'), 'path_id': s.get('path_id'), 'premove': False}
@@ -792,6 +792,7 @@ def attach_learning(app, ns):
             if not s or s['id'] != body.session_id or s['revision'] != body.revision:
                 raise HTTPException(409, '다른 요청에서 학습 상태가 변경되었습니다. 학습 화면을 다시 열어 주세요.')
             card = state['cards'][s['card_id']]
+            before_moves=list(s.get('moves',[]))
             b = chess.Board(card['fen'])
             for u in s.get('moves', []): b.push_uci(u)
             side = s['side'] == 'white'
@@ -878,4 +879,4 @@ def attach_learning(app, ns):
                         finish(state, s, False if loss is not None else None)
                         if loss is None: s['message'] = message + ' 미검증 대안으로 기록하며 능력 성공률 계산에서 제외합니다.'
             sync_path(state)
-            return payload(state)
+            return payload(state) | ({'undone_moves':before_moves[len(s.get('moves',[])):]} if body.action=='undo' else {})
