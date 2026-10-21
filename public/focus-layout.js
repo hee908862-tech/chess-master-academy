@@ -13,7 +13,7 @@ function install(){
  function update(){const text=$('foundationFeedback').textContent;const short=text.length>140?text.slice(0,140)+'…':text;if(brief.textContent!==short)brief.textContent=short;}
  new MutationObserver(update).observe($('foundationFeedback'),{childList:true,subtree:true,characterData:true});update();
  const training=$('training'),library=document.createElement('section');library.id='trainingLibrary';library.setAttribute('aria-label','훈련 선택과 기록');
- const trainingLayout=training.querySelector('.learning-layout');trainingLayout.before(library);
+ const trainingLayout=training.querySelector('.learning-layout');trainingLayout.before(library);const trainingJumps=training.querySelector('.feature-jumps');if(trainingJumps)trainingLayout.after(trainingJumps);
  for(const n of [$('learningSetup'),$('learningSaved'),$('learningCards').closest('details'),$('learningSkills').closest('details'),$('learningAttempts').closest('details'),$('trainingCycle')])if(n)library.append(n);
  // Reuse the controller's exact nodes: core actions beside the board on PC, immediately after it on mobile.
  const trainingAside=training.querySelector('.learning-aside'),trainingCore=document.createElement('section');trainingCore.id='trainingCore';trainingCore.setAttribute('aria-label','현재 훈련 판정과 핵심 조작');trainingAside.prepend(trainingCore);

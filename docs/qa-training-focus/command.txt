@@ -1,0 +1,4 @@
+PYTHONPATH=.:tests:docs/qa-board-centered-feedback STOCKFISH_PATH=/tmp/stockfish/stockfish-ubuntu-x86-64-avx2 CMA_JOURNEY_INDEX=/tmp/chess-journey-index.json.gz /tmp/chess-venv/bin/python -m pytest -p cma_reap_tests -q --junitxml=/tmp/cma-training-final2.xml tests/test_midwidth_focus.py tests/test_training_focus_layout.py tests/test_learning_browser.py tests/test_board_feedback_browser.py tests/test_board_feedback_followup_browser.py tests/test_focus_panels_browser.py tests/test_focus_interface_browser.py tests/test_image_runtime_package.py tests/test_guest_practice_browser.py tests/test_foundation_feedback_browser.py > /tmp/cma-training-final2.log 2>&1
+node --check public/focus-layout.js
+node --check public/guest-practice.js
+git diff --check
