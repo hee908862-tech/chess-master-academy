@@ -1,0 +1,3 @@
+{"early": {"id": "foundationHeading", "tag": "H2", "course": null}, "final": {"id": "foundation-card-king-check", "tag": "ARTICLE", "course": "king-check"}, "trace": [{"event": "focus", "id": "", "tag": "BUTTON", "course": null}, {"event": "focus", "id": "foundationHeading", "tag": "H2", "course": null}, {"event": "release", "id": "foundationHeading", "tag": "H2", "course": null}, {"event": "focus", "id": "foundation-card-king-check", "tag": "ARTICLE", "course": "king-check"}], "reads": 1, "writes": []}
+.
+1 passed in 8.48s

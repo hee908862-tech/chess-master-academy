@@ -25,3 +25,6 @@ CMA_JOURNEY_INDEX=/tmp/chess-journey-index.json.gz
 
 최종 79011c0: verified-final/runner.py 4묶음 실행, collection.log의645 node ID와 audit.py JUnit 대조. 실패1로 audit 마지막 all-pass assertion은 실패함(의도된 정직한 결과).
 동일 코드 단독 재확인: 공통 환경 + `tests/test_education_browser.py::test_prerequisite_link_opens_exact_existing_card_without_writes` → education-focus-recheck.log, 1통과. 전체 실패를 대체하지 않음.
+
+포커스 한정진단: 공통환경 + `pytest -p cma_reap_tests -q -s /tmp/pr29_focus_diagnosis.py` → focus-diagnosis.log, focus-timeline.json.
+보완 후: 공통환경 + `pytest -p cma_reap_tests -q tests/test_education_browser.py` → education-focus-fixed-12.log (12통과43.98초). 전체재실행전.
