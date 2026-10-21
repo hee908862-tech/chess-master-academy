@@ -13,20 +13,31 @@ def test_delayed_catalog_blocks_submit_and_supports_explicit_retry(page,site,fai
     reads=[];writes=[]
     page.route('**/api/v9/catalog',lambda r:reads.append(r))
     page.on('request',lambda r:writes.append(r) if r.method=='POST' and '/v9/puzzle/start' in r.url else None)
-    page.goto(site[0]);page.evaluate("tab('puzzle')")
+    # The legacy recommendation panel also reads this public catalogue after startup.
+    # Observe that independent read before counting the puzzle retry delta.
+    with page.expect_request('**/api/v8/recommendations'):page.goto(site[0])
+    for _ in range(300):
+        if len(reads)>=2:break
+        page.wait_for_timeout(20)
+    assert len(reads)==2
+    page.evaluate("tab('puzzle')")
     expect(page.locator('#v9PuzzleStart')).to_be_disabled()
     expect(page.locator('#v9CatalogStatus')).to_contain_text('불러오는 중')
     page.locator('#v9PuzzleStart').evaluate('(e)=>e.onclick()');page.wait_for_timeout(100)
     assert not writes
-    if failure=='http':reads[0].fulfill(status=503,json={'detail':'목록 조회 실패'})
-    else:reads[0].fulfill(json={'ready':False,'count':0,'themes':[],'levels':['입문','중급','고급']})
+    for read in reads[:]:
+        if failure=='http':read.fulfill(status=503,json={'detail':'목록 조회 실패'})
+        else:read.fulfill(json={'ready':False,'count':0,'themes':[],'levels':['입문','중급','고급']})
     expect(page.locator('#v9CatalogRetry')).to_be_visible()
     expect(page.locator('#v9PuzzleMessage')).to_contain_text('확인 실패' if failure=='http' else '데이터가 없어')
     expect(page.locator('#v9PuzzleStart')).to_be_disabled()
     page.locator('#v9CatalogRetry').click()
     page.locator('#v9CatalogRetry').evaluate('(e)=>e.onclick()')
-    page.wait_for_timeout(100);assert len(reads)==2
-    reads[1].continue_()
+    for _ in range(300):
+        if len(reads)>=3:break
+        page.wait_for_timeout(20)
+    page.wait_for_timeout(100);assert len(reads)==3  # Exactly one retry, no duplicate submission.
+    reads[2].continue_()
     expect(page.locator('#v9PuzzleStart')).to_be_enabled()
     assert not writes  # No postponed start after the read succeeds.
     page.locator('#v9PuzzleTheme').select_option('fork');page.locator('#v9PuzzleLevel').select_option('입문')
