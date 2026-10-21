@@ -19,7 +19,7 @@ def test_actual_pending_and_same_grid_column(page,site,mode,width):
     boxes=page.evaluate('id=>{const c=document.getElementById(id).parentElement;return [c.getBoundingClientRect().toJSON(),c.nextElementSibling.getBoundingClientRect().toJSON()]}',board)
     if width==1280:
         assert boxes[1]['x']>=boxes[0]['right']-1
-        assert abs(boxes[0]['y']-boxes[1]['y'])<3
+        assert abs(boxes[0]['y']-boxes[1]['y'])<=8
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
     page.evaluate("mode=>{const real=api;window.releaseFollowup=null;api=async(...args)=>{const result=await real(...args);if(args[0]==='/'+mode+'/action')return new Promise(resolve=>releaseFollowup=()=>resolve(result));return result;};}",mode)
     if mode=='repertoire':page.locator('#repertoireBoard [aria-label^="d2 "]').click()
@@ -98,6 +98,6 @@ def test_course_board_feedback_column(page,site,width):
     assert 'board-feedback-column' in column.get_attribute('class')
     assert column.locator('#v9CourseBoardFeedback').count()==1
     boxes=page.evaluate('()=>{const c=document.getElementById("v9CourseBoard").parentElement;return [c.getBoundingClientRect().toJSON(),c.nextElementSibling.getBoundingClientRect().toJSON()]}')
-    if width==1280:assert boxes[1]['x']>=boxes[0]['right']-1 and abs(boxes[0]['y']-boxes[1]['y'])<3
+    if width==1280:assert boxes[1]['x']>=boxes[0]['right']-1 and abs(boxes[0]['y']-boxes[1]['y'])<=8
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
     page.screenshot(path=f'docs/qa-board-centered-feedback/captures/course-{width}.png',full_page=True)

@@ -3,7 +3,7 @@
 ___________________ test_course_board_feedback_column[1280] ____________________
 
 page = <Page url='http://127.0.0.1:55135/#learn/tactics/practice?theme=mateIn1&level=%EC%9E%85%EB%AC%B8'>
-site = ('http://127.0.0.1:55135', 'hIA4ADrEZqEZdhkpQTBXDCb0jZdok5yWVrSZGnnkCXXIR7_M')
+site = (temporary local server, redacted test token)
 width = 1280
 
     @pytest.mark.parametrize('width',[320,1280])
