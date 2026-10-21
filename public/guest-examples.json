@@ -1,4 +1,51 @@
 {
+  "opening": {
+    "available": true,
+    "side": "white",
+    "basis": "오프닝 교육 예시 · 유일 정답 아님",
+    "frames": [
+      {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "move": null,
+        "san": "시작 위치"
+      },
+      {
+        "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+        "move": "e2e4",
+        "san": "e4 · 중앙 공간을 얻고 비숍 길을 엽니다."
+      },
+      {
+        "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
+        "move": "e7e5",
+        "san": "e5 · 흑도 중앙에 맞섭니다."
+      },
+      {
+        "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+        "move": "g1f3",
+        "san": "Nf3 · 나이트를 전개하고 e5 폰을 공격합니다."
+      },
+      {
+        "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+        "move": "b8c6",
+        "san": "Nc6 · 흑은 나이트를 전개하며 e5를 지킵니다."
+      },
+      {
+        "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+        "move": "f1c4",
+        "san": "Bc4 · 비숍을 활동시키고 캐슬링 길을 준비합니다."
+      },
+      {
+        "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+        "move": "f8c5",
+        "san": "Bc5 · 흑도 비숍을 전개합니다."
+      },
+      {
+        "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4",
+        "move": "e1g1",
+        "san": "O-O · 킹을 옆으로 옮기고 룩을 연결할 준비를 합니다. 항상 캐슬링이 최선이라는 뜻은 아닙니다."
+      }
+    ]
+  },
   "version": 1,
   "scope": "기존 자체 작성 기초에서 고른 2개 실습과 1개 예제 퍼즐. 이 화면 안에서만 유지되며 정식 기록/점수로 이전하지 않습니다.",
   "examples": [

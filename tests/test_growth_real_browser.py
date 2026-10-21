@@ -49,10 +49,16 @@ def test_solved_partial_diagnosis_five_tasks_resume_and_concept_path(page,site,t
         page.locator('#journeyNext').click()
         if index<23:expect(page.locator('#journeyProgress')).to_have_text(f'{index+2} / 24 문항')
     assert partial
-    # All six measured areas now have both bands observed and usable scores.
+    # A partial line remains unresolved; complete domains keep their new-scale score.
     expect(page.locator('.growth-plan progress')).to_have_attribute('value','0')
     report=api('/journey')['latest'];assert sum(a['full_success'] for a in report['areas'])>=22
-    assert all(a['performance']['score'] is not None and a['performance']['comparable'] for a in report['areas'] if a['id']!='strategy')
+    assert report['internal_skill']['score'] is None and report['internal_skill']['unresolved']==1
+    for area in report['areas']:
+        if area['id']=='strategy':continue
+        p=area['performance']
+        if area['id']==rows[partial_index]['competency']:
+            assert p['score'] is None and p['unresolved']==1 and not p['comparable']
+        else:assert p['score']==3000 and p['comparable']
     page.evaluate("tab('profile')");expect(page.locator('#growthProfile svg circle')).to_have_count(1)
     page.evaluate("tab('diagnosis')")
     # Prepare a real pre-existing concept-stage path. Preserve it while using new tasks.

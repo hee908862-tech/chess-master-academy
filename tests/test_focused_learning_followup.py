@@ -14,7 +14,7 @@ def test_active_education_list_blocks_start_and_failed_read_allows_return(page,s
     writes=[];page.on('request',lambda r:writes.append(r.url) if '/api/' in r.url and r.method!='GET' else None)
     page.locator('#learn-list-back').click()
     starts=page.locator('#educationBody article button[id^=education-start-]')
-    assert starts.count()==12
+    assert starts.count()==20
     for b in starts.all():expect(b).to_be_disabled()
     resume=page.get_by_role('button',name='저장된 교육 실습 이어하기',exact=True)
     expect(resume).to_be_enabled()
@@ -75,7 +75,7 @@ def test_guest_education_login_returns_to_list_without_attempt(page,site):
     writes=[];page.on('request',lambda r:writes.append(r.url) if '/api/' in r.url and r.method!='GET' else None)
     page.get_by_role('button',name='계정 연결 후 교육 선택',exact=True).click()
     page.locator('#codeField').fill('BROWSER-QA');page.locator('#pinField').fill('test-pin-9384');page.locator('#signin').click()
-    expect(page.locator('#educationBody article')).to_have_count(6)
+    expect(page.locator('#educationBody article')).to_have_count(10)
     assert page.evaluate('location.hash')=='#learn/education'
     assert page.evaluate("api('/education')")['active'] is None
     assert all(url.endswith('/login') for url in writes),writes
@@ -163,7 +163,7 @@ def test_education_list_focus_returns_to_active_lesson_after_render(page,site):
     expect(page.locator('#educationBoard')).to_be_visible()
     page.locator('#learn-list-back').click()
     expect(page.locator('#'+lesson_id)).to_be_focused()
-    assert 0<=page.locator('#'+lesson_id).bounding_box()['y']<100
+    assert -1<=page.locator('#'+lesson_id).bounding_box()['y']<100  # Browser subpixel scroll rounding.
 
 
 @pytest.mark.parametrize('activity',['new','basics','diagnosis'])

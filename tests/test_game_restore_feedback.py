@@ -105,6 +105,7 @@ def test_pending_game_request_then_real_account_login_restores_b_without_waiting
     code='RESTORE-'+uuid.uuid4().hex[:12].upper();pin='local-test-pin'
     b=page.request.post(site[0]+'/api/register',data={'code':code,'pin':pin}).json()
     page.evaluate("tab('profile/account')")
+    page.get_by_role('button',name='계정 전환',exact=True).click()
     page.locator('#codeField').fill(code);page.locator('#pinField').fill(pin)
     page.locator('#signin').click()
     page.wait_for_function("code=>user?.code===code&&!gameBusy&&gameRestoreState==='ready'",arg=code)

@@ -106,7 +106,7 @@ def test_quick_and_balanced_not_comparable_old_records_untouched(setup):
 def test_balanced_scores_and_higher_followup_preserve_cycle(setup):
     c,ns,legacy,db=attach(setup);legacy.clear()
     s=post(c,'start',{'mode':'balanced'});r=finish_diagnosis(c,s,db,solve=True)
-    assert all(a['performance']['score']==100 and a['performance']['comparable'] for a in r['areas'] if a['count'])
+    assert all(a['performance']['score']==3000 and a['performance']['comparable'] for a in r['areas'] if a['count'])
     assert r['insights']['balanced'] and not r['insights']['priorities']
     extra=post(c,'start',{'mode':'targeted','competency':'mate'})
     assert all(row['band']==[1800,2400] or tuple(row['band'])==(1800,2400) for row in saved(db)['active']['items'])

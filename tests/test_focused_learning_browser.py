@@ -155,7 +155,7 @@ def test_hub_and_other_topics_do_not_record_training_exposure(page,site):
 
 def test_promotion_cancel_on_route_leave_without_saved_answer(page,site):
     login(page,site);page.evaluate("cmaNavigation.go('learn/education')")
-    page.locator('#educationBody article').filter(has_text='승격').get_by_role('button',name='설명 보며 학습',exact=True).click()
+    page.locator('#educationBody article').filter(has_text='승격 직후 무승부 경계 비교').get_by_role('button',name='설명 보며 학습',exact=True).click()
     expect(page.locator('#educationBoard')).to_be_visible()
     before=page.evaluate("api('/education')")
     square(page,'educationBoard','g7').click();square(page,'educationBoard','g8').click()

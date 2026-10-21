@@ -1,0 +1,6 @@
+body.entry-guest #home>#academyTry{display:block!important}
+#academyTry h2,#trialMore h3{margin:0 0 8px}.academy-choices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.academy-choices .btn{min-height:48px;white-space:normal}
+#connectedAccount[hidden],.auth-grid[hidden],#signup[hidden],#signin[hidden],#signout[hidden],#connectedAccount button[hidden]{display:none!important}
+.diagnostic-replay .board{max-width:440px}.diagnostic-replay .btn{min-height:44px}.diagnostic-replay .btn-row{flex-wrap:wrap}.internal-skill strong{font-size:28px}
+#beginnerOpeningPath{margin:12px 0}#beginnerOpeningPath .btn{margin:4px;white-space:normal}
+@media(max-width:650px){.academy-choices{grid-template-columns:repeat(2,minmax(0,1fr))}}
