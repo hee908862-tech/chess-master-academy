@@ -36,6 +36,40 @@ def bad_move_reason(board, m):
     return '킹은 안전한 주변 한 칸으로 이동합니다. 캐슬링은 이동 이력과 빈칸·공격 조건을 모두 확인하세요.'
 
 
+
+def visual_context(course_id, step_index, step, progress, board):
+    """Read-only rule facts for explicitly guided foundation lessons, never scoring."""
+    arrows=[];solved=bool(progress.get('solved'));ply=progress.get('ply',0)
+    if step['kind']=='move' and not solved and ply<len(step['line']):
+        u=step['line'][ply]
+        arrows.append({'from':u[:2],'to':u[2:4],'kind':'guide','label':'이동 안내: '+u[:2]+' → '+u[2:4]})
+    if step['kind']=='move' and solved and ply:
+        u=step['line'][ply-1]
+        arrows.append({'from':u[:2],'to':u[2:4],'kind':'guide','label':'완료한 이동: '+u[:2]+' → '+u[2:4]+' · 이유는 아래 해설에서 확인'})
+    for arrow in arrows:
+        source=chess.parse_square(arrow['from']);target=chess.parse_square(arrow['to'])
+        if sorted((abs(chess.square_file(source)-chess.square_file(target)),abs(chess.square_rank(source)-chess.square_rank(target))))==[1,2]:
+            arrow['via']=arrow['from'][0]+arrow['to'][1]
+            arrow['label']+=' · L자 방향 표시 (중간 칸에 멈추지 않음)'
+    if course_id=='value-protection':
+        if step_index==1 and not solved:
+            a,t=chess.A8,chess.A4
+            if board.is_attacked_by(chess.BLACK,t) and a in board.attackers(chess.BLACK,t):
+                arrows.append({'from':'a8','to':'a4','kind':'threat','label':'상대 공격: a8 룩 → a4 비숍 (이동 지시 아님)'})
+        if step_index==0 and solved and chess.D1 in board.attackers(chess.WHITE,chess.D4):
+            arrows.append({'from':'d1','to':'d4','kind':'protect','label':'보호: d1 룩 → d4 나이트 · 무조건 안전하다는 뜻은 아님'})
+    checkers=[chess.square_name(q) for q in board.checkers()]
+    king=chess.square_name(board.king(board.turn)) if board.is_check() else None
+    demonstration=None
+    if course_id=='en-passant' and step_index==0 and not solved and ply==0:
+        prior=chess.Board('7k/3p4/8/4P3/8/8/8/6K1 b - - 0 1');before=prior.fen();prior.push_uci('d7d5')
+        if prior.fen()==board.fen():
+            demonstration={'label':'교육 예시 · 저장된 실제 대국의 직전 수가 아닙니다','before_fen':before,'move':'d7d5','after_fen':prior.fen()}
+    return {'fen':board.fen(),'arrows':arrows,'check_king':king,'checkers':checkers,
+            'ending':('checkmate' if board.is_checkmate() else 'stalemate' if board.is_stalemate() else None) if solved else None,
+            'demonstration':demonstration}
+
+
 def attach_foundations(app, ns):
     def payload(state):
         saved=state.get(KEY,{})
@@ -49,6 +83,7 @@ def attach_foundations(app, ns):
         if active in BY_ID:
             c=BY_ID[active];p=saved['courses'][active];s=c['steps'][p['index']];b=board_for(s,p)
             task={k:s[k] for k in ('kind','title','text')}|{'course_id':active,'course_title':c['title'],'step':p['index'],'total':len(c['steps']),'fen':b.fen(),'side':'white' if chess.Board(s['fen']).turn else 'black','solved':p.get('solved',False),'feedback':p.get('feedback',''),'done':p.get('done',False),'legal':[m.uci() for m in b.legal_moves] if not p.get('solved') and s['kind']=='move' else [],'pieces':[{'square':chess.square_name(sq),'name':NAMES[pc.piece_type]} for sq,pc in sorted(b.piece_map().items()) if pc.color==b.turn]}
+            task['visual']=visual_context(active,p['index'],s,p,b)
             if s['kind']=='judge':
                 keys=['mate','stalemate','playing'] if s['answer'] in ('mate','stalemate') else ['castle','no_castle'] if 'castle' in s['answer'] else ['ep','no_ep']
                 task['choices']=[{'id':key,'label':CHOICES[key]} for key in keys]
@@ -64,7 +99,7 @@ def attach_foundations(app, ns):
         saved=copy.deepcopy(state.get(KEY,{'revision':0,'courses':{}}))
         if saved['revision']!=body.revision:raise HTTPException(409,'다른 화면에서 기초 진행이 바뀌었습니다. 저장 상태를 다시 불러오세요.')
         if body.course_id not in BY_ID:raise HTTPException(404,'기초 과정을 찾을 수 없습니다.')
-        c=BY_ID[body.course_id]
+        c=BY_ID[body.course_id];interaction='ready'
         if body.action in ('start','review'):
             p=saved['courses'].setdefault(body.course_id,{'index':0,'ply':0,'completed_steps':[]})
             if body.action=='review':p.update(index=0,ply=0,solved=False,feedback='복습을 시작합니다. 기존 완료 기록은 보존됩니다.')
@@ -80,14 +115,15 @@ def attach_foundations(app, ns):
                 p.update(index=p['index']+1,ply=0,solved=False,feedback='')
             else:
                 if p.get('solved'):raise HTTPException(409,'이미 확인한 단계입니다. 다음 단계 또는 복습을 선택하세요.')
-                correct=False
+                correct=False;interaction='try_again'
                 if body.action=='move' and s['kind']=='move':
                     try:m=chess.Move.from_uci(body.value)
                     except ValueError:raise HTTPException(400,'기물과 도착 칸을 다시 선택하세요.')
                     if m not in b.legal_moves:p['feedback']=bad_move_reason(b,m)+' 감점 없이 다시 시도할 수 있어요.'
-                    elif body.value!=s['line'][p.get('ply',0)]:p['feedback']='합법적인 수지만 이번 연습의 목표와 달라요. '+s['text']+' 다른 합법 수를 나쁜 수로 채점하지 않습니다.'
+                    elif body.value!=s['line'][p.get('ply',0)]:
+                        interaction='legal_alternative';p['feedback']='합법적인 수지만 이번 연습의 목표와 달라요. '+s['text']+' 다른 합법 수를 나쁜 수로 채점하지 않습니다.'
                     else:
-                        p['ply']=p.get('ply',0)+1;b.push(m)
+                        interaction='correct_move';p['ply']=p.get('ply',0)+1;b.push(m)
                         reply=''
                         if p['ply']<len(s['line']):
                             r=chess.Move.from_uci(s['line'][p['ply']]);reply=' 상대의 예시 응수: '+NAMES[b.piece_at(r.from_square).piece_type]+' '+chess.square_name(r.from_square)+' → '+chess.square_name(r.to_square)+'.';b.push(r);p['ply']+=1
@@ -96,9 +132,9 @@ def attach_foundations(app, ns):
                     correct=body.value==s['answer'];p['feedback']=s['reason'] if correct else '다시 확인해 보세요. '+s['reason']+' 설명을 보고 다시 선택해도 감점은 없습니다.'
                 else:raise HTTPException(400,'현재 단계에 맞는 행동을 선택하세요.')
                 if correct:
-                    p['solved']=True
+                    interaction='step_complete';p['solved']=True
                     p['completed_steps']=sorted(set(p.get('completed_steps',[]))|{p['index']})
                     if len(p['completed_steps'])==len(c['steps']):p['done']=True
         saved['revision']+=1;saved['updated_at']=datetime.now(timezone.utc).isoformat();state[KEY]=saved
         ns['save_state'](code,state)
-        return payload(state)
+        return payload(state)|{'interaction':interaction}

@@ -1,3 +1,4 @@
+import re
 """Real isolated account APIs and Chromium. No production mutations."""
 from pathlib import Path
 import pytest
@@ -14,10 +15,11 @@ def open_rules(page):
     expect(page.locator('#foundationCards .recommended')).to_contain_text('다음 권장 과정')
 
 
-def move(page,from_,to):
+def move(page,from_,to,promotion=None):
     with page.expect_response('**/api/foundations/action') as response:
         page.locator(f'#foundationBoard [aria-label^="{from_} "]').click()
         page.locator(f'#foundationBoard [aria-label^="{to} "]').click()
+        if promotion:page.locator('#cmaPromotionModal').get_by_role('button',name=re.compile({'q':'퀸','r':'룩','b':'비숍','n':'나이트'}[promotion]+'$')).click()
     assert response.value.status==200,response.value.text()
     return response.value.json()
 
@@ -68,12 +70,11 @@ def test_promotion_judgement_retry_and_choice_changes(page,site):
     expect(page.locator('#foundationCards article')).to_have_count(10)
     page.evaluate("cmaNavigation.go('learn/basics')")
     page.locator('[data-course="promotion"] button').click()
-    page.locator('#foundationPromotion').select_option('n')
-    wrong=move(page,'a7','a8');assert not wrong['active']['solved']
+    wrong=move(page,'a7','a8','n');assert not wrong['active']['solved']
     expect(page.locator('#foundationFeedback')).to_contain_text('합법적인 수')
-    page.locator('#foundationPromotion').select_option('q');move(page,'a7','a8')
+    move(page,'a7','a8','q')
     page.get_by_role('button',name='다음 단계',exact=True).click()
-    page.locator('#foundationPromotion').select_option('n');move(page,'a7','a8')
+    move(page,'a7','a8','n')
     expect(page.locator('[data-course="promotion"]')).to_contain_text('확인 완료')
     # Other self-selected levels stay on their current view; do not force the academy.
     page.evaluate("tab('profile');cmaStartingLevel.open()")
@@ -118,8 +119,7 @@ def test_all_authored_steps_with_real_board_and_judgement_controls(page,site):
                 page.locator('#foundationAnswers').get_by_role('button',name=CHOICES[step['answer']],exact=True).click()
             else:
                 for u in step['line'][::2]:
-                    if len(u)==5:page.locator('#foundationPromotion').select_option(u[4])
-                    move(page,u[:2],u[2:4])
+                    move(page,u[:2],u[2:4],u[4] if len(u)==5 else None)
             expect(page.locator('#foundationFeedback')).to_contain_text(step['reason'])
             if index+1<len(course['steps']):page.locator('#foundationNext').get_by_role('button',name='다음 단계',exact=True).click()
         expect(page.locator(f'[data-course="{course["id"]}"]')).to_contain_text('확인 완료')
