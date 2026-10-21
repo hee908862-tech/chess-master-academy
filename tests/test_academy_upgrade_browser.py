@@ -66,3 +66,12 @@ def test_internal_scale_keeps_game_rating_chart_separate(page,site):
     growthReport(host,{internal_skill:{label:'내부 실력진단',score:1800,observed:24,unresolved:0,bounds:[1800,1800],note:'기초 40%·응용 60%'},areas:[{id:'mate',performance:{score:1800,scale_min:1,scale_max:3000,observed:4,band_counts:[2,2],comparable:true}}]},null,null,null,null,true);}""")
     expect(page.locator('#scoreTest')).to_contain_text('1800 / 3000')
     assert float(page.locator('#scoreTest .ability-meter>span').evaluate("e=>parseFloat(e.style.width)"))<61
+
+
+def test_new_education_review_uses_actual_step_count_without_answer_prompt(page,site):
+    open_page(page,site);page.evaluate("tab('learn/education')")
+    page.locator('#education-start-ending-rook-finish-review').click()
+    expect(page.locator('#educationBody')).to_contain_text('관찰 1/6')
+    data=page.evaluate("api('/education')")
+    assert data['active']['total']==6
+    assert 'Kg6' not in data['active']['step']['prompt']

@@ -14,7 +14,7 @@ def test_active_education_list_blocks_start_and_failed_read_allows_return(page,s
     writes=[];page.on('request',lambda r:writes.append(r.url) if '/api/' in r.url and r.method!='GET' else None)
     page.locator('#learn-list-back').click()
     starts=page.locator('#educationBody article button[id^=education-start-]')
-    assert starts.count()==12
+    assert starts.count()==20
     for b in starts.all():expect(b).to_be_disabled()
     resume=page.get_by_role('button',name='저장된 교육 실습 이어하기',exact=True)
     expect(resume).to_be_enabled()

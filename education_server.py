@@ -40,6 +40,7 @@ def payload(s):
     r=copy.deepcopy(s.get('active'))
     if r:
         supported=compatible(r)
+        r['total']=len(r['snapshot']['steps'])
         step=r.pop('snapshot')['steps'][r['index']]
         reveal=r['mode']=='learn' or r['hinted'] or r['answered']
         r['step']={k:step[k] for k in ('id','kind','choices') if k in step}
