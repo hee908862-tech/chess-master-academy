@@ -136,6 +136,7 @@
     $('learningBoard').setAttribute('aria-busy',String(busy));if(needsRefresh)for(const b of $('learningControls').querySelectorAll('button'))b.disabled=true;
   }
   function render(){
+    window.cmaFocusLayout?.task(task?.session_id||null);
     const route=dashboard?.path;
     const concept=!task?.growth_task && route?.current===1 && route.steps[1].status==='active' && !route.done ? route : null;
     const t=concept?null:task;window.cmaBoardLayout?.training(!!t);

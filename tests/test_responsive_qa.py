@@ -61,7 +61,7 @@ def test_reset_failure_recovers_button_and_cancel_sends_nothing(site):
             requests.append(route.request.post_data_json)
             route.fulfill(status=503,json={'detail':'기록 저장소가 지연되고 있습니다.'})
         page.route('**/api/profile/reset',fail)
-        page.goto(site[0]);page.evaluate("tab('profile')")
+        page.goto(site[0]);page.evaluate("tab('profile/data')")
         page.locator('#resetPinV5').fill('fake-test-only');page.locator('#resetConfirmV5').fill(' 초기화 ')
         page.once('dialog',lambda d:d.dismiss());page.locator('#resetProfileV5').click()
         expect(page.locator('#resetStatusV5')).to_contain_text('취소');assert not requests

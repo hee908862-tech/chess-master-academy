@@ -1,0 +1,326 @@
+{
+  "version": 1,
+  "scope": "기존 자체 작성 기초에서 고른 2개 실습과 1개 예제 퍼즐. 이 화면 안에서만 유지되며 정식 기록/점수로 이전하지 않습니다.",
+  "examples": [
+    {
+      "id": "rook-bishop-1",
+      "source": {
+        "course": "rook-bishop",
+        "step": 1
+      },
+      "title": "비숍은 대각선으로",
+      "goal": "백 비숍 c1을 g5로 옮겨 보세요. 비숍은 같은 색 칸의 대각선을 따라갑니다.",
+      "reason": "d2, e3, f4가 비어 있어 g5까지 이동할 수 있어요.",
+      "fen": "7k/8/8/8/8/8/8/2B3K1 w - - 0 1",
+      "answer": "c1g5",
+      "puzzle": false,
+      "moves": {
+        "g1h2": {
+          "fen": "7k/8/8/8/8/8/7K/2B5 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g1g2": {
+          "fen": "7k/8/8/8/8/8/6K1/2B5 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g1f2": {
+          "fen": "7k/8/8/8/8/8/5K2/2B5 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g1h1": {
+          "fen": "7k/8/8/8/8/8/8/2B4K b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g1f1": {
+          "fen": "7k/8/8/8/8/8/8/2B2K2 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "c1h6": {
+          "fen": "7k/8/7B/8/8/8/8/6K1 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "c1g5": {
+          "fen": "7k/8/8/6B1/8/8/8/6K1 b - - 1 1",
+          "accepted": true,
+          "checkmate": false
+        },
+        "c1f4": {
+          "fen": "7k/8/8/8/5B2/8/8/6K1 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "c1e3": {
+          "fen": "7k/8/8/8/8/4B3/8/6K1 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "c1a3": {
+          "fen": "7k/8/8/8/8/B7/8/6K1 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "c1d2": {
+          "fen": "7k/8/8/8/8/8/3B4/6K1 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "c1b2": {
+          "fen": "7k/8/8/8/8/8/1B6/6K1 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        }
+      }
+    },
+    {
+      "id": "knight-queen-0",
+      "source": {
+        "course": "knight-queen",
+        "step": 0
+      },
+      "title": "나이트의 L자 이동",
+      "goal": "초기 배치에서 b1 나이트를 c3으로 옮겨 보세요. 나이트는 다른 말을 뛰어넘습니다.",
+      "reason": "한 방향 두 칸, 옆으로 한 칸 이동했어요. b2와 c2 폰은 나이트를 막지 않아요. 자기 말이 있는 칸에 착지할 수는 없습니다.",
+      "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "answer": "b1c3",
+      "puzzle": false,
+      "moves": {
+        "g1h3": {
+          "fen": "rnbqkbnr/pppppppp/8/8/8/7N/PPPPPPPP/RNBQKB1R b KQkq - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g1f3": {
+          "fen": "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "b1c3": {
+          "fen": "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq - 1 1",
+          "accepted": true,
+          "checkmate": false
+        },
+        "b1a3": {
+          "fen": "rnbqkbnr/pppppppp/8/8/8/N7/PPPPPPPP/R1BQKBNR b KQkq - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "h2h3": {
+          "fen": "rnbqkbnr/pppppppp/8/8/8/7P/PPPPPPP1/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g2g3": {
+          "fen": "rnbqkbnr/pppppppp/8/8/8/6P1/PPPPPP1P/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "f2f3": {
+          "fen": "rnbqkbnr/pppppppp/8/8/8/5P2/PPPPP1PP/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "e2e3": {
+          "fen": "rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "d2d3": {
+          "fen": "rnbqkbnr/pppppppp/8/8/8/3P4/PPP1PPPP/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "c2c3": {
+          "fen": "rnbqkbnr/pppppppp/8/8/8/2P5/PP1PPPPP/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "b2b3": {
+          "fen": "rnbqkbnr/pppppppp/8/8/8/1P6/P1PPPPPP/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "a2a3": {
+          "fen": "rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "h2h4": {
+          "fen": "rnbqkbnr/pppppppp/8/8/7P/8/PPPPPPP1/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g2g4": {
+          "fen": "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "f2f4": {
+          "fen": "rnbqkbnr/pppppppp/8/8/5P2/8/PPPPP1PP/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "e2e4": {
+          "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "d2d4": {
+          "fen": "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "c2c4": {
+          "fen": "rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "b2b4": {
+          "fen": "rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "a2a4": {
+          "fen": "rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1",
+          "accepted": false,
+          "checkmate": false
+        }
+      }
+    },
+    {
+      "id": "mate-stalemate-0",
+      "source": {
+        "course": "mate-stalemate",
+        "step": 0
+      },
+      "title": "한 수 체크메이트 예제",
+      "goal": "백 차례입니다. 한 수로 체크메이트를 만들어 보세요. 정답은 도움을 눌렀을 때만 표시합니다.",
+      "reason": "흑 킹은 체크이며 안전한 수가 없습니다. 왕을 실제로 잡지 않고 체크메이트로 끝납니다.",
+      "fen": "7k/8/5KQ1/8/8/8/8/8 w - - 0 1",
+      "answer": "g6g7",
+      "puzzle": true,
+      "moves": {
+        "g6g8": {
+          "fen": "6Qk/8/5K2/8/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6e8": {
+          "fen": "4Q2k/8/5K2/8/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6h7": {
+          "fen": "7k/7Q/5K2/8/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6g7": {
+          "fen": "7k/6Q1/5K2/8/8/8/8/8 b - - 1 1",
+          "accepted": true,
+          "checkmate": true
+        },
+        "g6f7": {
+          "fen": "7k/5Q2/5K2/8/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6h6": {
+          "fen": "7k/8/5K1Q/8/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6h5": {
+          "fen": "7k/8/5K2/7Q/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6g5": {
+          "fen": "7k/8/5K2/6Q1/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6f5": {
+          "fen": "7k/8/5K2/5Q2/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6g4": {
+          "fen": "7k/8/5K2/8/6Q1/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6e4": {
+          "fen": "7k/8/5K2/8/4Q3/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6g3": {
+          "fen": "7k/8/5K2/8/8/6Q1/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6d3": {
+          "fen": "7k/8/5K2/8/8/3Q4/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6g2": {
+          "fen": "7k/8/5K2/8/8/8/6Q1/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6c2": {
+          "fen": "7k/8/5K2/8/8/8/2Q5/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6g1": {
+          "fen": "7k/8/5K2/8/8/8/8/6Q1 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "g6b1": {
+          "fen": "7k/8/5K2/8/8/8/8/1Q6 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "f6f7": {
+          "fen": "7k/5K2/6Q1/8/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "f6e7": {
+          "fen": "7k/4K3/6Q1/8/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "f6e6": {
+          "fen": "7k/8/4K1Q1/8/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "f6g5": {
+          "fen": "7k/8/6Q1/6K1/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "f6f5": {
+          "fen": "7k/8/6Q1/5K2/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        },
+        "f6e5": {
+          "fen": "7k/8/6Q1/4K3/8/8/8/8 b - - 1 1",
+          "accepted": false,
+          "checkmate": false
+        }
+      }
+    }
+  ]
+}

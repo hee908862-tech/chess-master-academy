@@ -170,7 +170,7 @@ def test_skip_prioritizes_activities_and_preserves_revisit_preference(guest,site
 def test_late_logout_cannot_clear_new_login_and_failure_preserves_account(guest,site):
     p=guest
     def login_new(prefix):
-        p.evaluate("tab('profile')")
+        p.evaluate("tab('profile/account')")
         p.locator('#codeField').fill(prefix+secrets.token_hex(4))
         p.locator('#pinField').fill('trial-test-pin42')
         p.locator('#signup').click()
@@ -178,7 +178,7 @@ def test_late_logout_cannot_clear_new_login_and_failure_preserves_account(guest,
         return p.evaluate('token')
     first=login_new('OUT-A-')
     waits=[];p.route('**/api/logout',lambda r:waits.append(r))
-    p.evaluate("tab('profile')");p.locator('#signout').click()
+    p.evaluate("tab('profile/account')");p.locator('#signout').click()
     p.wait_for_function("()=>document.getElementById('signup').disabled===false")
     for _ in range(100):
         if waits:break
@@ -194,7 +194,7 @@ def test_late_logout_cannot_clear_new_login_and_failure_preserves_account(guest,
     expect(p.locator('#home')).to_have_class('view active')
     p.unroute('**/api/logout')
     p.route('**/api/logout',lambda r:r.fulfill(status=503,json={'detail':'temporary test failure'}))
-    p.evaluate("tab('profile')");p.locator('#signout').click()
+    p.evaluate("tab('profile/account')");p.locator('#signout').click()
     expect(p.locator('#accountStatus')).to_contain_text('로그아웃하지 못했습니다')
     assert p.evaluate('token')==second
     p.unroute('**/api/logout');p.locator('#signout').click()

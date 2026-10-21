@@ -43,7 +43,7 @@ const previousAuth=auth;auth=async function(mode){if(authBusy)return;const captu
  }finally{if(handoff?.stamp===stamp)handoff=null;if(stamp===generation)authBusy=false;sync();}};
 $('signout').addEventListener('click',()=>{cancelIntent();result.hidden=true;});
 // Five primary destinations; keep existing secondary routes and disclosure handlers.
-const labels={home:'홈',learn:'배우기',diagnosis:'실력 진단',play:'대국',profile:'내 기록'};
+const labels={home:'홈',learn:'배우기',diagnosis:'실력 진단',play:'대국',profile:'내 정보'};
 const nav=document.querySelector('.nav'),extra=document.createElement('details');extra.id='navigationTools';make(extra,'summary','다른 학습 도구 · 도움말');
 for(const b of [...nav.children])if(b.dataset.tab&&!labels[b.dataset.tab])extra.append(b);
 for(const id of Object.keys(labels)){const b=nav.querySelector(`[data-tab="${id}"]`);if(b){b.textContent=labels[id];nav.append(b);}}

@@ -83,7 +83,8 @@ def test_settings_preserve_actual_board_verdict(page,site):
     before=page.locator('#learningBoardFeedback').inner_text()
     saved=page.evaluate("api('/learning/dashboard')")['active']
     page.route('**/api/learning/settings',lambda r:r.fulfill(status=503,json={'detail':'settings unavailable'}))
-    page.locator('#learningSaveIntervals').evaluate('(b)=>{b.closest("details").open=true;b.click()}')
+    page.evaluate("tab('profile/settings')")
+    page.locator('#learningSaveIntervals').click()
     expect(page.locator('#learningSettingsStatus')).to_contain_text('settings unavailable')
     assert page.locator('#learningBoardFeedback').inner_text()==before
     assert page.evaluate("api('/learning/dashboard')")['active']==saved
