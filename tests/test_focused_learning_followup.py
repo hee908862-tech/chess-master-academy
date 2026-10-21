@@ -75,7 +75,7 @@ def test_guest_education_login_returns_to_list_without_attempt(page,site):
     writes=[];page.on('request',lambda r:writes.append(r.url) if '/api/' in r.url and r.method!='GET' else None)
     page.get_by_role('button',name='계정 연결 후 교육 선택',exact=True).click()
     page.locator('#codeField').fill('BROWSER-QA');page.locator('#pinField').fill('test-pin-9384');page.locator('#signin').click()
-    expect(page.locator('#educationBody article')).to_have_count(6)
+    expect(page.locator('#educationBody article')).to_have_count(10)
     assert page.evaluate('location.hash')=='#learn/education'
     assert page.evaluate("api('/education')")['active'] is None
     assert all(url.endswith('/login') for url in writes),writes

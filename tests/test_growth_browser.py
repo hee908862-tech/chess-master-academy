@@ -68,6 +68,8 @@ def test_empty_result_error_loading_and_double_size(page,site):
         page.evaluate('tab('+repr(view)+')');page.wait_for_timeout(150)
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),view
     page.evaluate("tab('profile/account')")
+    expect(page.locator('#codeField')).not_to_be_visible()
+    page.get_by_role('button',name='계정 전환',exact=True).click()
     assert page.locator('#codeField').bounding_box()['width']>=200
     page.evaluate("tab('profile')")
     expect(page.locator('#gamePerformance')).to_contain_text('분석 기록을 잠시')

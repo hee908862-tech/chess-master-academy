@@ -28,12 +28,12 @@ def test_training_panels_and_info_preserve_current_task(page,site,width):
  expect(page.locator('#learningIntervals')).to_be_visible()
  expect(page.locator('#profileSettings')).to_be_focused()
  page.locator('#profileSections').get_by_role('button',name='계정 연결',exact=True).click()
- expect(page.locator('#codeField')).to_be_visible()
+ expect(page.locator('#codeField')).to_be_hidden()
  expect(page.locator('#boardThemeSelect')).to_be_hidden()
  page.get_by_role('button',name='계정 기록 관리',exact=True).click()
  expect(page.locator('#resetProfileV5')).to_be_visible() # Never click reset.
- page.go_back();expect(page.locator('#codeField')).to_be_visible()
- page.reload();expect(page.locator('#codeField')).to_be_visible()
+ page.go_back();expect(page.locator('#codeField')).to_be_hidden()
+ page.reload();expect(page.locator('#codeField')).to_be_hidden()
  assert writes==[]
  assert page.evaluate("api('/learning/dashboard')")['active']==before['active']
  assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
@@ -138,7 +138,7 @@ def test_settings_late_read_after_actual_account_login_is_ignored(page,site):
   if route.request.headers.get('authorization')=='Bearer '+a:route.continue_()
   else:game_reads.append(route)
  page.route('**/api/game',game_read)
- page.evaluate("tab('profile/account')");page.locator('#codeField').fill(code);page.locator('#pinField').fill(pin);page.locator('#signin').click()
+ page.evaluate("tab('profile/account')");page.get_by_role('button',name='계정 전환',exact=True).click();page.locator('#codeField').fill(code);page.locator('#pinField').fill(pin);page.locator('#signin').click()
  page.wait_for_function('c=>user?.code===c',arg=code)
  expect(page.locator('#profile')).to_be_visible()
  for _ in range(100):

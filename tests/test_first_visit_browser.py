@@ -171,6 +171,8 @@ def test_late_logout_cannot_clear_new_login_and_failure_preserves_account(guest,
     p=guest
     def login_new(prefix):
         p.evaluate("tab('profile/account')")
+        if p.locator('#connectedAccount').is_visible():
+            p.get_by_role('button',name='계정 전환',exact=True).click()
         p.locator('#codeField').fill(prefix+secrets.token_hex(4))
         p.locator('#pinField').fill('trial-test-pin42')
         p.locator('#signup').click()

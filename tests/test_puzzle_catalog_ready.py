@@ -56,6 +56,7 @@ def test_late_public_catalog_after_account_change_preserves_b_restored_task(page
     page.route('**/api/v9/catalog',lambda r:reads.append(r))
     page.on('request',lambda r:writes.append(r) if r.method=='POST' and '/v9/puzzle/start' in r.url else None)
     page.goto(site[0]);page.evaluate("tab('profile/account')")
+    page.get_by_role('button',name='계정 전환',exact=True).click()
     page.locator('#codeField').fill(code);page.locator('#pinField').fill(pin);page.locator('#signin').click()
     page.wait_for_function('c=>user?.code===c',arg=code);expect(page.locator('#signin')).to_be_enabled()
     page.evaluate("tab('puzzle')")
