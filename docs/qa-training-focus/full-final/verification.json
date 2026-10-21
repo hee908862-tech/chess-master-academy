@@ -1,0 +1,29 @@
+{
+  "head": "c2910d3ac9baa580afdd99caea2122e0579d361e",
+  "expected": 680,
+  "executed": 680,
+  "counts": {
+    "passed": 680
+  },
+  "suites": [
+    {
+      "file": "suite-0.xml",
+      "passed": 198
+    },
+    {
+      "file": "suite-1.xml",
+      "passed": 164
+    },
+    {
+      "file": "suite-2.xml",
+      "passed": 112
+    },
+    {
+      "file": "suite-3.xml",
+      "passed": 206
+    }
+  ],
+  "duplicates": [],
+  "missing": [],
+  "unexpected": []
+}

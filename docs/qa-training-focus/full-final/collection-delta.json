@@ -1,0 +1,15 @@
+{
+  "previous": 672,
+  "current": 680,
+  "removed": [],
+  "added": [
+    "tests/test_midwidth_focus.py::test_midwidth_board_and_primary_completion_actions[foundation]",
+    "tests/test_midwidth_focus.py::test_midwidth_board_and_primary_completion_actions[guest]",
+    "tests/test_midwidth_focus.py::test_midwidth_board_and_primary_completion_actions[training]",
+    "tests/test_training_focus_layout.py::test_saved_training_core_actions_layout_and_preservation[1180-757-1]",
+    "tests/test_training_focus_layout.py::test_saved_training_core_actions_layout_and_preservation[1280-720-1]",
+    "tests/test_training_focus_layout.py::test_saved_training_core_actions_layout_and_preservation[1280-720-2]",
+    "tests/test_training_focus_layout.py::test_saved_training_core_actions_layout_and_preservation[320-844-1]",
+    "tests/test_training_focus_layout.py::test_saved_training_core_actions_layout_and_preservation[390-844-1]"
+  ]
+}
