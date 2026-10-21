@@ -1,0 +1,21 @@
+{
+  "home_to_foundation": 1,
+  "home_to_first_practice": 2,
+  "viewport": {
+    "width": 485,
+    "height": 757
+  },
+  "practice": {
+    "x": 20,
+    "y": 15.78125,
+    "width": 445,
+    "height": 786.09375
+  },
+  "board": {
+    "x": 27.5,
+    "y": 161.234375,
+    "width": 430,
+    "height": 430
+  },
+  "document_height": 1161
+}
