@@ -37,3 +37,11 @@
 ## 최종 검사 진행 상태
 
 2026-10-21: d748a63 소스 기준 전체 회귀 진행 중. /tmp/cma-foundation-final-v3-suite-{0,1,2}.log 및 -suites.json을 확인한다. 0c30204 실행은167+101+104개까지 통과했으나 표시 안정성 보완을 위해 중단했으므로 전체 통과가 아니다. v2는 캡처 테스트 통합 중 중복 정의를 정리하며 중단, v3가 최종 세트다. 보호/위협 실브라우저 캡처와 완료 전후 보드좌표·재복습 판정 구분을 추가한 집중 검사16개는 통과했다.
+
+## 최종 결과
+
+최종 전체 검사 head `3c8215f68748d4634073409dbd57cb0c9d5e4583`에서 **587통과, 0실패** (191+229+167), 각 exit code0, 683초. 코드 head d748a63과 차이는 보고/재개 문서뿐이다. 이후 커밋도 검증 산출물/문서만 추가한다. [실행 파일 목록·결과](full-suites.json), [묶음0](full-suite-0.log), [묶음1](full-suite-1.log), [묶음2](full-suite-2.log), [구문 검사](syntax.json). 기존 Starlette TestClient deprecation warning은 실패가 아니다. 별도 타입/린트 설정은 없으며 해당 별도 검사는 미실행이다.
+
+캡처 실제 픽셀 확인: [360px 완료](captures/complete-360.png), [PC 완료](captures/complete-1280.png), [위협과 이동 지시 구분](captures/threat-390.png), [보호와 완료 경로](captures/protection-390.png), [앙파상 전](captures/ep-before.png), [앙파상 후](captures/ep-after.png), [흑 320px](captures/black-320-1.png), [CSS 확대](captures/black-1280-2.png). 체크 표시/승격 선택지 가림 및 클릭 가능 여부는 실제 브라우저 assertion으로 확인했다. 캡처는 물리 모바일 검증이 아니다.
+
+원격 코드 head의 status/check run/Actions는 모두0건이었다. 최종 문서 head도 별도 조회하여 PR에 기록한다. 병합·배포는 수행하지 않았다. 공통 모션과 다른 보드 적용은 다음 단계이며 전체 사용자 요청 완료가 아니다.

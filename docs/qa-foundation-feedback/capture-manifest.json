@@ -1,0 +1,16 @@
+{
+  "code_head": "d748a63454d25e432e2616494568ae533f239f18",
+  "full_test_head": "3c8215f68748d4634073409dbd57cb0c9d5e4583",
+  "captures": {
+    "threat-390.png": "2981aca5fe59e7d2ff3c611e20c9e13073e4227db08ef12deab3b4900fa1ffe4",
+    "protection-390.png": "30cea41ddeabb3fa55c7169d42dff6b5ee5e2b5081c729ce61251c93b6df5682",
+    "ep-after.png": "6ba615faae50908e69c57d6042b4540cb208964746f1f25c282b5d7f6c718c41",
+    "ep-before.png": "fe79a4bc21d2ed9329e3f9e19114e86ac51c6988418150123b29acd5023bd01c",
+    "black-1280-2.png": "90d4bd2d536781dbf23ac7cab0d030edcbf2ebb17b2778ccf9a36aa9ccd00269",
+    "black-844-1.png": "b07e0c3f7e0d931517692543e037babafc142c382d8ae7d074ba7342393f22a0",
+    "black-390-1.png": "383a9afd73da2136ea0fd60600f52a1cedfe8bdd34cb732c4b5021a567585095",
+    "black-320-1.png": "8c42edbaeb8b10ed5459490099583f23a997caea2e6ac996a3ca35b3acabef22",
+    "complete-1280.png": "f2b29e5d243cf795e11b74113637eaa9bd4d9d6b31bc7e55a37f2a505405633e",
+    "complete-360.png": "3b0188b12c62cd17b2a9c1b9f2f515596b6519c86a1e39a9e1b80f8ea61236cc"
+  }
+}
