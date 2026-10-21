@@ -163,7 +163,7 @@ def test_education_list_focus_returns_to_active_lesson_after_render(page,site):
     expect(page.locator('#educationBoard')).to_be_visible()
     page.locator('#learn-list-back').click()
     expect(page.locator('#'+lesson_id)).to_be_focused()
-    assert 0<=page.locator('#'+lesson_id).bounding_box()['y']<100
+    assert -1<=page.locator('#'+lesson_id).bounding_box()['y']<100  # Browser subpixel scroll rounding.
 
 
 @pytest.mark.parametrize('activity',['new','basics','diagnosis'])
