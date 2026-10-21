@@ -1,16 +1,10 @@
-# PR29 최종 전체 재검증 진행 중
+# PR29 최종 결과 및 재개 지점
 
-검증 코드/테스트 SHA: `79011c0746b42b140f8cb32946627822451a8037`, 원격 `fix/game-restore-feedback` 저장 확인.
-런타임 변경 마지막 SHA: `7c36cc6aa048e79111af595e29def9d5589aa95a`.
-카탈로그 준비 전 제출 차단, 실패/미준비 재시도, 기존 문제 안내 보존 완료.
-독립 진단 추천의 카탈로그 GET을 퍼즐 재시도로 잘못 센 테스트만 보완했다. 집중 14 통과(46.03초), logs/catalog-synced-14.log.
-
-최종 전체: /tmp/cma-pr29-final-confirmed.py, exec session 15225.
-자료: /tmp/cma-pr29-final-confirmed/{manifest.json,collection.log,suite-*.log/xml}.
-78파일/645건 대상. 정상 Chromium, 임시 SQLite. 실행 결과를 먼저 확인하고 중복 실행하지 않는다.
-완료 후 collection/JUnit ID의 누락/중복 확인, REPORT와 PR 갱신 필요.
-이전 /tmp/cma-pr29-catalog-verified: 643통과/2실패(테스트 집계 오류), 638.7초. 최신 통과로 간주하지 않는다.
-이전 full-final/: 641통과/1실패(실제 카탈로그 경합), 수정 전 증거로 보존.
-
-루트 여유0, /tmp 약8GiB. Docker/PG 실검증 미실행; COPY payload/import 검사는 전체에 포함.
-기존 미커밋 캡처는 회귀 생성물이며 보존 중. 운영 데이터 접근/변경 및 직접 병합/배포 금지.
+코드/테스트 `79011c0746b42b140f8cb32946627822451a8037`, 런타임 `7c36cc6aa048e79111af595e29def9d5589aa95a`.
+원격 브랜치 fix/game-restore-feedback, draft PR29. 후속 커밋은 문서/로그/캡처만.
+전체 종료: 644통과/1실패, 645수집/실행, 누락/중복0. /tmp/cma-pr29-final-confirmed 및 verified-final/ 보존.
+실패는 기존 교육→관련기초 링크 포커스 assertion. 단독 재실행1통과, 원인미확정. 코드/테스트 약화 없이 그대로 보고. 추가 범위 확대 금지 지시에 따라 수정하지 않음.
+집중14/화면1 별도통과. 카탈로그3개는 전체에서도통과. JS31 구문/diff검사 통과.
+실행 중 검사 없음. 다음은 부모의 결과 검토 및 간헐적 포커스 실패 처리 판단. 자동 재실행/병합/배포하지 않는다.
+Docker/PG는 루트0여유로 미실행. COPY/import 회귀는 통과. 기존 미커밋 QA 캡처는 보존.
+운영 계정/게임 데이터 접근 또는 변경 금지.
