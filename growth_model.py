@@ -66,6 +66,9 @@ def decorate(report):
         mixed=next((a for a in measured if a not in chosen),measured[0]);source=next(i for i in report['items'] if i['competency']==mixed['id'])
         plan.append({'id':str(len(plan)+1),'competency':mixed['id'],'item_id':source['id'],'kind':'application','label':mixed['label']+' · 함께 확인하기','reason':'다른 분야의 새 문제로 배운 판단을 넓혀 보세요.'})
     report['training_plan']=plan
+    if report.get('diagnostic_scope'):
+        from diagnostic_blueprint import training_recommendations
+        report['scoped_training']=training_recommendations(report)
     report['snapshot']={'version':report['score_version'],'assessment_version':report['version'],'competency_version':report['competency_version'],'mode':report['mode'],
                         'scope':report['measurement_scope'],'diagnostic_scope':report.get('diagnostic_scope'),'corpus':report.get('corpus_sha256'),'at':report['at'],'areas':{a['id']:copy.deepcopy(a['performance']) for a in report['areas']}}
     return report

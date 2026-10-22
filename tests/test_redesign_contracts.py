@@ -9,7 +9,6 @@ import guest_access
 
 def test_guest_all_services_restore_and_non_destructive_link(runtime):
     server,(a,b)=runtime
-    guest_access.LIMITER.rows.clear()
     anonymous=TestClient(server.app)
     start=anonymous.post('/api/guest/start');assert start.status_code==200,start.text
     credential=start.json()['token'];code=start.json()['code']
@@ -31,19 +30,11 @@ def test_guest_all_services_restore_and_non_destructive_link(runtime):
     assert other.get('/api/foundations').json()['active']==r.json()['active']
     assert server.get_state('RUNTIME-A')==before
     assert server.get_state(code)==guest_before
-    game=anonymous.post('/api/game/new',json={'color':'white'})
+    assert anonymous.get('/api/me').status_code==401
+    game=other.post('/api/game/new',json={'color':'white'})
     assert game.status_code==200,game.text
     assert other.get('/api/game').json()['active'] is True
 
-
-def test_guest_rate_limit_is_separate_from_grading():
-    limiter=guest_access.Limiter()
-    limiter.take('a',1,60)
-    import pytest
-    from fastapi import HTTPException
-    with pytest.raises(HTTPException) as e:limiter.take('a',1,60)
-    assert e.value.status_code==429
-    limiter.take('b',1,60)
 
 
 def test_scope_blueprints_and_full_scoped_report_without_total(setup):

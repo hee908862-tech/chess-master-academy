@@ -4,37 +4,41 @@ Linking is additive: never copy guest state over an account's current sessions.
 """
 import hashlib
 import secrets
-import threading
 import time
-from collections import OrderedDict, deque
 from fastapi import Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
 PREFIX = '~guest:'  # Cannot be entered as a normal account code.
 
-class Limiter:
-    def __init__(self):
-        self.rows = OrderedDict()
-        self.lock = threading.Lock()
+SESSION_TTL = 30 * 24 * 3600
 
-    def take(self, key, count, window):
-        with self.lock:
-            now = time.monotonic()
-            row = self.rows.setdefault(key, deque())
-            while row and row[0] <= now-window:
-                row.popleft()
-            if len(row) >= count:
-                raise HTTPException(429, '요청이 많습니다. 잠시 후 저장 상태를 확인해 주세요.', headers={'Retry-After':str(window)})
-            row.append(now)
-            self.rows.move_to_end(key)
-            while len(self.rows) > 8192:
-                self.rows.popitem(last=False)
+def token_hash(authorization):
+    return hashlib.sha256((authorization or '').removeprefix('Bearer ').strip().encode()).hexdigest()
 
-LIMITER = Limiter()
+def shared_limit(ns, key, count, window):
+    """Shared atomic fixed-window budget; never infer identity from proxy headers."""
+    now = int(time.time()); bucket = now // window
+    digest = hashlib.sha256(key.encode()).hexdigest()
+    with ns['db']() as conn:
+        row = ns['execute'](conn, 'INSERT INTO guest_budgets(key,bucket,hits,expires) VALUES(?,?,1,?) ON CONFLICT(key) DO UPDATE SET hits=CASE WHEN guest_budgets.bucket=? THEN guest_budgets.hits+1 ELSE 1 END,bucket=?,expires=? RETURNING hits',
+            (digest,bucket,(bucket+1)*window,bucket,bucket,(bucket+1)*window)).fetchone()
+        ns['execute'](conn, 'DELETE FROM guest_budgets WHERE expires<?', (now-window,))
+        hits = row['hits']
+    if hits > count:
+        retry = (bucket+1)*window-now
+        raise HTTPException(429, f'요청이 많습니다. {retry}초 후 다시 시도하세요. 기록은 보존됩니다.', headers={'Retry-After':str(retry)})
 
-def guest_limit(code):
-    if code.startswith(PREFIX):
-        LIMITER.take(('activity', code), 180, 60)
+def validate_session(ns, conn, digest):
+    row = ns['execute'](conn, 'SELECT code,created FROM sessions WHERE token_hash=?', (digest,)).fetchone()
+    if not row or (not row['code'].startswith(PREFIX) and row['created'] <= int(time.time())-SESSION_TTL):
+        raise HTTPException(401, '로그인이 만료됐습니다. 소유 계정으로 다시 로그인하세요.')
+    if row['code'].startswith(PREFIX):
+        link = ns['execute'](conn, 'SELECT owner_code FROM guest_links WHERE guest_code=?', (row['code'],)).fetchone()
+        if link:
+            parent = ns['execute'](conn, 'SELECT s.code,s.created FROM guest_delegations d JOIN sessions s ON s.token_hash=d.parent_hash WHERE d.token_hash=?', (digest,)).fetchone()
+            if not parent or parent['code'] != link['owner_code'] or parent['created'] <= int(time.time())-SESSION_TTL:
+                raise HTTPException(401, '계정에 연결된 기록입니다. 소유 계정으로 로그인한 뒤 이어하세요.')
+    return row['code']
 
 class Link(BaseModel):
     guest_token: str = Field(min_length=20, max_length=200)
@@ -49,11 +53,9 @@ def attach_guests(app, ns):
 
     @app.post('/api/guest/start')
     def start(request: Request):
-        # Do not trust arbitrary forwarded headers. Deployment proxy may aggregate
-        # addresses, making this deliberately conservative, never an auth bypass.
-        address = hashlib.sha256((request.client.host if request.client else 'unknown').encode()).hexdigest()
-        LIMITER.take(('create', address), 10, 3600)
-        LIMITER.take(('global-create',), 300, 3600)
+        # Shared capacity cap, not a per-IP identity: Render may pool client addresses.
+        # Forwarded headers are deliberately ignored.
+        shared_limit(ns, 'guest-create-global', 300, 3600)
         code = PREFIX + secrets.token_hex(20)
         ns['save_state'](code, ns['blank_state']())
         return {**ns['issue_token'](code), 'guest':True,
@@ -73,7 +75,13 @@ def attach_guests(app, ns):
         owner = auth(authorization)
         if owner.startswith(PREFIX):
             raise HTTPException(403, '로그인 계정에서 기록을 연결하세요.')
-        guest = auth('Bearer '+body.guest_token)
+        shared_limit(ns, 'guest-link:'+owner, 30, 60)
+        # Proof is used only for idempotent linking, never record access.
+        with db() as conn:
+            proof = execute(conn, 'SELECT code,created FROM sessions WHERE token_hash=?', (token_hash(body.guest_token),)).fetchone()
+        if not proof:
+            raise HTTPException(401, '연결 키가 만료됐습니다.')
+        guest = proof['code']
         if not guest.startswith(PREFIX):
             raise HTTPException(400, '게스트 기록만 연결할 수 있습니다.')
         with db() as conn:
@@ -81,13 +89,19 @@ def attach_guests(app, ns):
             row = execute(conn, 'SELECT owner_code FROM guest_links WHERE guest_code=?', (guest,)).fetchone()
             if row['owner_code'] != owner:
                 raise HTTPException(409, '이미 다른 계정에 연결된 기록입니다. 기존 연결은 변경하지 않았습니다.')
-        return {'linked':True, 'id':guest, 'message':'별도 기록으로 연결했습니다. 기존 계정의 진행·점수와 합산하거나 덮어쓰지 않았습니다.'}
+        return {'linked':True, 'id':guest, 'message':'기록을 보존하여 연결했습니다. 이후 소유 계정으로 로그인해야 이어할 수 있으며 기존 계정 기록은 덮어쓰지 않습니다.'}
 
     @app.post('/api/guest/resume')
     def resume(body: Resume, authorization: str | None = Header(default=None)):
         owner = auth(authorization)
+        if owner.startswith(PREFIX):
+            raise HTTPException(403, '소유 계정으로 로그인하세요.')
+        shared_limit(ns, 'guest-resume:'+owner, 30, 60)
         with db() as conn:
             row = execute(conn, 'SELECT guest_code FROM guest_links WHERE owner_code=? AND guest_code=?', (owner,body.id)).fetchone()
         if not row:
             raise HTTPException(404, '연결된 기록을 찾을 수 없습니다.')
-        return {**ns['issue_token'](row['guest_code']), 'guest':True}
+        result = ns['issue_token'](row['guest_code'])
+        with db() as conn:
+            execute(conn, 'INSERT INTO guest_delegations(token_hash,parent_hash) VALUES(?,?)', (token_hash(result['token']),token_hash(authorization)))
+        return {**result, 'guest':True, 'account_bound':True}

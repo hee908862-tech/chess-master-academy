@@ -92,6 +92,8 @@ def execute(conn,query,args=()):
 
 def initdb():
  with db() as c:
+  execute(c,'CREATE TABLE IF NOT EXISTS guest_delegations (token_hash TEXT PRIMARY KEY, parent_hash TEXT NOT NULL)')
+  execute(c,'CREATE TABLE IF NOT EXISTS guest_budgets (key TEXT PRIMARY KEY, bucket INTEGER NOT NULL, hits INTEGER NOT NULL, expires INTEGER NOT NULL)')
   execute(c,'CREATE TABLE IF NOT EXISTS guest_links (guest_code TEXT PRIMARY KEY, owner_code TEXT NOT NULL, linked_at INTEGER NOT NULL)')
   execute(c,'CREATE TABLE IF NOT EXISTS accounts (code TEXT PRIMARY KEY, pin_hash TEXT NOT NULL, salt TEXT NOT NULL, created TEXT NOT NULL)')
   execute(c,'CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, code TEXT NOT NULL, created INTEGER NOT NULL)')
@@ -184,12 +186,11 @@ def save_state(code,state):
 def auth(authorization):
  token=authorization.removeprefix('Bearer ').strip() if authorization else ''
  if not token:raise HTTPException(401,'로그인이 필요합니다.')
+ from guest_access import validate_session, shared_limit, PREFIX
  with db() as c:
-  r=execute(c,'SELECT code FROM sessions WHERE token_hash=?',(hashlib.sha256(token.encode()).hexdigest(),)).fetchone()
- if not r:raise HTTPException(401,'로그인이 만료됐습니다.')
- from guest_access import guest_limit
- guest_limit(r['code'])
- return r['code']
+  code=validate_session(globals(),c,hashlib.sha256(token.encode()).hexdigest())
+ if code.startswith(PREFIX):shared_limit(globals(),'guest-activity:'+code,180,60)
+ return code
 
 def issue_token(code):
  token=secrets.token_urlsafe(36)

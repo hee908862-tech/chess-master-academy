@@ -38,3 +38,33 @@ def catalog(pools):
             _cached_result=build_catalog(pools)
             _cached_pool=pools
         return _cached_result
+
+
+def training_recommendations(report):
+    """Only this scope's confirmed observations; uncertainty is not a deficit."""
+    scope = report.get('diagnostic_scope') or {}
+    allowed = set(TOPICS.get(scope.get('competency'), []))
+    if scope.get('topic'): allowed &= {scope['topic']}
+    observed = []
+    for item in report.get('items', []):
+        if item.get('competency') != scope.get('competency'): continue
+        result = item.get('outcome')
+        if result not in ('completed','verified_error','verified_non_mate','partial_execution'): continue
+        if result == 'partial_execution' and not item.get('correct_plies', 0): continue
+        topics = sorted(allowed.intersection(item.get('tags', [])))
+        severity = 3 if result in ('verified_error','verified_non_mate') else 2 if result == 'partial_execution' else 1 if item.get('helped') else 0
+        observed.append((item, topics, severity))
+    weaknesses = sorted((row for row in observed if row[2]), key=lambda row: -row[2])
+    source = weaknesses or observed
+    tasks=[]; used=set()
+    for item,topics,severity in source:
+        for topic in topics:
+            if topic in used: continue
+            used.add(topic)
+            reason = ('확정된 오답이 관찰되어 이 기술을 우선 연습합니다.' if severity == 3 else '수순 일부만 수행하여 이어지는 판단을 연습합니다.' if severity == 2 else '도움을 사용하여 도움 없는 수행을 연습합니다.' if severity == 1 else '관찰한 수순을 모두 성공하여 같은 기술의 새 문제로 수행을 유지합니다.')
+            tasks.append({'item_id':item['id'],'topic':topic,'label':TOPICS[scope['competency']][topic],'intent':'weakness' if severity else 'maintenance','reason':reason})
+            break
+    insufficient = len(observed)<2
+    if not weaknesses and insufficient: tasks=[]
+    return {'tasks':tasks,'observed':len(observed),'needs_more':insufficient or len(observed)<len(report.get('items',[])),
+            'message':'확정된 관찰이 부족합니다. 같은 범위의 추가 진단으로 확인하세요.' if not tasks else '관찰한 기술의 다른 문제를 우선 제공합니다. 후보가 없으면 원본 복습을 선택할 수 있습니다.'}
