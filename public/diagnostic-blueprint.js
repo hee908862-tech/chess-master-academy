@@ -31,6 +31,7 @@ async function load(){if(loading||catalog)return;loading=true;try{catalog=await 
 function sync(){const active=!$('journeyTask').hidden;resume.hidden=!active;resumeText.textContent=active?`${$('journeyProgress').textContent} · 저장된 수순을 이어갑니다. 새 구성은 이 진단을 마친 뒤 선택하세요.`:'';if(active)host.open=false;render();}
 host.addEventListener('toggle',()=>{if(host.open)load();});level.onchange=render;area.onchange=topics;topic.onchange=render;
 begin.onclick=async()=>{if(begin.disabled||inFlight)return;inFlight=true;render();try{await window.cmaJourney.startScoped(level.value,level.value==='balanced'?undefined:area.value,level.value==='subskill'?topic.value:undefined);}finally{inFlight=false;sync();}};
+new MutationObserver(sync).observe($('journeyProgress'),{childList:true,subtree:true,characterData:true});
 new MutationObserver(sync).observe($('journeyTask'),{attributes:true,attributeFilter:['hidden']});
 new MutationObserver(render).observe($('journeyStart'),{attributes:true,attributeFilter:['disabled']});
 window.cmaDiagnosticChoice={async select(scope){await load();if(!catalog)return;level.value=scope.level;if(scope.competency)area.value=scope.competency;topics();if(scope.topic)topic.value=scope.topic;render();this.open();},open(){host.open=true;host.scrollIntoView({block:'start'});comparison.querySelector(`[data-scope="${level.value}"]`)?.focus({preventScroll:true});},legacy(){old.open=true;}};load();sync();

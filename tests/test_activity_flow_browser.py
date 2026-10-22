@@ -111,9 +111,10 @@ def test_failed_restore_keeps_retry_and_records(isolated):
     page,_=isolated;start(page);saved=page.evaluate("api('/foundations')")
     page.route('**/api/learning/dashboard',lambda r:r.fulfill(status=503,json={'detail':'격리 테스트 지연'}))
     page.reload();home(page)
-    expect(page.locator('#homeNextAction')).to_contain_text('저장된 활동 다시 확인')
+    expect(page.locator('#homeNextAction .flow-read-errors')).to_contain_text('훈련 진행')
+    expect(page.locator('#homeNextAction > button')).to_have_text('기초 이어하기')
     page.unroute('**/api/learning/dashboard')
-    page.locator('#homeNextAction > button').click()
+    page.locator('#homeNextAction .flow-read-errors button').click()
     expect(page.locator('#homeNextAction')).to_contain_text('기초 이어하기')
     assert page.evaluate("api('/foundations')")==saved
 

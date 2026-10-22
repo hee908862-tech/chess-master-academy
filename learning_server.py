@@ -309,11 +309,11 @@ def attach_learning(app, ns):
             if active and active.get('scoped_task')==reference:
                 return payload(state)  # including completed: duplicate starts cannot award again
             if active and not active['done'] or state.get('path') and not state['path']['done']:
-                raise HTTPException(409,'진행 중인 훈련을 먼저 완료하세요. 착수는 보존됩니다.')
+                raise HTTPException(409,{'code':'active_training','message':'진행 중인 훈련을 먼저 완료하세요. 착수는 보존됩니다.'})
             if reference in state.get('scoped_completed',[]):
                 raise HTTPException(409,'이미 마친 추천 훈련입니다. 추가 진단 또는 복습을 선택하세요.')
             if any(a.get('scoped_task')==reference for a in state.get('paused',{}).values()):
-                raise HTTPException(409,'보존된 훈련을 먼저 이어서 완료하세요.')
+                raise HTTPException(409,{'code':'paused_training','message':'보존된 훈련을 먼저 이어서 완료하세요.'})
             item=next(i for i in report['items'] if i['id']==body.item_id)
             source=diagnosis_card(state,report,item)
             card=new_puzzle(state,item['competency'],context(code),source['id'],required_topic=recommendation['topic'])

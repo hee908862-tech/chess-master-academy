@@ -78,3 +78,13 @@ def test_missing_candidate_no_unrelated_substitution(setup,monkeypatch):
     response=c.post('/api/learning/scoped/start',json=body)
     assert response.status_code==409
     assert c.get('/api/learning/dashboard').json()['active'] is None
+
+
+def test_confirmed_active_conflict_has_code_and_preserves_state(setup):
+    c,path,body=prepared(setup)
+    assert c.post('/api/learning/start',json={'fresh':True}).status_code==200
+    before=c.get('/api/learning/dashboard').json()
+    response=c.post('/api/learning/scoped/start',json=body)
+    assert response.status_code==409
+    assert response.json()['detail']['code']=='active_training'
+    assert c.get('/api/learning/dashboard').json()==before
