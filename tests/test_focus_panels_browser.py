@@ -102,7 +102,7 @@ def test_settings_late_account_read_and_save_do_not_replace_new_identity(page,si
 def test_guest_alternative_keyboard_focus_without_injected_refocus(page,site):
  context=page.context.browser.new_context();p=context.new_page();writes=[]
  p.on('request',lambda r:writes.append(r.url) if r.method=='POST' else None)
- p.goto(site[0]);p.locator('#firstEntry').get_by_role('button',name='기초·예제 퍼즐도 저장 없이 체험').click()
+ p.goto(site[0]);p.locator('#flowFreeExamples > summary').click();p.locator('#firstEntry').get_by_role('button',name='기초·예제 퍼즐도 저장 없이 체험').click()
  p.get_by_role('button',name='비숍은 대각선으로',exact=True).click()
  p.locator('#guestBoard [aria-label^="c1 "]').focus();p.keyboard.press('Enter')
  p.keyboard.press('ArrowRight');p.keyboard.press('ArrowUp');p.keyboard.press('Enter')

@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id),make=(p,t,text,id)=>{const e=document.createElement(t);if(text)e.textContent=text;if(id)e.id=id;p.append(e);return e;};
 function fold(parent,id,label,nodes){const d=make(parent,'details',null,id);d.className='card flow-disclosure';make(d,'summary',label);for(const n of nodes)if(n)d.append(n);return d;}
 function button(p,label,fn){const b=make(p,'button',label);b.className='btn';b.type='button';b.onclick=fn;return b;}
-let stateOwner=null,observed={},last='',scheduled=false,installed=false,bootstrapOwner=null;
+let stateOwner=null,observed={},last='',scheduled=false,installed=false,bootstrapOwner=null,bootRun=null;
 const routeFor=path=>path.startsWith('/foundations')?'learn':path.startsWith('/journey')?'diagnosis':path.startsWith('/learning')?'training':path.startsWith('/game')?'play':null;
 function reset(){stateOwner=token;observed={};last='';}
 function remember(route){if(!route||!observed.code)return;last=route;try{localStorage.setItem('cma_recent_activity_v1:'+observed.code,route);}catch(e){}}
@@ -19,23 +19,27 @@ const priorApi=api;api=async function(path,method,...args){const identity=token,
  if(route&&route===view&&(method==='POST'||path==='/foundations'||path==='/journey'||path==='/learning/dashboard'||path==='/game'))remember(route);
  queue();return r;};
 function queue(){if(installed&&!scheduled){scheduled=true;requestAnimationFrame(()=>{scheduled=false;render();});}}
-function model(){if(observed.pending)return {label:'저장된 활동 확인 중…',detail:'기존 진행을 확인하고 있습니다.',reason:'조회 중에는 새 활동을 추천하지 않습니다.',run:()=>{},disabled:true,choices:{}};if(observed.failed)return {label:'저장된 활동 다시 확인',detail:'진행 정보를 모두 확인하지 못했습니다.',reason:'기존 기록은 바꾸지 않았습니다. 연결 후 다시 확인하세요.',run:()=>bootstrap(true),choices:{}};const f=observed.foundation,a=f?.active,j=observed.journey,l=observed.learning,g=observed.game;
+function model(){if(observed.pending&&!observed.foundation&&!observed.journey&&!observed.learning&&!observed.game)return {label:'저장된 활동 확인 중…',detail:observed.slow?'조회가 지연되고 있습니다. 다른 학습 메뉴는 계속 이용할 수 있습니다.':'기존 진행을 확인하고 있습니다.',reason:'조회 중에는 새 활동을 추천하지 않습니다.',run:()=>{},disabled:true,choices:{}};if(observed.failed&&!observed.pending)return {label:'저장된 활동 다시 확인',detail:'진행 정보를 모두 확인하지 못했습니다.',reason:'기존 기록은 바꾸지 않았습니다. 연결 후 다시 확인하세요.',run:()=>bootstrap(true),choices:{}};const f=observed.foundation,a=f?.active,j=observed.journey,l=observed.learning,g=observed.game;
  const choices={};
  if(a&&(!a.done||!a.solved||a.step+1<a.total))choices.learn={label:'기초 이어하기',detail:`${a.course_title} · ${a.step+1}/${a.total}단계 · ${a.title}`,run:()=>window.cmaNavigation.foundationStart()};
  if(j?.active)choices.diagnosis={label:'진단 이어하기',detail:`${j.active.index+1}/${j.active.total}문항 · 시작한 진단의 수순과 응답을 이어갑니다.`,run:()=>tab('diagnosis')};
  if(l?.active&&!l.active.done)choices.training={label:'훈련 이어하기',detail:`${l.active.category||'주제 비공개'} · ${l.active.assessment_scope==='first_move'?'첫 수 판단':'진행 중 수순'} · ${l.active.turns||0}수 진행`,run:()=>tab('training')};
  if(g?.board&&!g.board.is_over&&!g.finished)choices.play={label:'대국 이어하기',detail:`${g.board.turn==='black'?'흑':'백'} 차례 · 저장된 대국`,run:()=>tab('play')};
- const id=choices[last]?last:Object.keys(choices)[0];
+ const waitingForRecent=observed.pending&&(!observed.code||!({learn:f,diagnosis:j,training:l,play:g})[last]);
+ const followReport=j?.latest&&['diagnosis','training'].includes(last)&&!choices[last];
+ const id=waitingForRecent?null:choices[last]?last:followReport?null:Object.keys(choices)[0];
  if(id)return {...choices[id],reason:id===last?'이 브라우저에서 최근 열어 둔 진행 활동입니다.':'완료하지 않은 저장 활동부터 이어갑니다.',active:true,choices};
- if(j?.latest?.diagnostic_scope){const report=j.latest,task=report.scoped_training?.tasks?.[0];return task?{label:task.label+' · 새 문제로 연습',detail:task.reason,reason:'이번 범위의 진단 결과와 같은 추천입니다. 종합 진단 과제와 별도로 진행합니다.',run:()=>window.learningScoped(report.id,task.item_id),active:false,choices}:{label:'같은 범위 추가 확인 선택',detail:report.scoped_training?.message||'추천할 수행 근거가 충분하지 않습니다.',reason:'미응답·미확정을 약점으로 단정하지 않습니다.',run:()=>{tab('diagnosis');window.cmaDiagnosticChoice.select(report.diagnostic_scope);},active:false,choices};}
+ if(observed.pending)return {label:'다른 진행 활동 확인 중…',detail:'확인된 기록은 보존됩니다. 나머지 조회를 기다리고 있습니다.',reason:observed.slow?'조회가 지연되어 다른 학습 메뉴를 이용할 수 있습니다.':'아직 새 학습을 추천하지 않습니다.',run:()=>{},disabled:true,choices};
+ if(j?.latest?.diagnostic_scope){const report=j.latest,task=report.scoped_training?.tasks?.find(t=>!l?.scoped_completed?.some(c=>c.report_id===report.id&&c.item_id===t.item_id));return task?{label:task.label+' · 새 문제로 연습',detail:task.reason,reason:'이번 범위의 진단 결과와 같은 추천입니다. 종합 진단 과제와 별도로 진행합니다.',run:()=>window.learningScoped(report.id,task.item_id),active:false,choices}:{label:'같은 범위 추가 확인 선택',detail:report.scoped_training?.tasks?.length?'이번 추천 훈련을 마쳤습니다. 같은 범위의 새 진단을 선택하거나 원래 문항을 복습하세요. 연습 완료만으로 성장을 확정하지 않습니다.':report.scoped_training?.message||'추천할 수행 근거가 충분하지 않습니다.',reason:'미응답·미확정을 약점으로 단정하지 않습니다.',run:()=>{tab('diagnosis');window.cmaDiagnosticChoice.select(report.diagnostic_scope);},active:false,choices};}
  if(j?.latest)return {label:$('journeyHomeOpen').textContent,detail:$('journeyHomeStatus').textContent,reason:'진단 결과의 수행 근거와 같은 추천입니다. 미확정 응답은 약점으로 단정하지 않습니다.',run:()=>$('journeyHomeOpen').click(),active:false,choices};
  if(f?.total>0&&f.completed===f.total)return {label:'기초 복습하기',detail:'기초 과정을 모두 확인했습니다. 원하는 과정을 골라 복습하세요.',reason:'완료 기록에 따른 선택이며 실력 상승을 추정하지 않습니다.',run:()=>window.cmaNavigation.foundation(),active:false,choices};
  if(f?.completed>0&&f.completed<f.total)return {label:'다음 기초 이어하기',detail:`${f.completed}/${f.total}과정 완료 · 다음 권장 과정부터 이어갑니다.`,reason:'완료한 과정은 보존하고 아직 배우지 않은 기초를 이어갑니다.',run:()=>window.cmaNavigation.foundationStart(),active:false,choices};
  return {label:'기초부터 배우기',detail:'기물과 규칙을 한 단계씩 직접 연습합니다.',reason:'아직 추천할 수행 근거가 충분하지 않습니다. 익숙한 분은 원하는 활동을 고르세요.',run:()=>window.cmaGuestAccess.enter('basics'),active:false,choices};}
 const cards=[];
 function addRecommendation(parent,id){const card=make(parent,'section',null,id);card.className='card flow-recommendation';make(card,'h2','지금 할 일');const detail=make(card,'p');detail.className='flow-next-detail';const reason=make(card,'p');reason.className='subtle';const b=button(card,'저장된 활동 확인 중',()=>{});const more=make(card,'details');make(more,'summary','다른 진행 활동');const list=make(more,'div');list.className='btn-row';cards.push({card,detail,reason,b,more,list});return card;}
-async function bootstrap(force=false){if(!token||(!force&&bootstrapOwner===token))return;const identity=token;bootstrapOwner=identity;observed.pending=true;observed.failed=false;queue();try{await api('/me');if(identity!==token)return;await Promise.all([api('/foundations'),api('/journey'),api('/learning/dashboard'),api('/game')]);}catch(e){if(identity===token)observed.failed=true;}finally{if(identity===token){observed.pending=false;queue();}}}
-function render(){if(stateOwner!==token)reset();if(token&&bootstrapOwner!==token)bootstrap();const m=model();for(const c of cards){c.card.hidden=!token||(c.card.id==='resultNextAction'&&!$('journeyTask').hidden);c.detail.textContent=m.detail;c.reason.textContent=m.reason;c.b.textContent=m.label;c.b.disabled=!!m.disabled;c.b.onclick=m.run;c.list.replaceChildren();c.more.hidden=Object.keys(m.choices).length<2;for(const choice of Object.values(m.choices))button(c.list,choice.label+' · '+choice.detail,choice.run);}
+async function bootstrap(force=false){if(!token||bootRun?.identity===token||(!force&&bootstrapOwner===token))return;const identity=token,run={identity};bootRun=run;bootstrapOwner=identity;observed.pending=true;observed.failed=false;observed.slow=false;queue();const slow=setTimeout(()=>{if(bootRun===run){observed.slow=true;queue();}},4000);try{const replies=await Promise.allSettled([api('/me'),api('/foundations'),api('/journey'),api('/learning/dashboard'),api('/game')]);if(identity===token)observed.failed=replies.some(r=>r.status==='rejected');}finally{clearTimeout(slow);if(bootRun===run)bootRun=null;if(identity===token){observed.pending=false;queue();}}}
+function render(){if(stateOwner!==token)reset();if(token&&bootstrapOwner!==token)bootstrap();const m=model();for(const c of cards){c.card.hidden=!token||(c.card.id==='resultNextAction'&&(!observed.journey?.latest||!$('journeyTask').hidden));c.detail.textContent=m.detail;c.reason.textContent=m.reason;c.b.textContent=m.label;c.b.disabled=!!m.disabled;c.b.onclick=m.run;c.list.replaceChildren();c.more.hidden=Object.keys(m.choices).length<(m.active?2:1);for(const choice of Object.values(m.choices))button(c.list,choice.label+' · '+choice.detail,choice.run);}
+ for(const b of document.querySelectorAll('[data-scoped-report]')){const complete=observed.learning?.scoped_completed?.some(c=>c.report_id===b.dataset.scopedReport&&c.item_id===b.dataset.scopedItem);b.dataset.ineligible=String(!!complete);if(complete){b.disabled=true;b.textContent='완료한 추천 훈련';}}
  $('home').classList.toggle('flow-returning',!!token);$('guestAccess').hidden=!!token;
  const saved=$('learningSaved');if(saved)saved.hidden=!saved.querySelector('button');
  const summary=$('focusOpeningSelection')?.querySelector('summary');if(summary){const course=$('studyCourse'),mode=$('studyMode');summary.textContent=`${course.selectedOptions[0]?.textContent||'강의 선택'} · ${mode.value==='recall'?'혼자 복습하기':'설명 보며 배우기'} · 설정 변경`;}
@@ -44,7 +48,8 @@ function training(t){const brief=$('trainingTaskBrief');if(!brief)return;brief.h
  if(!t)return;const situation=t.mode?.startsWith('situation');
  const range=situation?'상황 연습 · 제시한 수와 평가 유지 조건까지':t.assessment_scope==='first_move'?'첫 수 1개만 판단 · 전체 수순 평가 아님':'전체 수순 · 문제 완료 표시까지 (정답 길이는 미리 알려주지 않음)';
  brief.querySelector('strong').textContent=range;
- brief.querySelector('p').textContent=t.done?'이번 시도가 끝났습니다. 아래 결과를 확인하고 같은 위치 복습 또는 다음 문제를 고르세요.':situation?t.goal:'지금 할 일: 내 수를 직접 두세요. '+(t.assessment_scope==='first_move'?'성공 조건: 첫 수가 기준을 충족하면 이 활동이 끝납니다.':'성공 조건: 상대 응수 뒤에도 끝까지 직접 두세요. 일부 정답은 완료가 아닙니다.');
+ const goals={'메이트 수순':'상대 킹을 체크메이트로 이끄는 수를 찾으세요.','다중 수 계산':'상대 응수 뒤에도 유리한 수를 이어 읽으세요.','포획·교환 수순':'잡을 수 있는 기물과 교환 뒤의 손익을 살펴 수를 고르세요.','방어 수순':'상대 위협을 확인하고 막거나 피할 수를 찾으세요.','승격 수순':'폰의 승격과 승격할 기물 선택을 고려하세요.','종반 전술 실행':'남은 기물의 위협과 전술적 기회를 확인하세요.'};const goal=t.mode?.includes('verify')?'주제와 답을 미리 보지 않고 상대 위협과 내 기회를 판단하세요.':goals[t.category]||t.goal;
+ brief.querySelector('p').textContent=t.done?'이번 시도가 끝났습니다. 아래 결과를 확인하고 같은 위치 복습 또는 다음 문제를 고르세요.':situation?t.goal:goal+(t.assessment_scope==='first_move'?'':' 상대 응수 뒤 내 후속 수까지 직접 두세요.');
 }
 function install(){
  const home=$('home');const start=$('guestAccess'),actions=start.querySelector('.btn-row');
@@ -64,7 +69,7 @@ function install(){
  const setup=$('learningSetup'),records=fold($('trainingLibrary'),'trainingRecords','학습 기록 · 측정 기준 · 이전 경로',[$('learningRoute'),setup.querySelector('details'),$('learningCards').closest('details'),$('learningSkills').closest('details'),$('learningAttempts').closest('details')]);
  const guide=make(setup,'p','새 문제는 첫 수 판단 연습입니다. 진단에서 연결한 훈련은 해당 수순의 완료 조건을 따릅니다.');setup.prepend(guide);
  const review=button(setup,'복습 · 저장된 위치',()=>{records.open=true;$('learningCards').closest('details').open=true;$('learningCards').scrollIntoView({block:'start'});});review.id='flowTrainingReview';
- const brief=make($('trainingCore'),'section',null,'trainingTaskBrief');brief.className='notice';make(brief,'strong');make(brief,'p');$('trainingCore').prepend(brief);
+ const brief=make($('learningBoard').parentElement,'section',null,'trainingTaskBrief');brief.className='notice';make(brief,'strong');make(brief,'p');$('learningBoard').before(brief);
  // Keep the route disclosure in the library; its full controls still work.
 
  const opening=$('openingStudy'),picker=$('focusOpeningSelection');picker.open=false;

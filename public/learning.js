@@ -165,7 +165,7 @@
   }
   function renderControls(){
     const area=$('learningControls');area.replaceChildren();if(!task?.growth_task&&dashboard?.path?.current===1&&dashboard.path.steps[1].status==='active'){area.append(el('span','설명을 읽은 뒤 옆 또는 아래 경로의 개념 읽기 확인을 눌러 주세요.','subtle'));return;}if(!task)return;
-    if(task.done&&task.growth_task){area.append(el('p',outcomeLabel(task.outcome),'tag'),button('추천 훈련과 진행률 보기',()=>tab('diagnosis')));return;}
+    if(task.done&&(task.growth_task||task.scoped_task)){area.append(el('p',outcomeLabel(task.outcome),'tag'),button('추천 훈련과 진행률 보기',()=>tab('diagnosis')));return;}
     if(task.done){area.append(el('p',outcomeLabel(task.outcome)||'완료','tag'));if(task.path_id){area.append(button('경로 다음 단계',()=>continuePath()));return;}area.append(button('같은 위치 다시',()=>start({card_id:task.card_id,mode:task.mode})),button('다음 첫 수 검증',()=>start({fresh:true,mode:'verify',category:task.outcome.category})));return;}
     if(task.growth_task&&task.selection?.source_card&&task.rating){area.append(button('너무 어려워요 · 더 낮은 난도 찾기',()=>{if(!confirm('현재 착수는 보존하고 같은 과제 슬롯을 더 낮은 난도의 미노출 문제로 바꿀까요? 완료 횟수는 늘지 않습니다.'))return;run(async()=>{const identity=token,rev=generation;const r=await api('/learning/cycle/easier','POST',{report_id:task.growth_task.report_id,item_id:task.growth_task.task_id,card_id:task.card_id,session_id:task.session_id,revision:task.revision});if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;await updateStats();render();});}));}
     if(!task.mode.includes('verify')){

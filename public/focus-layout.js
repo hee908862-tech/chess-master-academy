@@ -6,11 +6,11 @@ function install(){
  const actions=document.querySelector('.foundation-actions');
  actions.prepend($('foundationLive'),$('foundationAnswers'),$('foundationNext'));
  const brief=document.createElement('p');brief.id='foundationReasonBrief';brief.className='focus-reason';$('foundationNext').after(brief);
- const explanation=details(actions,'foundationExplanation','이유 · 자세한 해설',[$('foundationFeedback'),$('foundationFullInstruction')]);
+ const explanation=details(actions,'foundationExplanation','이유 · 자세한 해설 원문',[$('foundationFeedback'),$('foundationFullInstruction')]);
  const visual=$('foundationVisualTools');actions.append(visual);const tools=details(actions,'foundationFocusTools','안내 표시의 의미',[$('foundationVisualLegend')]);
  tools.after($('foundationAlternative'));
  const policy=actions.querySelector(':scope > .subtle');if(policy)explanation.append(policy);
- function update(){const text=$('foundationFeedback').textContent;const short=text.length>140?text.slice(0,140)+'…':text;if(brief.textContent!==short)brief.textContent=short;}
+ function update(){const text=$('foundationFeedback').textContent;const plain=window.cmaPlainText?.(text)||text;const short=(plain.length>140?plain.slice(0,140)+'…':plain)+(plain!==text?' · 용어를 풀어 쓴 표시 (아래 원문 확인)':'');if(brief.textContent!==short)brief.textContent=short;}
  new MutationObserver(update).observe($('foundationFeedback'),{childList:true,subtree:true,characterData:true});update();
  const training=$('training'),library=document.createElement('section');library.id='trainingLibrary';library.setAttribute('aria-label','훈련 선택과 기록');
  const trainingLayout=training.querySelector('.learning-layout');trainingLayout.before(library);const trainingJumps=training.querySelector('.feature-jumps');if(trainingJumps)trainingLayout.after(trainingJumps);

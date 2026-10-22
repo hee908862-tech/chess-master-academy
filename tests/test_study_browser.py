@@ -12,6 +12,12 @@ def login(page,site):
     page.goto(site[0]);return token
 
 
+def select_course(page,value):
+    if not page.locator('#focusOpeningSelection').evaluate('(e)=>e.open'):
+        page.locator('#focusOpeningSelection > summary').click()
+    page.locator('#studyCourse').select_option(value)
+
+
 def click_move(page,board,uci):
     page.locator(f'#{board} [aria-label^="{uci[:2]} "]').click();page.locator(f'#{board} [aria-label^="{uci[2:4]} "]').click()
 
@@ -20,7 +26,7 @@ def click_move(page,board,uci):
 def test_opening_actual_api_branch_recall_save_and_reference(page,site,width):
     page.set_viewport_size({'width':width,'height':950});login(page,site)
     page.evaluate("tab('opening')");expect(page.locator('#studyCourse option')).to_have_count(55);page.locator('#focusOpeningSelection > summary').click()
-    page.locator('#studyCourse').select_option('french-advance');expect(page.locator('#studyOpeningBoard .sq')).to_have_count(64)
+    select_course(page,'french-advance');expect(page.locator('#studyOpeningBoard .sq')).to_have_count(64)
     for u in ['e2e4','e7e6','d2d4','d7d5','e4e5','c7c5']:
         with page.expect_response(lambda r:r.url.endswith('/study/position')):click_move(page,'studyOpeningBoard',u)
         expect(page.locator('#studyMessage')).to_contain_text('등록된')
@@ -80,12 +86,12 @@ def test_review_branch_actual_rules_and_late_engine_cancel(page,site):
 
 def test_late_opening_bookmark_cannot_replace_new_course(page,site):
     login(page,site);page.evaluate("tab('opening')");expect(page.locator('#studyCourse option')).to_have_count(55)
-    page.locator('#studyCourse').select_option('french-advance');expect(page.locator('#studyOpeningBoard .sq')).to_have_count(64)
+    select_course(page,'french-advance');expect(page.locator('#studyOpeningBoard .sq')).to_have_count(64)
     page.get_by_role('button',name='학습 위치 저장',exact=True).click();expect(page.locator('#studySaveStatus')).to_contain_text('저장했어요')
     saved=page.evaluate("api('/study/openings')")
     page.evaluate("""() => {const original=api;window.holdOpening=true;api=function(p,...a){if(p==='/study/openings'&&window.holdOpening){window.holdOpening=false;return new Promise(resolve=>window.releaseOpening=resolve);}return original(p,...a);};}""")
     page.get_by_role('button',name='저장 위치 이어하기',exact=True).click()
-    page.locator('#studyCourse').select_option('caro-panov');expect(page.locator('#studyMessage')).to_contain_text('등록된')
+    select_course(page,'caro-panov');expect(page.locator('#studyMessage')).to_contain_text('등록된')
     page.evaluate('d=>window.releaseOpening(d)',saved);page.wait_for_timeout(100)
     expect(page.locator('#studyCourse')).to_have_value('caro-panov')
     click_move(page,'studyOpeningBoard','d2d4');expect(page.locator('#studyMessage')).to_contain_text('다른 등록 변형')
@@ -97,7 +103,7 @@ def test_first_visit_auto_board_and_late_resume_does_not_replace_move(page,site)
     login(page,site);page.evaluate("tab('opening')")
     expect(page.locator('#studyOpeningBoard .sq:enabled')).to_have_count(64)
     expect(page.locator('#studyCourse')).to_have_value('italian-pianissimo')
-    page.locator('#studyCourse').select_option('french-advance')
+    select_course(page,'french-advance')
     expect(page.locator('#studyMessage')).to_contain_text('등록된')
     click_move(page,'studyOpeningBoard','e2e4');expect(page.locator('#studyMessage')).to_contain_text('등록된')
     page.get_by_role('button',name='학습 위치 저장',exact=True).click()
@@ -151,7 +157,7 @@ def test_delayed_save_ack_after_move_updates_revision_without_replacing_board(pa
 def test_opening_redo_boundaries_and_delayed_description(page,site,width):
     page.set_viewport_size({'width':width,'height':950});login(page,site)
     page.evaluate("tab('opening')");expect(page.locator('#studyCourse option')).to_have_count(55)
-    page.locator('#studyCourse').select_option('london-core')
+    select_course(page,'london-core')
     expect(page.locator('#studyMessage')).to_contain_text('등록된')
     previous=page.locator('#studyTools').get_by_role('button',name='이전 수',exact=True)
     redo=page.get_by_role('button',name='되돌린 수 복원',exact=True)

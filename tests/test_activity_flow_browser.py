@@ -47,11 +47,11 @@ def test_home_direct_foundation_return_reload_and_free_access(isolated,width,hei
 def test_diagnostic_single_scope_choice_preserves_active(isolated,width,height):
     page,_=isolated;page.set_viewport_size(dict(width=width,height=height));start(page)
     page.evaluate("tab('diagnosis')")
-    expect(page.locator('.diagnostic-options article')).to_have_count(3)
+    expect(page.locator('.diagnostic-options button')).to_have_count(3)
     expect(page.locator('#journeyStart')).to_be_hidden()
     expect(page.locator('#diagnosticBlueprint')).to_contain_text('24문항')
     expect(page.locator('#diagnosticBlueprint')).to_contain_text('8문항')
-    page.get_by_label('진단 범위',exact=True).select_option('domain')
+    page.locator('.diagnostic-choice[data-scope=domain]').click()
     expect(page.locator('#diagnosticChoiceDescription')).to_contain_text('종합 점수 없음')
     expect(page.locator('#diagnosticBegin')).to_be_enabled(timeout=15000)
     page.locator('#diagnosticBegin').click()

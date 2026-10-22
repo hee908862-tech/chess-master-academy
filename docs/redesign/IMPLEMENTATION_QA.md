@@ -61,3 +61,7 @@ Follow-up local results: regression selection 65 passed / 4 skipped (real Stockf
 ## Post-merge isolated browser and real-engine follow-up
 
 See [FOLLOWUP_QA.md](FOLLOWUP_QA.md) for the PR36-baseline reproduction, three UI corrections, 106 local passes, real-Stockfish timings, and explicit operating-network limitations. Earlier pending checks above are historical, not claims of current operational success.
+
+## PR38-baseline whole-app clarity follow-up
+
+See [whole-app survey and QA](../qa-whole-app/README.md) for the screen-by-screen information hierarchy, two real local learning flows, historical-text preservation, initial-load investigation, responsive/keyboard checks and deployment verification. Earlier operating/browser limitations above remain historical; local Chromium and real Stockfish checks must not be confused with operating UI or physical-device validation.
