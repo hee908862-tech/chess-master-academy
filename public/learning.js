@@ -174,7 +174,7 @@
   async function click(square){if(needsRefresh)return;
     if(busy||!task||task.done||playbackIndex>=0)return;
     const options=task.legal.filter(u=>u.slice(0,2)===selected&&u.slice(2,4)===square);
-    if(!options.length){selected=task.legal.some(u=>u.slice(0,2)===square)?square:null;render();return;}
+    if(!options.length){if(selected===square){selected=null;render();return;}selected=task.legal.some(u=>u.slice(0,2)===square)?square:null;render();return;}
     let move=options[0];
     if(options.length>1){const identity=task;busy=true;lockControls();try{const promotion=await choosePromotion(selected,square,fromFen(task.fen)[selected],task.legal);if(!promotion||identity!==task||!$('training').classList.contains('active'))return;move=options.find(u=>u[4]===promotion); }finally{busy=false;lockControls();}}
     if(move)await act('move',move);
@@ -201,6 +201,7 @@
   window.cmaLearningSettings={load:loadSettings};settingsControls();
   window.learningRetention=async(report_id,item_id)=>{if(!ready('training')||busy)return;tab('training');generation++;await run(async()=>{const identity=token,rev=generation;const r=await api('/learning/retention/start','POST',{report_id,item_id});if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;await updateStats();render();},'7일 기억 확인을 위한 미노출 전체 수순 검증을 준비합니다…');};
   window.learningCycle=async(report_id,item_id)=>{if(!ready('training')||busy)return;tab('training');generation++;await run(async()=>{const identity=token,rev=generation;const result=await api('/learning/cycle/start','POST',{report_id,item_id});if(identity!==token||rev!==generation)return;task=result;selected=null;playbackIndex=-1;await updateStats();render();},'추천 훈련을 준비하고 있어요…');};
+  window.learningScoped=async(report_id,item_id)=>{if(!ready('training')||busy)return;tab('training');generation++;await run(async()=>{const identity=token,rev=generation;const result=await api('/learning/scoped/start','POST',{report_id,item_id});if(identity!==token||rev!==generation)return;task=result;selected=null;playbackIndex=-1;await updateStats();render();},'추천 훈련을 준비하고 있어요…');};
   window.learningFromDiagnosis=async(report_id,item_id)=>{
     if(!ready('training')||busy)return;
     tab('training');generation++;

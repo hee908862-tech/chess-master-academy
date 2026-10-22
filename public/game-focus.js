@@ -9,7 +9,7 @@ function install(){
  const settingSummary=make(settings,'summary','대국 설정');settingSummary.id='gameSettingsSummary';
  const fields=make(settings,'div',null,'game-setting-fields');
  for(const [id,label] of [['playerColor','내 기물 색'],['aiLevel','AI 난도'],['timeMode','대국 시간']]){const l=make(fields,'label',label);l.append($(id));}
- fields.append($('newGame'));const engine=make(settings,'p',null,'subtle');engine.append($('engineBadge'));
+ fields.append($('newGame'));make(settings,'p','AI 단계는 엔진 설정입니다. 외부 Elo로 검증된 범위가 없어 숫자 레이팅을 표시하지 않습니다. 1–2는 입문 연습, 3–5는 기본 대국, 6–10은 더 강한 탐색 설정입니다. 실제 난도는 기기·시간 설정에 따라 달라집니다.','subtle');const calibration=make(settings,'details');make(calibration,'summary','난이도 수치 보정 기준');make(calibration,'p','동일 엔진·탐색 시간·시간제한에서 표본 대국과 상대 집단을 고정해 승률 및 불확실성을 측정한 뒤 별도 버전으로 범위를 제공해야 합니다. 현재 단계 숫자를 Elo로 환산하지 않습니다.');const engine=make(settings,'p',null,'subtle');engine.append($('engineBadge'));
  const stage=make(play,'div',null,'game-focus-stage');const boardPanel=make(stage,'section',null,'game-focus-board');boardPanel.setAttribute('aria-label','대국 보드와 차례');
  const state=make(boardPanel,'div',null,'game-turn-clock');state.append($('turnIndicator'),$('gameClock'));
  boardPanel.append($('gameBoard'));

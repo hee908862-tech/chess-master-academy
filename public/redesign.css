@@ -1,0 +1,22 @@
+/* Board and action blocks remain in document flow; scrolling is always available. */
+#guestAccess .btn-row{display:flex;flex-wrap:wrap;gap:8px}
+#guestAccess button,#diagnosticBlueprint button,#diagnosticBlueprint select{min-height:44px}
+#diagnosticBlueprint select{max-width:100%;margin:8px 8px 8px 0}
+#diagnosticBlueprint summary{min-height:44px;cursor:pointer}
+#guestAccess p,#diagnosticBlueprint p{overflow-wrap:anywhere}
+#journeyMessage,#learningMessage,#foundationSave,#foundationOutcome{min-height:2.5em}
+.ability-card>p.subtle{min-height:2em}
+.ability-meter[hidden]{display:none!important}
+@media(min-width:900px){
+ #journeyBoard,#learningBoard,#foundationBoard,#gameBoard,#repertoireBoard,#educationBoard,#studyOpeningBoard,#reviewStudyBoard{width:min(100%,480px,max(280px,calc(100dvh - 340px)));margin-inline:auto}
+}
+@media(max-width:899px){
+ #journeyBoard,#learningBoard,#foundationBoard,#gameBoard,#repertoireBoard,#educationBoard,#studyOpeningBoard{width:100%;max-width:480px;margin-inline:auto}
+ #diagnosticBlueprint select{width:100%}
+ #guestAccess .btn-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+}
+@media(prefers-reduced-motion:reduce){.board *, .drag-ghost{scroll-behavior:auto!important}}
+/* The legacy first-visit gate hides unlisted home children; full access must be listed. */
+body.entry-guest #home>#guestAccess{display:block!important}
+
+body.entry-login #profile>#guestAccountAccess{display:block!important;max-width:640px}

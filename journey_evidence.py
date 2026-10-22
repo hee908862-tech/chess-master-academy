@@ -63,7 +63,7 @@ def outcome(item):
 
 def build_report(session, previous, current):
     items=session['items'];scope=session.get('measurement_scope','legacy_cued_execution')
-    earlier=[i for r in previous if r['version']==session['version'] and r.get('measurement_scope')==scope for i in r['items']]
+    earlier=[i for r in previous if r['version']==session['version'] and r.get('measurement_scope')==scope and r.get('diagnostic_scope')==session.get('diagnostic_scope') for i in r['items']]
     accumulated=earlier+items;areas=[]
     for competency,spec in COMPETENCIES.items():
         rows=[i for i in items if i['competency']==competency]
@@ -86,7 +86,7 @@ def build_report(session, previous, current):
     comparisons=[{'competency':i['competency'],'label':COMPETENCIES[i['competency']]['label'],'item_id':i['id'],'reason':'오답으로 판정하지 않았습니다. 내 수와 원본 수순을 비교하며 연습할 수 있습니다.','intent':'compare'} for i in items if outcome(i)=='unverified_alternative']
     completed=sum(i.get('complete',False) for i in items);unverified=sum(outcome(i)=='unverified_alternative' for i in items)
     return {'id':session['session_id'],'at':current.isoformat(),'version':session['version'],'competency_version':VERSION,
-        'measurement_scope':scope,'coverage_policy':session.get('coverage_policy','legacy'), 'mode':session['mode'],
+        'measurement_scope':scope,'coverage_policy':session.get('coverage_policy','legacy'), 'mode':session['mode'], 'diagnostic_scope':session.get('diagnostic_scope'),
         'areas':areas,'items':copy.deepcopy(items),'recommendations':recommendations,'comparison_practice':comparisons,
         'summary':{'observed':f"{len(items)}문항에서 원본 또는 검증된 메이트 수순 {completed}개를 완주했습니다.",
             'uncertain':f"대안 {unverified}개는 판단을 보류했습니다. 적은 표본과 과거 노출 불명은 실력 부족을 뜻하지 않습니다.",

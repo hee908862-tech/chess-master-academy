@@ -294,6 +294,34 @@ def attach_learning(app, ns):
             state['active']['growth_task']=reference
             return payload(state)
 
+    @app.post('/api/learning/scoped/start')
+    def scoped_start(body: DiagnosisSource, authorization: str | None = Header(default=None)):
+        from diagnostic_blueprint import training_recommendations
+        code=auth(authorization)
+        report=ns.get('journey_report',lambda *_:None)(code,body.report_id)
+        if not report or not report.get('diagnostic_scope'):
+            raise HTTPException(404,'분야 진단 결과가 없습니다.')
+        recommendation=next((t for t in training_recommendations(report)['tasks'] if t['item_id']==body.item_id),None)
+        if not recommendation:raise HTTPException(409,'확정된 관찰에 따른 추천이 없습니다. 추가 진단을 진행하세요.')
+        reference={'report_id':body.report_id,'item_id':body.item_id}
+        with store(code) as state:
+            active=state.get('active')
+            if active and active.get('scoped_task')==reference:
+                return payload(state)  # including completed: duplicate starts cannot award again
+            if active and not active['done'] or state.get('path') and not state['path']['done']:
+                raise HTTPException(409,'진행 중인 훈련을 먼저 완료하세요. 착수는 보존됩니다.')
+            if reference in state.get('scoped_completed',[]):
+                raise HTTPException(409,'이미 마친 추천 훈련입니다. 추가 진단 또는 복습을 선택하세요.')
+            if any(a.get('scoped_task')==reference for a in state.get('paused',{}).values()):
+                raise HTTPException(409,'보존된 훈련을 먼저 이어서 완료하세요.')
+            item=next(i for i in report['items'] if i['id']==body.item_id)
+            source=diagnosis_card(state,report,item)
+            card=new_puzzle(state,item['competency'],context(code),source['id'],required_topic=recommendation['topic'])
+            card['full_line']=True
+            begin(state,card,'practice',fresh=True)
+            state['active']['scoped_task']=reference
+            return payload(state)
+
     @app.post('/api/learning/retention/start')
     def retention_start(body: DiagnosisSource, authorization: str | None = Header(default=None)):
         code=auth(authorization)
@@ -436,6 +464,9 @@ def attach_learning(app, ns):
         if not credited_today:
             card['due'] = (stamp + timedelta(days=days)).isoformat()
         credit_cycle(state,s,attempt)
+        if s.get('scoped_task') and success is not None:
+            completed=state.setdefault('scoped_completed',[])
+            if s['scoped_task'] not in completed:completed.append(s['scoped_task'])
         s.update(done=True, outcome=attempt, message='학습 기록을 저장했습니다.' if success else '아직 목표에 도달하지 못했습니다. 기록을 저장했습니다.')
 
     @app.get('/api/learning/dashboard')
@@ -521,7 +552,7 @@ def attach_learning(app, ns):
                 state['cards'].setdefault(c['id'], c)
         return {'count': len(candidates), 'message': f'{len(candidates)}개 실수 위치를 오답노트에 준비했습니다.' if candidates else '분석 기준에 맞는 내 실수를 찾지 못했습니다. 임의로 만들지 않습니다.'}
 
-    def new_puzzle(state, wanted, legacy, similar_to=None, beginner=False, rating_band=None):
+    def new_puzzle(state, wanted, legacy, similar_to=None, beginner=False, rating_band=None, required_topic=None):
         source = state['cards'].get(similar_to) if similar_to else None
         if similar_to and not source: raise HTTPException(404, '비교할 학습 항목이 없습니다.')
         tags = set(source.get('tags', [])) if source else set()
@@ -552,6 +583,7 @@ def attach_learning(app, ns):
         choices = []
         for p in LIB.values():
             if p['id'] in seen: continue
+            if required_topic and required_topic not in p['themes']:continue
             if rating_band and not rating_band[0] <= p['rating'] <= rating_band[1]:continue
             if beginner and not (600 <= p['rating'] <= 1200 and 'mateIn1' in p['themes']): continue
             b = chess.Board(p['fen']); b.push_uci(p['moves'][0])
