@@ -2,16 +2,17 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id), make=(p,t,text)=>{const e=document.createElement(t);e.textContent=text;p.append(e);return e;};
 const box=document.createElement('section');box.className='card';box.id='guestAccess';$('home').prepend(box);
-make(box,'h2','기초 배우기 → 실력 확인 → 약점 훈련 → 대국·복기');
-make(box,'p','로그인 없이 모든 학습 기능을 시작하세요. 같은 정답 판정과 엔진을 사용합니다.');
-const status=make(box,'p','');status.setAttribute('role','status');status.style.minHeight='3em';
-const note=make(box,'p','이 브라우저에 접속 키를, 서버에 진행과 기록을 저장합니다. 브라우저 데이터 삭제·시크릿 창 종료·다른 기기에서는 연결 전 기록을 열 수 없습니다. 로그인 계정에 별도로 연결하면 다른 기기에서도 이어갈 수 있습니다.');note.className='subtle';
+make(box,'h2','어디서 시작할까요?');
+make(box,'p','처음이라면 기초부터, 익숙하다면 원하는 활동부터 시작하세요.');
+const status=make(box,'p','');status.setAttribute('role','status');status.style.minHeight='1.5em';
+const note=make(box,'p','이 경로는 로그인 없이도 서버에 진행을 저장합니다. 같은 브라우저에서 이어갈 수 있고, 계정에 연결하면 다른 기기에서도 이어갑니다. 연결 전 브라우저 데이터를 지우면 기록에 접근할 수 없습니다.');note.className='subtle';
 let busy=false;
-async function enter(destination){if(busy)return;busy=true;status.textContent='저장된 브라우저 기록을 확인하고 있습니다…';try{
+async function enter(destination){if(busy)return;const entryRoute=window.cmaNavigation?.current();busy=true;status.textContent='저장된 브라우저 기록을 확인하고 있습니다…';try{
  if(!token){const identity=token;let saved=localStorage.getItem('cma_guest_token');if(!saved){const r=await api('/guest/start','POST');if(token!==identity)return;saved=r.token;localStorage.setItem('cma_guest_token',saved);}token=saved;localStorage.setItem('cma_identity','guest');resetGameAccount();await refresh();}
- status.textContent='기록을 확인했습니다. 각 착수의 판정·저장 결과를 확인해 주세요.';tab(destination);
+ status.textContent='진행을 저장하며 배웁니다.';if(window.cmaNavigation?.current()!==entryRoute)return;if(destination==='basics')await window.cmaNavigation.foundationStart();else tab(destination);
  }catch(e){status.textContent=e.message+' 기존 기록은 지우지 않았습니다.';}finally{busy=false;}}
-const actions=make(box,'div','');actions.className='btn-row';for(const [title,view]of [['기초 배우기','learn'],['일반 퍼즐·훈련','training'],['오프닝 학습','opening'],['AI 대국','play'],['실력 진단','diagnosis']]){const b=make(actions,'button',title);b.className='btn';b.onclick=()=>enter(view);}
+const actions=make(box,'div','');actions.className='btn-row';for(const [title,view]of [['기초부터 배우기','basics'],['일반 퍼즐·훈련','training'],['오프닝 학습','opening'],['AI 대국','play'],['실력 진단','diagnosis']]){const b=make(actions,'button',title);b.className='btn';b.onclick=()=>enter(view);}
+window.cmaGuestAccess={enter};
 const profile=make($('profile'),'section','');profile.id='guestAccountAccess';profile.className='card';make(profile,'h3','브라우저 기록과 계정 기록');
 const msg=make(profile,'p','연결은 별도 보관입니다. 기존 계정의 점수·기보·진행 중 세션을 덮어쓰거나 합산하지 않습니다.');msg.setAttribute('role','status');
 const guestStart=make(profile,'button','로그인 없이 전체 기능 시작');guestStart.className='btn';guestStart.onclick=()=>enter(loginDestination||'home');

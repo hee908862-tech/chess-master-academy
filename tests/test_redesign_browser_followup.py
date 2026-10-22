@@ -17,10 +17,10 @@ def isolated(site):
 @pytest.mark.parametrize('width,height',[(1366,768),(360,800),(390,844)])
 def test_guest_link_logout_reload_owner_resume(isolated,site,width,height):
     page,context=isolated;page.set_viewport_size(dict(width=width,height=height))
-    page.locator('#guestAccess').get_by_role('button',name='기초 배우기',exact=True).click()
+    page.locator('#flowBasicsStart').click()
     expect(page.locator('#learn')).to_have_class(__import__('re').compile(r'\bactive\b'))
     page.wait_for_function("token && localStorage.getItem('cma_guest_token')===token")
-    page.evaluate("async()=>{await api('/foundations/action','POST',{action:'start',course_id:'rook-bishop',revision:0,step:0,value:''});}")
+    expect(page.locator('#foundationWorkspace')).to_be_visible(timeout=20000)
     before=page.evaluate("api('/foundations')")
     guest=page.evaluate('token')
     other=context.new_page();other.goto(site[0]);other.wait_for_function('!!token')
@@ -58,7 +58,7 @@ def test_guest_link_logout_reload_owner_resume(isolated,site,width,height):
 @pytest.mark.parametrize('width,height',[(1366,768),(360,800),(390,844)])
 def test_en_passant_demo_readonly_and_selection(isolated,site,width,height):
     page,_=isolated;page.set_viewport_size(dict(width=width,height=height))
-    page.locator('#guestAccess').get_by_role('button',name='기초 배우기',exact=True).click()
+    page.locator('#flowBasicsStart').click()
     expect(page.locator('#learn')).to_have_class(__import__('re').compile(r'\bactive\b'))
     page.wait_for_function('!!token')
     page.evaluate("cmaNavigation.go('learn/basics')")
@@ -114,6 +114,7 @@ def test_drag_promotion_cancel_and_delayed_reply(page,site,width,height):
 @pytest.mark.parametrize('width,height',[(1366,768),(360,800),(390,844)])
 def test_scoped_result_reasons_and_buttons_fit(isolated,site,width,height):
     page,_=isolated;page.set_viewport_size(dict(width=width,height=height))
+    page.locator('#flowActivityChoices > summary').click()
     page.locator('#guestAccess').get_by_role('button',name='실력 진단',exact=True).click()
     expect(page.locator('#diagnosis')).to_have_class(__import__('re').compile(r'\bactive\b'))
     report=page.evaluate("""async()=>{let s=await api('/journey/start','POST',{mode:'domain',competency:'mate'});while(s.phase!=='complete')s=await api('/journey/action','POST',{session_id:s.session_id,revision:s.revision,action:s.phase==='question'?'skip':'next'});return s.report;}""")
@@ -131,6 +132,7 @@ def test_scoped_result_reasons_and_buttons_fit(isolated,site,width,height):
 @pytest.mark.parametrize('width,height',[(1366,768),(360,800),(390,844)])
 def test_diagnosis_repeat_selection_preserves_session(isolated,site,width,height):
     page,_=isolated;page.set_viewport_size(dict(width=width,height=height))
+    page.locator('#flowActivityChoices > summary').click()
     page.locator('#guestAccess').get_by_role('button',name='실력 진단',exact=True).click()
     expect(page.locator('#diagnosis')).to_have_class(__import__('re').compile(r'\bactive\b'))
     active=page.evaluate("api('/journey/start','POST',{mode:'quick'})")

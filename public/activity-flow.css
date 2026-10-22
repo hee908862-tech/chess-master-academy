@@ -1,0 +1,33 @@
+/* Natural page scrolling, flexible text, and preserved board controls. */
+body.entry-guest #home>#flowFreeExamples,body.entry-guest #home>#flowSavedActivities{display:block!important}
+#home>[hidden],#home.flow-returning>#guestAccess,[hidden].flow-recommendation{display:none!important}
+#home #flowSavedActivities #homeBasics,#home #flowSavedActivities #journeyHome{margin-top:12px}
+.flow-disclosure>summary{min-height:44px;padding:10px 0;cursor:pointer}
+.flow-disclosure,.flow-recommendation{min-width:0;overflow-wrap:anywhere}
+.flow-recommendation{border-left:4px solid var(--accent,#72d6b0)}
+.flow-recommendation h2{font-size:20px;margin:0 0 8px}
+.flow-recommendation p{margin:8px 0;line-height:1.5}
+#guestAccess>.btn-row .primary{min-height:52px;font-size:18px}
+#flowActivityChoices{margin:12px 0;padding:0 12px}
+#flowActivityChoices .btn-row{padding-bottom:12px}
+#flowFreeExamples #firstEntry h1{font-size:18px}
+#flowSavedActivities #homeExplore{display:block}
+#diagnosticBlueprint{margin-top:8px}#diagnosticBlueprint>summary{font-size:20px;font-weight:700;min-height:44px}
+#diagnosticBlueprint p,#diagnosticOther p{line-height:1.55;overflow-wrap:anywhere}
+.diagnostic-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.diagnostic-options article{padding:12px;border:1px solid var(--line);border-radius:12px}
+.diagnostic-options h3{font-size:17px;margin:0}.diagnostic-options p{font-size:14px;margin:8px 0}
+#diagnosticChoiceDescription{min-height:5em}#diagnosticResume[hidden]{display:none}
+#diagnosticOther>#journeyIntro{border:0;padding:8px}
+#trainingTaskBrief{margin:0 0 8px;min-height:6em;line-height:1.5}#trainingTaskBrief p{margin:6px 0 0}
+#trainingCore>#trainingTaskBrief{order:-2}
+#trainingRecords .learning-list{max-height:none}
+#trainingSelectionStatus:empty,#learningLink:empty{display:none}
+#openingStudy>#focusOpeningSelection{margin:8px 0;padding:0 10px}
+#openingModeActions{gap:8px;margin:8px 0}
+#openingStudy .study-layout{margin-top:8px}
+#openingStudy #beginnerOpeningPath{margin-top:8px}
+#openingHelp{margin-top:16px}#studyExplanation{line-height:1.55}
+#activityFlowError{min-height:1.5em}
+@media(max-width:700px){.diagnostic-options{grid-template-columns:minmax(0,1fr)}.diagnostic-options article{padding:10px}.diagnostic-options p{margin:4px 0}#diagnosticBlueprint select{width:100%;max-width:100%}#flowActivityChoices .btn-row{display:grid;grid-template-columns:minmax(0,1fr)}.flow-disclosure .btn,.flow-recommendation .btn{white-space:normal;max-width:100%}}
+@media(min-width:851px){#openingStudy .study-layout{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}#studyOpeningBoard{max-width:min(480px,max(280px,calc(100dvh - 260px)))}}

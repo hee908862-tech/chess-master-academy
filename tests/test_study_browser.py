@@ -19,7 +19,7 @@ def click_move(page,board,uci):
 @pytest.mark.parametrize('width',[390,1280])
 def test_opening_actual_api_branch_recall_save_and_reference(page,site,width):
     page.set_viewport_size({'width':width,'height':950});login(page,site)
-    page.evaluate("tab('opening')");expect(page.locator('#studyCourse option')).to_have_count(55)
+    page.evaluate("tab('opening')");expect(page.locator('#studyCourse option')).to_have_count(55);page.locator('#focusOpeningSelection > summary').click()
     page.locator('#studyCourse').select_option('french-advance');expect(page.locator('#studyOpeningBoard .sq')).to_have_count(64)
     for u in ['e2e4','e7e6','d2d4','d7d5','e4e5','c7c5']:
         with page.expect_response(lambda r:r.url.endswith('/study/position')):click_move(page,'studyOpeningBoard',u)
@@ -30,7 +30,7 @@ def test_opening_actual_api_branch_recall_save_and_reference(page,site,width):
     page.locator('#studyMode').select_option('recall');expect(page.locator('#studyExplanation')).to_contain_text('해설을 가렸어요')
     expect(page.locator('#studyChoices button')).to_have_count(0)
     page.get_by_role('button',name='학습 위치 저장',exact=True).click();expect(page.locator('#studySaveStatus')).to_contain_text('저장했어요')
-    page.reload();page.evaluate("tab('opening')");expect(page.locator('#studyCourse option')).to_have_count(55)
+    page.reload();page.evaluate("tab('opening')");expect(page.locator('#studyCourse option')).to_have_count(55);page.locator('#focusOpeningSelection > summary').click()
     page.get_by_role('button',name='저장 위치 이어하기',exact=True).click();expect(page.locator('#studyMode')).to_have_value('recall');expect(page.locator('#studyOpeningBoard .sq')).to_have_count(64)
     page.locator('#studyMode').select_option('explore');expect(page.locator('#studyExplanation')).to_contain_text('폰 사슬')
     # Unknown legal move is playable and not marked a tactical error.
