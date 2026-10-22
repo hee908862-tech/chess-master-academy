@@ -164,9 +164,13 @@ def test_real_game_import_deduplicates(setup,monkeypatch,tmp_path):
     old['games']=[{'moves':['f2f3','e7e5','g2g4','d8h4'],'color':'white'}]
     result=c.post('/api/learning/import/0');assert result.status_code==200,result.text
     assert 1<=result.json()['count']<=3
-    count=len(c.get('/api/learning/dashboard').json()['cards'])
-    c.post('/api/learning/import/0')
-    assert len(c.get('/api/learning/dashboard').json()['cards'])==count
+    before={card['id']:card for card in c.get('/api/learning/dashboard').json()['cards']}
+    assert c.post('/api/learning/import/0').status_code==200
+    after={card['id']:card for card in c.get('/api/learning/dashboard').json()['cards']}
+    # Time-limited engine searches can discover another qualifying ply.
+    # Reimport must preserve each existing card, not freeze the candidate set.
+    assert all(after[key]==card for key,card in before.items())
+    assert len(after)<=2  # two white moves in this game; one card per ply
     card=c.get('/api/learning/dashboard').json()['cards'][0]
     s=post(c,'start',{'card_id':card['id']})
     s=action(c,s,'refutation');assert s['playback']

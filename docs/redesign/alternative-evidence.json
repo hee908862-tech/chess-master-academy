@@ -1,0 +1,78 @@
+[
+  {
+    "puzzle_id": "bhYwD",
+    "corpus_fen": "2Q5/6pk/4p3/5p2/1P1PpP2/4P3/2R2KPp/3q4 w - - 0 47",
+    "analysis_fen": "2Q5/6pk/4p3/5p2/1P1PpP2/4P3/5KPp/2Rq4 b - - 1 47",
+    "move": "d1d2",
+    "caller_elapsed_ms": 220.106,
+    "evidence": {
+      "timings_ms": {
+        "queue_ms": 0.003,
+        "startup_ms": 206.986,
+        "configure_ms": 0.981,
+        "analysis_before_ms": 3.435,
+        "analysis_after_ms": 4.761,
+        "shutdown_ms": 3.527,
+        "total_ms": 220.068
+      },
+      "status": "unverified",
+      "reason": "mate_requires_proof",
+      "policy": "alternative-v2",
+      "settings": {
+        "threads": 1,
+        "hash_mb": 16,
+        "seconds_per_position": 0.3,
+        "max_depth": 16,
+        "minimum_depth": 10
+      },
+      "engine": "Stockfish 17.1",
+      "depths": [
+        16,
+        16
+      ],
+      "depth": 16,
+      "before_cp": null,
+      "after_cp": 0,
+      "before_mate": 1,
+      "after_mate": null
+    }
+  },
+  {
+    "puzzle_id": "EM5dO",
+    "corpus_fen": "8/B6R/1P1p4/3k4/P7/6Pp/5rr1/4R1K1 w - - 2 40",
+    "analysis_fen": "8/B6R/1P1p4/3k4/P7/6Pp/5rr1/4R2K b - - 3 40",
+    "move": "f2f1",
+    "caller_elapsed_ms": 237.421,
+    "evidence": {
+      "timings_ms": {
+        "queue_ms": 0.002,
+        "startup_ms": 209.176,
+        "configure_ms": 0.414,
+        "analysis_before_ms": 3.564,
+        "analysis_after_ms": 21.146,
+        "shutdown_ms": 2.639,
+        "total_ms": 237.389
+      },
+      "status": "unverified",
+      "reason": "mate_requires_proof",
+      "policy": "alternative-v2",
+      "settings": {
+        "threads": 1,
+        "hash_mb": 16,
+        "seconds_per_position": 0.3,
+        "max_depth": 16,
+        "minimum_depth": 10
+      },
+      "engine": "Stockfish 17.1",
+      "depths": [
+        16,
+        16
+      ],
+      "depth": 16,
+      "before_cp": null,
+      "after_cp": -732,
+      "before_mate": 3,
+      "after_mate": null
+    }
+  }
+]
