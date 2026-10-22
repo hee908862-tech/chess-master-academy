@@ -178,3 +178,41 @@ def test_slow_blueprint_selection_and_visible_error_retry(isolated,site):
     page.get_by_role('button',name='진단 목록 다시 확인',exact=True).click()
     expect(page.locator('.diagnostic-choice')).to_have_count(3)
     expect(page.locator('#diagnosticCatalogState')).to_be_hidden()
+
+
+def test_resume_scope_does_not_flash_legacy_choices_during_delayed_read(isolated,site):
+    page,_=isolated;guest(page)
+    page.evaluate("cmaNavigation.go('diagnosis/subskill')")
+    expect(page.locator('#diagnosticBegin')).to_be_enabled()
+    page.locator('#diagnosticBegin').click()
+    expect(page.locator('#journeyTask')).to_be_visible()
+    page.locator('#journeySkip').click()
+    expect(page.locator('#journeyNext')).to_be_visible()
+    before=page.evaluate("api('/journey')")['active']
+    page.locator('#journeyPause').click()
+    page.evaluate("""()=>{const real=api;api=async(...a)=>{const value=await real(...a);if(a[0]==='/journey')await new Promise(r=>setTimeout(r,700));return value;};window.badLegacy=false;new MutationObserver(()=>{if(document.querySelector('#diagnosis').classList.contains('active')&&!document.querySelector('#journeyTask').hidden&&!document.querySelector('#diagnosticOther').hidden)window.badLegacy=true;}).observe(document.querySelector('#diagnosticOther'),{attributes:true});cmaJourney.open();}""")
+    expect(page).to_have_url(site[0]+'/#diagnosis/subskill')
+    expect(page.locator('#diagnosticOther')).to_be_hidden()
+    page.wait_for_timeout(850)
+    assert not page.evaluate('badLegacy')
+    page.evaluate("cmaNavigation.go('profile')")
+    page.locator('#profileNextAction').get_by_role('button',name='진단 이어하기',exact=True).click()
+    expect(page).to_have_url(site[0]+'/#diagnosis/subskill')
+    page.reload();expect(page.locator('#journeyNext')).to_be_visible()
+    expect(page.locator('#diagnosticOther')).to_be_hidden()
+    page.evaluate("cmaNavigation.go('home')")
+    page.go_back();expect(page.locator('#journeyNext')).to_be_visible()
+    expect(page.locator('#diagnosticOther')).to_be_hidden()
+    assert page.evaluate("api('/journey')")['active']==before
+
+
+@pytest.mark.parametrize('count',[0,1,2,6])
+def test_summary_distinguishes_sparse_evidence_from_equal_scores(isolated,site,count):
+    page,_=isolated;guest(page)
+    page.evaluate("async()=>{cmaNavigation.go('diagnosis');await cmaJourney.load();}")
+    page.evaluate("""count=>{const areas=['mate','calculation','capture','defense','promotion','endgame'].map((id,i)=>({id,label:id,count:i<count?4:0,performance:{score:i<count?1500:null,comparable:i<count,observed:i<count?4:0,band_counts:i<count?[2,2]:[0,0]}}));const report={score_version:'skill-index-v1',areas,insights:{balanced:true,message:'분야별 수행이 고르게 나타났어요',strengths:[],priorities:[]}};window.summaryOriginal=JSON.stringify(report);window.summaryFixture=report;const host=document.createElement('section');host.id='summaryFixtureHost';document.body.append(host);growthReport(host,report,null,()=>{},()=>{},()=>{},true);}""",count)
+    intro=page.locator('#summaryFixtureHost .growth-intro')
+    if count<2:expect(intro).to_contain_text('분야 간 비교 근거가 부족')
+    else:expect(intro).to_contain_text(f'{count}개 분야의 이번 점수가 같습니다')
+    expect(intro).not_to_contain_text('고르게 나타났어요')
+    assert page.evaluate('JSON.stringify(summaryFixture)===summaryOriginal')

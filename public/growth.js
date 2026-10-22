@@ -17,10 +17,13 @@ window.growthReport=(host,report,cycle,train,recheck,additional,readOnly=false,e
  const internal=report.internal_skill;if(internal){const summary=node(host,'section',null,'card internal-skill');node(summary,'h2',internal.label);node(summary,'strong',internal.score==null?'추가 확인 필요':`${internal.score} / 3000`);node(summary,'p',internal.note);node(summary,'p',`유효 ${internal.observed}문항 · 미확정 ${internal.unresolved}문항 · 가능한 값 ${internal.bounds.join('–')}`);if(internal.range)node(summary,'p',`문항 표본 참고 범위 ${internal.range.join('–')} · 교정된 실력 신뢰구간이 아닙니다.`);}
  const intro=node(host,'section',null,'card growth-intro');node(intro,'span','나의 분야별 실력','tag');node(intro,'h2','잘한 부분을 살리고, 다음 수를 연습해요');
  node(intro,'p',(report.diagnostic_scope?'선택한 분야·기술만 관찰합니다. 종합 점수가 아닙니다. ':'균형 24문항은 분야별 4문항의 관찰입니다. ')+ ' 검증된 종합 실력 검사가 아니며, 심리적 원인을 추정하지 않습니다.','notice');
- node(intro,'p',report.insights?.message||'이번에 관찰한 수행을 확인하세요.');
+ const comparableAreas=(report.areas||[]).filter(a=>Number.isFinite(a.performance?.score)&&a.performance.comparable===true);
+ const comparisonReady=comparableAreas.length>=2, equalScores=comparisonReady&&new Set(comparableAreas.map(a=>a.performance.score)).size===1;
+ const comparisonNote=!comparisonReady?'분야 간 비교 근거가 부족합니다. 추가 진단이 필요하며 미측정 분야는 약점이나 균형 잡힌 실력으로 해석하지 않습니다.':equalScores?`비교 조건을 충족한 ${comparableAreas.length}개 분야의 이번 점수가 같습니다. 미측정 분야와 전체 실력의 균형은 알 수 없습니다.`:'이번에 관찰한 수행과 추가로 확인할 분야를 살펴보세요.';
+ node(intro,'p',!comparisonReady||report.insights?.balanced?comparisonNote:(report.insights?.message||comparisonNote));
  const strengths=report.insights?.strengths||[],priorities=report.insights?.priorities||[];
  const insights=node(intro,'div',null,'growth-insights');
- for(const [title,list,empty] of [['잘한 부분',strengths,'아직 완주한 수순이 적어요. 첫 수를 찾은 경험부터 쌓아 봐요.'],['먼저 연습할 부분',priorities,'뚜렷한 차이보다 고르게 확인할 부분이 보여요. 추천 과제로 함께 연습해요.']]){const box=node(insights,'div');node(box,'h3',title);if(!list.length)node(box,'p',empty);for(const a of list.slice(0,2)){node(box,'strong',labels[a.id]||a.label);node(box,'p',a.reason.split('。')[0].split('. ')[0]);}}
+ for(const [title,list,empty] of [['잘한 부분',strengths,'아직 완주한 수순이 적어요. 첫 수를 찾은 경험부터 쌓아 봐요.'],['먼저 연습할 부분',priorities,comparisonNote]]){const box=node(insights,'div');node(box,'h3',title);if(!list.length)node(box,'p',empty);for(const a of list.slice(0,2)){node(box,'strong',labels[a.id]||a.label);node(box,'p',a.reason.split('。')[0].split('. ')[0]);}}
  const abilities=node(host,'section',null,'card growth-abilities');node(abilities,'h3','분야별 수행 요약');node(abilities,'p',report.score_version==='skill-index-v1'?'새 전체 수순 수행: 1–3000. 기초 40%·응용 60%. 부분수행은 피드백으로 보존하고 미확정 문항은 0점으로 만들지 않습니다.':'이전 방식의 0–100 수행도입니다. 새 1–3000 지표와 직접 비교하지 않습니다.','subtle');
  if(report.score_version==='skill-index-v1')radar(abilities,report);
  const grid=node(abilities,'div',null,'ability-grid');

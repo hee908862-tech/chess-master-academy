@@ -91,5 +91,5 @@ function renderEntryOffer(){entryOffer.replaceChildren();entryOffer.hidden=!requ
  b.disabled=busy||needsRefresh||(!active&&requestedEntry!=='gentle'&&!!(state?.cycle&&!state.cycle.unlocked));
 }
 function openEntry(mode='gentle'){if(owner!==token)clear();requestedEntry=mode;tab('diagnosis');renderEntryOffer();window.cmaDiagnosticChoice?.legacy();entryOffer.scrollIntoView({block:'start'});}
-window.cmaJourney={status:()=>({busy,needsRefresh}),load,open,openEntry,startScoped:start,recheck:area=>start('recheck',area)};load();
+window.cmaJourney={resumeRoute:()=>owner===token&&session&&session.phase!=='complete'&&['balanced','domain','subskill'].includes(session.starting_conditions?.mode)?'diagnosis/'+session.starting_conditions.mode:null,status:()=>({busy,needsRefresh}),load,open,openEntry,startScoped:start,recheck:area=>start('recheck',area)};load();
 })();

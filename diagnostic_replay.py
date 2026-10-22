@@ -89,20 +89,37 @@ def position_facts(board, moved_square=None):
 def evaluate_frame(fen, path):
     """Explicit read-only request, bounded shared engine admission; never used to grade."""
     import chess.engine
+    import logging
+    import time
     from pathlib import Path
     from engine_budget import open_engine, EngineBusy
     board=chess.Board(fen)
     if board.is_checkmate():return {'status':'mate','winner':'black' if board.turn else 'white','basis':'합법 수 검사 · 체크메이트'}
     if board.is_stalemate():return {'status':'draw','cp_white':0,'basis':'합법 수 검사 · 스테일메이트'}
     if not path or not Path(path).is_file():return {'status':'unavailable','reason':'분석 엔진을 사용할 수 없습니다.'}
+    timings={};started=time.monotonic();stage='startup';status='failed';error_type=None
     try:
-        with open_engine(path,timeout=3) as engine:
+        # UCI initialization is separate from the 0.2-second search budget.
+        with open_engine(path,timeout=8,timings=timings) as engine:
+            stage='configure';t=time.monotonic()
             engine.configure({'Threads':1,'Hash':16})
-            info=engine.analyse(board,chess.engine.Limit(time=.2,depth=14))
+            timings['configure_ms']=round((time.monotonic()-t)*1000,3)
+            stage='analysis';t=time.monotonic()
+            try:info=engine.analyse(board,chess.engine.Limit(time=.2,depth=14))
+            finally:timings['analysis_ms']=round((time.monotonic()-t)*1000,3)
+            stage='score'
             score=info['score'].white();depth=info.get('depth',0)
-            basis=f"{engine.id.get('name','Stockfish')} · 깊이 {depth} · 최대 0.2초/14깊이 · 백 기준 · 짧은 탐색, 확정 승률 아님"
+            basis=f"{engine.id.get('name','Stockfish')} · 깊이 {depth} · 탐색 예산 0.2초/14깊이 (엔진 준비·통신 별도) · 백 기준 · 짧은 탐색, 확정 승률 아님"
+            status='unavailable' if depth<10 else 'mate' if score.is_mate() else 'analysed'
             if depth<10:return {'status':'unavailable','reason':'탐색 깊이가 부족하여 우세를 표시하지 않습니다.','basis':basis}
             return {'status':'mate' if score.is_mate() else 'analysed','cp_white':score.score(),'mate_white':score.mate(),'basis':basis}
-    except EngineBusy:return {'status':'busy','reason':'다른 분석 중입니다. 잠시 뒤 이 위치만 다시 분석하세요.'}
-    except (chess.engine.EngineError,TimeoutError,OSError,ValueError,KeyError):
-        return {'status':'failed','reason':'분석을 마치지 못했습니다. 대등으로 해석하지 않습니다. 다시 시도할 수 있습니다.'}
+    except EngineBusy:
+        status='busy'
+        return {'status':'busy','reason':'다른 분석 중입니다. 잠시 뒤 이 위치만 다시 분석하세요.'}
+    except (chess.engine.EngineError,TimeoutError,OSError,ValueError,KeyError) as exc:
+        status='failed';stage=getattr(exc,'engine_failure_stage',stage);error_type=type(exc).__name__
+        return {'status':'failed','reason':'분석을 마치지 못했습니다. 대등으로 해석하지 않습니다. 다시 시도할 수 있습니다.','failure_stage':stage}
+    finally:
+        timings['total_ms']=round((time.monotonic()-started)*1000,3)
+        # No identity, position, credentials or arbitrary exception text.
+        logging.getLogger('uvicorn.error').info('replay_engine status=%s stage=%s error_type=%s timings_ms=%s',status,stage,error_type,timings)
