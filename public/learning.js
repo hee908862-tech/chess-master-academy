@@ -174,7 +174,7 @@
   async function click(square){if(needsRefresh)return;
     if(busy||!task||task.done||playbackIndex>=0)return;
     const options=task.legal.filter(u=>u.slice(0,2)===selected&&u.slice(2,4)===square);
-    if(!options.length){selected=task.legal.some(u=>u.slice(0,2)===square)?square:null;render();return;}
+    if(!options.length){if(selected===square){selected=null;render();return;}selected=task.legal.some(u=>u.slice(0,2)===square)?square:null;render();return;}
     let move=options[0];
     if(options.length>1){const identity=task;busy=true;lockControls();try{const promotion=await choosePromotion(selected,square,fromFen(task.fen)[selected],task.legal);if(!promotion||identity!==task||!$('training').classList.contains('active'))return;move=options.find(u=>u[4]===promotion); }finally{busy=false;lockControls();}}
     if(move)await act('move',move);

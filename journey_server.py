@@ -91,8 +91,9 @@ def inventory():
 
 
 class Start(BaseModel):
-    mode: Literal['basic','targeted','recheck','balanced','quick','entry','gentle'] = 'basic'
+    mode: Literal['basic','targeted','recheck','balanced','quick','entry','gentle','domain','subskill'] = 'basic'
     competency: str | None = None
+    topic: str | None = None
 
 
 class Action(BaseModel):
@@ -225,6 +226,11 @@ def attach_journey(app, ns):
         if not item:raise HTTPException(404,'이 계정의 진단 문항이 없습니다.')
         return replay_snapshot(item)
 
+    @app.get('/api/journey/blueprint')
+    def blueprint():
+        from diagnostic_blueprint import catalog
+        return catalog(inventory())
+
     @app.post('/api/journey/start')
     def start(body:Start, authorization: str | None = Header(default=None)):
         code=auth(authorization)
@@ -250,6 +256,11 @@ def attach_journey(app, ns):
             raise HTTPException(409,cycle['message'])
         if body.mode not in ('basic','gentle',*MODES) and (body.competency not in COMPETENCIES or not COMPETENCIES[body.competency]['measured']):
             raise HTTPException(409,'검증된 자료가 없는 영역은 측정하지 않습니다.')
+        from diagnostic_blueprint import TOPICS
+        if body.mode=='subskill' and body.topic not in TOPICS.get(body.competency,{}):
+            raise HTTPException(422,'지원하는 분야와 하위 기술을 선택하세요.')
+        if body.mode!='subskill' and body.topic is not None:
+            raise HTTPException(422,'하위 기술은 분야별 부분 진단에서만 선택하세요.')
         if body.mode=='recheck':
             gate=recheck_gate(learning,body.competency,now())
             if not gate['eligible']:raise HTTPException(409,gate['reason'])
@@ -263,8 +274,8 @@ def attach_journey(app, ns):
             area=next((a for a in previous['areas'] if a['id']==body.competency),{})
             focused_band=(1800,2400) if area.get('full_success',0)>=2 else (900,1500) if area.get('first_success',0) else (600,1200)
         for c in (list(pools) if body.mode in ('basic','gentle',*MODES) else [body.competency]):
-            for lo,hi in ([(600,1000)] if body.mode=='gentle' else [(600,1200),(1200,1800)]*(2 if body.mode=='balanced' else 1) if body.mode in ('basic','gentle',*MODES) else [focused_band or additional_plan(state['results'],c,measurement_scope)['band']]*3):
-                choices=[p for p in pools[c] if p['puzzle_id'] not in ids and lo<=p['rating']<hi and (body.mode!='gentle' or len(p['line'])<=5) and not positions.intersection(footprint(p))]
+            for lo,hi in ([(600,1000)] if body.mode=='gentle' else [(600,1200),(1200,1800)]*(2 if body.mode=='balanced' else 1) if body.mode in ('basic','gentle',*MODES) else [(600,1200),(1200,1800)]*(4 if body.mode=='domain' else 2) if body.mode in ('domain','subskill') else [focused_band or additional_plan(state['results'],c,measurement_scope)['band']]*3):
+                choices=[p for p in pools[c] if p['puzzle_id'] not in ids and lo<=p['rating']<hi and (body.mode!='subskill' or body.topic in p['tags']) and (body.mode!='gentle' or len(p['line'])<=5) and not positions.intersection(footprint(p))]
                 if not choices: continue
                 p=copy.deepcopy(secrets.choice(choices)); p.update(id=secrets.token_hex(8),competency=c,band=[lo,hi],independent=not uncertain,app_new=True,prior_exposure_unknown=True,legacy_exposure_unknown=uncertain,helped=False,first_attempt=True)
                 ids.add(p['puzzle_id']); positions.add(key(p['fen'])); items.append(p)
@@ -273,12 +284,20 @@ def attach_journey(app, ns):
                     board.push_uci(uci); positions.add(key(board.fen()))
         if body.mode in MODES and len(items)!=(24 if body.mode=='balanced' else 12):
             raise HTTPException(409,'균형 있게 확인할 새 문제가 부족합니다. 저장된 결과와 훈련은 유지되며 분야별 추가 확인을 이용할 수 있어요.')
+        if body.mode in ('domain','subskill') and len(items)!=(8 if body.mode=='domain' else 4):
+            raise HTTPException(409,'선택한 범위의 미노출 기초·응용 문제가 부족합니다. 기존 기록은 유지됩니다. 다른 주제를 선택하세요.')
         if not items: raise HTTPException(409,'조건에 맞는 미노출 국면이 없습니다. 기존 훈련을 이용하세요.')
         if body.mode in MODES:secrets.SystemRandom().shuffle(items)
         s={'session_id':secrets.token_hex(16),'revision':0,'version':'journey-v4' if body.mode in MODES else 'journey-entry-v1' if body.mode=='gentle' else JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':measurement_scope,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
         s['starting_conditions']={'self_choice':starting.get('choice','unselected'),'mode':body.mode,'assessment_scope':'full_line','bands':sorted({tuple(i['band']) for i in items}),'helped':False}
         if body.mode in MODES:s['corpus_sha256']=hashlib.sha256(DATA_FILE.read_bytes()).hexdigest()
         if body.mode in MODES:s['scoring_version']=SKILL_VERSION
+        if body.mode in ('domain','subskill'):
+            from diagnostic_blueprint import VERSION as BLUEPRINT_VERSION
+            s['version']=BLUEPRINT_VERSION
+            s['scoring_version']=SKILL_VERSION
+            s['corpus_sha256']=hashlib.sha256(DATA_FILE.read_bytes()).hexdigest()
+            s['diagnostic_scope']={'level':body.mode,'competency':body.competency,'topic':body.topic}
         begin_item(s); state['active']=s
         for item in items:
             board=chess.Board(item['fen'])

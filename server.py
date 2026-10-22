@@ -92,6 +92,7 @@ def execute(conn,query,args=()):
 
 def initdb():
  with db() as c:
+  execute(c,'CREATE TABLE IF NOT EXISTS guest_links (guest_code TEXT PRIMARY KEY, owner_code TEXT NOT NULL, linked_at INTEGER NOT NULL)')
   execute(c,'CREATE TABLE IF NOT EXISTS accounts (code TEXT PRIMARY KEY, pin_hash TEXT NOT NULL, salt TEXT NOT NULL, created TEXT NOT NULL)')
   execute(c,'CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, code TEXT NOT NULL, created INTEGER NOT NULL)')
   execute(c,'CREATE TABLE IF NOT EXISTS account_generations (code TEXT PRIMARY KEY, generation INTEGER NOT NULL)')
@@ -186,6 +187,8 @@ def auth(authorization):
  with db() as c:
   r=execute(c,'SELECT code FROM sessions WHERE token_hash=?',(hashlib.sha256(token.encode()).hexdigest(),)).fetchone()
  if not r:raise HTTPException(401,'로그인이 만료됐습니다.')
+ from guest_access import guest_limit
+ guest_limit(r['code'])
  return r['code']
 
 def issue_token(code):
@@ -299,7 +302,7 @@ def ai_move(board,level=5):
 
 def serialize_board(board,player_color='white'):
  positions={chess.square_name(s):p.symbol() for s,p in board.piece_map().items()}
- return {'fen':board.fen(),'turn':'white' if board.turn else 'black','squares':positions,'legal':[{'from':chess.square_name(m.from_square),'to':chess.square_name(m.to_square),'promotion':chess.piece_symbol(m.promotion) if m.promotion else None} for m in board.legal_moves] if board.turn==(chess.WHITE if player_color=='white' else chess.BLACK) else [],'is_over':board.is_game_over(claim_draw=True),'result':board.result(claim_draw=True),'check':board.is_check(),'last_move':board.peek().uci() if board.move_stack else None,'ply':len(board.move_stack)}
+ return {'fen':board.fen(),'turn':'white' if board.turn else 'black','squares':positions,'legal':[{'from':chess.square_name(m.from_square),'to':chess.square_name(m.to_square),'promotion':chess.piece_symbol(m.promotion) if m.promotion else None} for m in board.legal_moves] if board.turn==(chess.WHITE if player_color=='white' else chess.BLACK) else [],'is_over':board.is_game_over(claim_draw=True),'result':board.result(claim_draw=True),'check':board.is_check(),'checkmate':board.is_checkmate(),'stalemate':board.is_stalemate(),'mate_explanation':__import__('mate_explanation').explain_mate(board) if board.is_checkmate() else None,'last_move':board.peek().uci() if board.move_stack else None,'ply':len(board.move_stack)}
 
 def reconstruct(game):
  b=chess.Board()
@@ -1280,3 +1283,6 @@ attach_repertoire(app, globals())
 
 from education_server import attach_education
 attach_education(app, globals())
+
+from guest_access import attach_guests
+attach_guests(app, globals())
