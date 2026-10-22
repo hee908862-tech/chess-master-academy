@@ -3,7 +3,7 @@
 .first-entry>button{min-height:52px;text-align:left;white-space:normal}
 .first-entry #firstTry{font-size:19px;padding:18px}
 #entryChoices{display:grid;gap:10px}#entryChoices[hidden]{display:none}
-body.entry-guest #home>:not(#firstEntry):not(#homeBasics):not(#academyTry):not(#guestAccess):not(.feature-toolbar){display:none!important}
+body.entry-guest #home>:not(#firstEntry):not(#homeBasics):not(#academyTry):not(#guestAccess):not(#flowFreeExamples):not(#flowSavedActivities):not(#homeNextAction):not(.feature-toolbar){display:none!important}
 body.entry-guest #onboardingInvitation,body.entry-trial #onboardingInvitation{display:none!important}
 #home .hero-grid .eyebrow{display:none}
 #rookTrial{gap:10px}#rookTrial .feature-toolbar h2{font-size:22px;margin:0}

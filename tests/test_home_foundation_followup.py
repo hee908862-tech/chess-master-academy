@@ -29,17 +29,23 @@ def test_home_label_destination_and_no_mutation(page,site,width,progress):
     before=api('/foundations');diagnosis=api('/journey');me=api('/me')
     page.evaluate("tab('home')")
     label={'new':'기초 배우기 시작','active':'이어서 배우기','between':'이어서 배우기','complete':'기초 복습하기','review':'이어서 배우기'}[progress]
+    if not page.locator('#flowSavedActivities').evaluate('(e)=>e.open'):page.locator('#flowSavedActivities > summary').click()
     expect(page.locator('#homeBasicsOpen')).to_have_text(label)
-    page.reload();expect(page.locator('#homeBasicsOpen')).to_have_text(label)
+    page.reload();page.locator('#flowSavedActivities > summary').click();expect(page.locator('#homeBasicsOpen')).to_have_text(label)
     writes=[];page.on('request',lambda r:writes.append(r.url) if r.method not in ('GET','HEAD') else None)
     page.locator('#homeBasicsOpen').click()
-    expect(page).to_have_url(__import__('re').compile('#learn/basics'+('/practice' if progress in ('active','review') else '')+'$'))
-    if progress in ('active','review'):expect(page.locator('#foundationWorkspace')).to_be_visible()
+    expect(page).to_have_url(__import__('re').compile('#learn/basics'+('/practice' if progress!='complete' else '')+'$'))
+    if progress!='complete':expect(page.locator('#foundationWorkspace')).to_be_visible()
     elif progress=='complete':
         expect(page.locator('#foundationCourseList')).to_be_visible()
         expect(page.locator('#foundationCards').get_by_role('button',name='다시 복습',exact=True)).to_have_count(10)
         expect(page.locator('#foundationWorkspace')).to_be_hidden()
     else:expect(page.locator('#foundationPrimary')).to_be_visible()
-    assert api('/foundations')==before and api('/journey')==diagnosis and api('/me')==me
-    assert writes==[]
+    after=api('/foundations')
+    assert api('/journey')==diagnosis and api('/me')==me
+    if progress in ('new','between'):
+        assert after['completed']==before['completed'] and after['active']['step']==0
+        assert len(writes)==1 and writes[0].endswith('/foundations/action')
+    else:
+        assert after==before and writes==[]
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')

@@ -1,0 +1,14 @@
+{
+  "baseline": "9c272ad1f4841ea8bf1673aed1c27321178a2af8",
+  "unique_passed": 128,
+  "suite_counts": {
+    "core": 29,
+    "regression": 72,
+    "security": 6,
+    "layout": 18,
+    "scope": 1,
+    "opening": 2
+  },
+  "skipped": 0,
+  "operational_interactive": "unverified"
+}
