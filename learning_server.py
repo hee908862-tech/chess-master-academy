@@ -418,7 +418,7 @@ def attach_learning(app, ns):
                 'board_explanation':learning_facts(card,s), 'played_moves':s.get('moves',[])[-2:], 'opponent_last_move': s.get('opponent_last_move'), 'hint_level': s['hints'],
                 'context': card.get('context', '직전 위치 기록이 없어 변화의 의미를 추측하지 않습니다.'),
                 'explanation': s.get('explanation'), 'playback': s.get('playback', []),
-                'learning_link':None if verify and not s['done'] else copy.deepcopy(link), 'growth_task':s.get('growth_task'), 'outcome': s.get('outcome'), 'selection': None if verify and not s['done'] else s.get('selection'), 'path_id': s.get('path_id'), 'premove': False}
+                'learning_link':None if verify and not s['done'] else copy.deepcopy(link), 'growth_task':s.get('growth_task'), 'scoped_task':copy.deepcopy(s.get('scoped_task')), 'outcome': s.get('outcome'), 'selection': None if verify and not s['done'] else s.get('selection'), 'path_id': s.get('path_id'), 'premove': False}
 
     def finish(state, s, success):
         if s['done']: return
@@ -500,7 +500,7 @@ def attach_learning(app, ns):
         return {'competency_version': COMPETENCY_VERSION, 'due': due[:50], 'due_count':len(due), 'cards': [public_card(c) for c in list(state['cards'].values())[::-1][offset:offset+50]][::-1],
                 'cards_total':len(state['cards']), 'cards_next':offset+50 if offset+50<len(state['cards']) else None,
                 'attempts': state['attempts'][-50:][::-1], 'skills': skills, 'intervals': state['intervals'],
-                'active': payload(state), 'paused':[payload({**state,'active':v}) for v in state.get('paused',{}).values()], 'path': public_path(state), 'recommended': weakest['id'] if weakest else None,
+                'scoped_completed':copy.deepcopy(state.get('scoped_completed',[])), 'active': payload(state), 'paused':[payload({**state,'active':v}) for v in state.get('paused',{}).values()], 'path': public_path(state), 'recommended': weakest['id'] if weakest else None,
                 'reason': '최근 풀이에서 끝까지 잇지 못한 수순을 먼저 연습해요.' if weakest else '아직 뚜렷한 차이가 없어요. 새로운 문제로 여러 분야를 고르게 연습해 보세요.',
                 'engine': bool(ns['STOCKFISH_PATH'] and Path(ns['STOCKFISH_PATH']).is_file()),
                 'notice': '공통 역량 이름을 사용하지만 이 지도는 훈련 기록입니다. 성공률과 추천은 같은 버전·같은 측정 범위 안에서만 계산합니다. 구형·미기록 버전과 첫 수 판단은 별도 참고이며 전체 수순 근거로 합산하지 않습니다. 각 비교 구간에 독립 국면 5개가 없으면 추세를 표시하지 않습니다. 미출제는 기록된 문제 ID와 전체 원본 수순의 국면 기준이며, 식별 기록이 없는 과거·외부 노출까지 보장하지 않습니다. 기존 진단·대국 통계는 기록 메뉴에 보존됩니다. 실제 레이팅이 아닙니다.'}

@@ -6,6 +6,12 @@ import pytest
 from playwright.sync_api import sync_playwright, expect
 from test_qa_browser import site
 
+def load_review(page):
+    if not page.locator('#reviewSelection').evaluate('(e)=>e.open'):
+        page.locator('#reviewSelection > summary').click()
+    page.locator('#reviewLoad').click()
+
+
 @pytest.mark.parametrize('width,height',[(1440,1000),(390,844)])
 def test_hint_undo_review_and_reload(site,width,height):
     code='HELP-'+secrets.token_hex(4)
@@ -33,7 +39,7 @@ def test_hint_undo_review_and_reload(site,width,height):
         page.evaluate("api('/game/resign','POST')")
         page.evaluate("tab('review')")
         expect(page.locator('#reviewGameSelect')).to_have_value('0')
-        page.locator('#reviewLoad').click()
+        load_review(page)
         first=page.locator('.review-move').first
         expect(first).to_contain_text('힌트 채택')
         expect(first).to_contain_text('무르기 후 재착수')
@@ -41,7 +47,7 @@ def test_hint_undo_review_and_reload(site,width,height):
         expect(page.locator('#reviewStatus')).to_contain_text('힌트 채택 · 무르기 후 재착수')
         page.reload();page.evaluate("tab('review')")
         expect(page.locator('#reviewGameSelect')).to_have_value('0')
-        page.locator('#reviewLoad').click()
+        load_review(page)
         expect(page.locator('.review-move').first).to_contain_text('무르기 후 재착수')
         page.locator('.review-move').first.click()
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
@@ -59,12 +65,12 @@ def test_different_move_and_legacy_labels(site):
         row={'ply':1,'side':'백','uci':'d2d4','san':'d4','before_fen':START,'after_fen':START,'category':'미평가','centipawn_loss':0,'comment':'fixture','source':'fixture','assistance':{'known':True,'hint_viewed':True,'hint_adopted':False,'undo_replayed':False}}
         data={'color':'white','moves':[row],'hint_plies':[1]}
         page.route('**/api/games/review/0',lambda r:r.fulfill(json=data))
-        page.goto(site[0]);page.evaluate("tab('review')");page.locator('#reviewLoad').click()
+        page.goto(site[0]);page.evaluate("tab('review')");load_review(page)
         expect(page.locator('.review-move').first).to_contain_text('힌트 제공 · 다른 수')
         assert page.locator('.review-move.undo-assisted').count()==0
         row.pop('assistance')
         expect(page.locator('#reviewGameSelect')).to_have_value('0')
-        page.locator('#reviewLoad').click()
+        load_review(page)
         expect(page.locator('.review-move').first).to_contain_text('도움 기록 없음')
         assert page.locator('.review-move.hint-assisted').count()==0
         page.locator('.review-move').first.click()

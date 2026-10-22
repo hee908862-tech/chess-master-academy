@@ -31,3 +31,10 @@ body.entry-guest #home>#flowFreeExamples,body.entry-guest #home>#flowSavedActivi
 #activityFlowError{min-height:1.5em}
 @media(max-width:700px){.diagnostic-options{grid-template-columns:minmax(0,1fr)}.diagnostic-options article{padding:10px}.diagnostic-options p{margin:4px 0}#diagnosticBlueprint select{width:100%;max-width:100%}#flowActivityChoices .btn-row{display:grid;grid-template-columns:minmax(0,1fr)}.flow-disclosure .btn,.flow-recommendation .btn{white-space:normal;max-width:100%}}
 @media(min-width:851px){#openingStudy .study-layout{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}#studyOpeningBoard{max-width:min(480px,max(280px,calc(100dvh - 260px)))}}
+
+/* Comparison cards are the selector: visible state and keyboard-native buttons. */
+.diagnostic-choice{display:flex;flex-direction:column;gap:8px;padding:14px;text-align:left;white-space:normal;border:2px solid var(--line);border-radius:12px;background:var(--panel,#18232e);color:inherit;font:inherit;cursor:pointer;min-width:0;overflow-wrap:anywhere}
+.diagnostic-choice[aria-pressed="true"]{border-color:var(--accent,#72d6b0)}
+.diagnostic-choice:focus-visible{outline:3px solid var(--accent,#72d6b0);outline-offset:3px}
+.diagnostic-choice strong{font-size:18px}.diagnostic-choice span{font-size:14px;line-height:1.5}.diagnostic-choice .scope-selected{font-weight:700;margin-top:auto}
+#diagnosticBlueprint select[hidden]{display:none!important}

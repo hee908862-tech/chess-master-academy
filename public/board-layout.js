@@ -4,7 +4,7 @@ function install(){const $=id=>document.getElementById(id);
  $('training').querySelector('.learning-layout').after($('learningSaved'));$('training').querySelector('.feature-toolbar').append($('learningRefresh'));
  const setup=$('learningFresh').closest('.card');setup.id='learningSetup';const trainingLayout=$('training').querySelector('.learning-layout');let trainingActive=null;window.cmaBoardLayout={training(active){if(trainingActive===active)return;trainingActive=active;if(active){trainingLayout.after(setup,$('trainingCycle'));}else{trainingLayout.before($('trainingCycle'),setup);}}};window.cmaBoardLayout.training(!!$('learningBoard').children.length);
  const learning=$('learningBoard');learning.after($('learningControls'),$('learningMessage'),$('learningGoal'),$('learningLink'));
- const journey=$('journeyBoard');journey.after($('journeyGoal'));const actions=$('journeyNext').parentElement;journey.after(actions);
+ const journey=$('journeyBoard');journey.before($('journeyGoal'));const actions=$('journeyNext').parentElement;journey.after(actions);
  // Put optional repertoire introduction after the currently selected opening board.
  const repertoire=$('repertoire');if(repertoire&&$('openingStudy'))$('openingStudy').after(repertoire);
  const tools=$('studyTools');$('studyOpeningBoard').after(tools);tools.after($('studySaveStatus'));

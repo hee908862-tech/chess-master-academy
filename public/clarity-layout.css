@@ -1,0 +1,24 @@
+/* Shared spacing and state readability. Natural scrolling; never shrink pieces to fit. */
+#diagnosis>.feature-toolbar>span,#review>.feature-toolbar>span,#puzzle>.feature-toolbar>span,#opening>.feature-toolbar>span,#play>.feature-toolbar>span{display:none}
+.feature-toolbar{justify-content:flex-end;gap:8px}
+.view summary{cursor:pointer;min-height:44px;padding-block:10px;line-height:1.45}
+.view .btn{white-space:normal;overflow-wrap:anywhere;min-height:44px}
+.view button:focus-visible,.view summary:focus-visible,.view select:focus-visible{outline:3px solid var(--accent,#80a6ff);outline-offset:3px}
+#diagnosticChoiceDescription{min-height:0;margin:12px 0;line-height:1.55}
+#diagnosticBegin{margin:0 0 8px}
+#trainingTaskBrief{background:none;border:0;padding:0;min-height:0;margin:0 0 12px}
+#trainingTaskBrief strong{font-size:16px}#trainingTaskBrief p{font-size:16px;line-height:1.55}
+#journeyGoal{line-height:1.55;margin:8px 0 12px}
+#reviewSelection{margin:8px 0 16px}#reviewSelection>.row{gap:8px}
+#reviewReasonBrief{min-height:3em;white-space:pre-line;overflow-wrap:anywhere}
+#reviewOriginal[hidden],#learningOriginalExplanation[hidden]{display:none}
+#review .board-panel[hidden],#review .row[hidden]{display:none!important}
+#learningPlainExplanation{white-space:pre-line;line-height:1.6;overflow-wrap:anywhere}
+#academyHub button{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left}#academyHub button span{font-weight:400}
+.clarity-records{margin:12px 0}
+#profileSections{gap:8px}#profileSettings label{line-height:1.5}
+@media(max-width:850px){#review .two{grid-template-columns:minmax(0,1fr)}#reviewSelection select{width:100%;max-width:100%}.diagnostic-choice{padding:12px}.view .notice{overflow-wrap:anywhere}}
+
+#diagnosis>.feature-toolbar{flex-wrap:wrap}#diagnosis>.feature-toolbar h2{margin:0;margin-right:auto;font-size:20px}
+
+#gameSettings>.subtle{margin:6px 0}
