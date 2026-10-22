@@ -646,7 +646,14 @@ def complete_lesson_disabled():
 @app.get('/api/health')
 def health():return {'ok':True,'engine':'stockfish' if STOCKFISH_PATH and Path(STOCKFISH_PATH).exists() else 'fallback'}
 
-app.mount('/assets',StaticFiles(directory=str(ROOT/'public')),name='assets')
+class RevalidatedStaticFiles(StaticFiles):
+    async def get_response(self,path,scope):
+        response=await super().get_response(path,scope)
+        # Revalidate on the next navigation; never reload an active game/session.
+        response.headers['Cache-Control']='no-cache'
+        return response
+
+app.mount('/assets',RevalidatedStaticFiles(directory=str(ROOT/'public')),name='assets')
 @app.get('/favicon.ico')
 def favicon_ico():return FileResponse(ROOT/'public'/'favicon.svg',media_type='image/svg+xml')
 
@@ -654,7 +661,7 @@ def favicon_ico():return FileResponse(ROOT/'public'/'favicon.svg',media_type='im
 def favicon():return FileResponse(ROOT/'public'/'favicon.svg',media_type='image/svg+xml')
 
 @app.get('/')
-def index():return FileResponse(ROOT/'public'/'index.html')
+def index():return FileResponse(ROOT/'public'/'index.html',headers={'Cache-Control':'no-cache'})
 
 # ===== V3 guided scenarios and multi-domain assessment =====
 from assessment_v3 import exam_bank, DOMAINS
