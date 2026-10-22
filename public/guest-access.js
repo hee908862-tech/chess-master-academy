@@ -12,7 +12,7 @@ async function enter(destination){if(busy)return;busy=true;status.textContent='�
  status.textContent='기록을 확인했습니다. 각 착수의 판정·저장 결과를 확인해 주세요.';tab(destination);
  }catch(e){status.textContent=e.message+' 기존 기록은 지우지 않았습니다.';}finally{busy=false;}}
 const actions=make(box,'div','');actions.className='btn-row';for(const [title,view]of [['기초 배우기','learn'],['일반 퍼즐·훈련','training'],['오프닝 학습','opening'],['AI 대국','play'],['실력 진단','diagnosis']]){const b=make(actions,'button',title);b.className='btn';b.onclick=()=>enter(view);}
-const profile=make($('profile'),'section','');profile.className='card';make(profile,'h3','브라우저 기록과 계정 기록');
+const profile=make($('profile'),'section','');profile.id='guestAccountAccess';profile.className='card';make(profile,'h3','브라우저 기록과 계정 기록');
 const msg=make(profile,'p','연결은 별도 보관입니다. 기존 계정의 점수·기보·진행 중 세션을 덮어쓰거나 합산하지 않습니다.');msg.setAttribute('role','status');
 const guestStart=make(profile,'button','로그인 없이 전체 기능 시작');guestStart.className='btn';guestStart.onclick=()=>enter(loginDestination||'home');
 const connect=make(profile,'button','이 브라우저의 게스트 기록을 계정에 별도 연결');connect.className='btn';connect.onclick=async()=>{if(busy)return;const guest=localStorage.getItem('cma_guest_token'),account=localStorage.getItem('chess_token');if(!guest||!account||token!==account){msg.textContent='계정에 로그인한 뒤 연결하세요. 현재 게스트 기록은 유지됩니다.';return;}busy=true;connect.disabled=true;try{const r=await api('/guest/link','POST',{guest_token:guest});msg.textContent=r.message;await links();}catch(e){msg.textContent=e.message;}finally{busy=false;connect.disabled=false;}};

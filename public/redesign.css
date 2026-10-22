@@ -18,3 +18,5 @@
 @media(prefers-reduced-motion:reduce){.board *, .drag-ghost{scroll-behavior:auto!important}}
 /* The legacy first-visit gate hides unlisted home children; full access must be listed. */
 body.entry-guest #home>#guestAccess{display:block!important}
+
+body.entry-login #profile>#guestAccountAccess{display:block!important;max-width:640px}
