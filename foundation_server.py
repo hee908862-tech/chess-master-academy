@@ -3,6 +3,7 @@ import copy
 from datetime import datetime, timezone
 from typing import Literal
 import chess
+from diagnostic_replay import position_facts
 from fastapi import Header, HTTPException
 from pydantic import BaseModel, Field
 from foundation_content import COURSES, BY_ID, CHOICES
@@ -43,9 +44,6 @@ def visual_context(course_id, step_index, step, progress, board):
     if step['kind']=='move' and not solved and ply<len(step['line']):
         u=step['line'][ply]
         arrows.append({'from':u[:2],'to':u[2:4],'kind':'guide','label':'이동 안내: '+u[:2]+' → '+u[2:4]})
-    if step['kind']=='move' and solved and ply:
-        u=step['line'][ply-1]
-        arrows.append({'from':u[:2],'to':u[2:4],'kind':'guide','label':'완료한 이동: '+u[:2]+' → '+u[2:4]+' · 이유는 아래 해설에서 확인'})
     for arrow in arrows:
         source=chess.parse_square(arrow['from']);target=chess.parse_square(arrow['to'])
         if sorted((abs(chess.square_file(source)-chess.square_file(target)),abs(chess.square_rank(source)-chess.square_rank(target))))==[1,2]:
@@ -58,6 +56,9 @@ def visual_context(course_id, step_index, step, progress, board):
                 arrows.append({'from':'a8','to':'a4','kind':'threat','label':'상대 공격: a8 룩 → a4 비숍 (이동 지시 아님)'})
         if step_index==0 and solved and chess.D1 in board.attackers(chess.WHITE,chess.D4):
             arrows.append({'from':'d1','to':'d4','kind':'protect','label':'보호: d1 룩 → d4 나이트 · 무조건 안전하다는 뜻은 아님'})
+    facts=position_facts(board)
+    if course_id in ('king-check','mate-stalemate'):
+        arrows.extend(facts['arrows'])
     checkers=[chess.square_name(q) for q in board.checkers()]
     king=chess.square_name(board.king(board.turn)) if board.is_check() else None
     demonstration=None
@@ -67,7 +68,7 @@ def visual_context(course_id, step_index, step, progress, board):
             demonstration={'label':'교육 예시 · 저장된 실제 대국의 직전 수가 아닙니다','before_fen':before,'move':'d7d5','after_fen':prior.fen()}
     return {'played_moves':step.get('line',[])[:ply][-2:],'fen':board.fen(),'arrows':arrows,'check_king':king,'checkers':checkers,
             'ending':('checkmate' if board.is_checkmate() else 'stalemate' if board.is_stalemate() else None) if solved else None,
-            'demonstration':demonstration}
+            'demonstration':demonstration,'squares':facts['squares'],'king_moves':facts['king_moves'],'responses':facts['responses']}
 
 
 def attach_foundations(app, ns):

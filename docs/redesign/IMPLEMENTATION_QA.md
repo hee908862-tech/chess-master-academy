@@ -65,3 +65,7 @@ See [FOLLOWUP_QA.md](FOLLOWUP_QA.md) for the PR36-baseline reproduction, three U
 ## PR38-baseline whole-app clarity follow-up
 
 See [whole-app survey and QA](../qa-whole-app/README.md) for the screen-by-screen information hierarchy, two real local learning flows, historical-text preservation, initial-load investigation, responsive/keyboard checks and deployment verification. Earlier operating/browser limitations above remain historical; local Chromium and real Stockfish checks must not be confused with operating UI or physical-device validation.
+
+## PR40-baseline visual teaching and evidence follow-up
+
+See [visual teaching / diagnostic evidence QA](../qa-visual-evidence/README.md) for legal attack/protection diagrams, automatic en-passant, separated diagnostic scopes, read-only replay analysis, versioned cumulative evidence and radar comparisons. Prior scores and active sessions remain unchanged; newly exposed broad diagnostic areas use a new measurement condition. Original attached pixels are unavailable in this execution environment; the parent operator will independently compare them after deployment.

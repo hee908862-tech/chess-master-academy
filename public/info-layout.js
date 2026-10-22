@@ -7,7 +7,7 @@ function install(){const $=id=>document.getElementById(id),profile=$('profile'),
  for(const sibling of [...account.children])if(sibling!==guestAccount&&!sibling.contains($('codeField')))info.append(sibling);
  const nav=document.createElement('nav');nav.id='profileSections';nav.className='btn-row';nav.setAttribute('aria-label','내 정보와 설정');toolbar.after(nav);
  for(const node of [...profile.children])if(![toolbar,nav,account,settings,danger].includes(node))info.append(node);
- profile.append(info,settings,account,danger);settings.id='profileSettings';danger.id='profileDataManagement';
+ profile.append(info,settings,account,danger);settings.id='profileSettings';const motion=document.createElement('label'),motionInput=document.createElement('input');motion.className='radar-compare';motionInput.type='checkbox';motionInput.id='reduceBoardMotion';try{motionInput.checked=localStorage.getItem('cma_reduce_motion')==='on';}catch{}motion.append(motionInput,'보드 애니메이션 줄이기 · 기기 설정도 적용');settings.append(motion);motionInput.onchange=()=>{try{localStorage.setItem('cma_reduce_motion',motionInput.checked?'on':'off');}catch{}window.cmaBoardPresentation.cancelAll();};danger.id='profileDataManagement';
  // The old combined heading belongs to account connection, not the growth report.
  const oldIntro=[...info.children].find(n=>n.querySelector?.('h2')?.textContent==='나의 기록 · 계정 연결');if(oldIntro){oldIntro.querySelector('h2').textContent='계정 연결';account.prepend(oldIntro);}
  const buttons=[];

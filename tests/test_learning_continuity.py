@@ -86,7 +86,7 @@ def test_entry_selection_and_reports_cannot_mix_with_balanced_growth(setup):
     assert 'snapshot' not in s['report']
     assert s['report']['starting_conditions']['self_choice'] == 'beginner'
     s = c.post('/api/journey/start', json={'mode': 'entry'}).json()
-    assert s['total'] == 24 and s['version'] == 'journey-v4'
+    assert s['total'] == 24 and s['version'] == 'journey-v5'
     assert s['starting_conditions']['self_choice'] == 'experienced'
     assert {tuple(x['band']) for x in saved(path)['active']['items']} == {(600,1200),(1200,1800)}
 

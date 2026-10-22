@@ -20,12 +20,12 @@ def test_guided_status_save_delay_layout_and_explicit_next(page,site,width):
     page.evaluate("""()=>{const real=api;api=async(...a)=>{const d=await real(...a);if(a[0]==='/foundations/action')return new Promise(r=>window.releaseFoundation=()=>r(d));return d;};}""")
     square(page,'foundationBoard','a1').click();square(page,'foundationBoard','a4').click()
     page.wait_for_function('!!window.releaseFoundation')
-    expect(page.locator('#foundationSave')).to_contain_text('응답 대기')
+    expect(page.locator('#foundationSave')).to_contain_text('확인 중')
     expect(page.locator('#foundationOutcome')).not_to_contain_text('단계 완료')
     assert abs(page.locator('#foundationBoard').bounding_box()['y']-y)<2
     page.evaluate('releaseFoundation()')
     expect(page.locator('#foundationOutcome')).to_contain_text('단계 완료')
-    expect(page.locator('#foundationSave')).to_contain_text('판정·저장 확인됨')
+    expect(page.locator('#foundationSave')).to_contain_text('저장됨')
     expect(page.locator('#foundationStepTitle')).to_contain_text('1/3')
     assert abs(page.locator('#foundationBoard').bounding_box()['y']-y)<2
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
@@ -51,6 +51,7 @@ def test_promotion_picker_selected_piece_goal_and_cancel(page,site,promotion):
 @pytest.mark.parametrize('prior_alternative',[False,True])
 def test_ep_demo_and_overlay_replay_are_read_only(page,site,prior_alternative):
     start(page,site,'en-passant')
+    expect(page.locator('#foundationDemoStart')).to_be_visible()
     if prior_alternative:
         square(page,'foundationBoard','e5').click();square(page,'foundationBoard','e6').click()
         expect(page.locator('#foundationOutcome')).to_contain_text('합법적인 다른 수')
@@ -67,15 +68,15 @@ def test_ep_demo_and_overlay_replay_are_read_only(page,site,prior_alternative):
     expect(page.locator('#foundationOutcome')).not_to_contain_text('직접 두세요')
     expect(page.locator('#foundationFeedback')).to_contain_text('읽기 전용 교육 예시')
     expect(page.locator('#foundationFeedback')).not_to_contain_text('표시된 작은 원')
-    expect(page.locator('#foundationSave')).to_have_text('실제 실습의 저장 상태: '+original_save+' · 시범은 저장하지 않습니다.')
+    expect(page.locator('#foundationSave')).to_have_text('실제 실습: '+original_save+' · 시범은 저장하지 않습니다.')
     expect(page.locator('#foundationVisualLegend')).to_contain_text('교육 예시')
     expect(square(page,'foundationBoard','d7')).to_have_attribute('aria-label','d7 흑 폰')
     page.screenshot(path='/tmp/cma-foundation-feedback-captures/ep-before.png',full_page=True)
-    page.locator('#foundationDemoNext').click();expect(square(page,'foundationBoard','d5')).to_have_attribute('aria-label','d5 흑 폰')
+    expect(square(page,'foundationBoard','d5')).to_have_attribute('aria-label','d5 흑 폰')
     expect(page.locator('#foundationBoard .target, #foundationBoard .capture, #foundationBoard .selected')).to_have_count(0)
     page.screenshot(path='/tmp/cma-foundation-feedback-captures/ep-after.png',full_page=True)
     page.locator('#foundationVisualToggle').click();expect(page.locator('.foundation-arrows')).to_have_count(0)
-    page.locator('#foundationVisualToggle').click();page.locator('#foundationDemoReturn').click()
+    page.locator('#foundationVisualToggle').click();expect(page.locator('#foundationDemoStart')).to_be_visible()
     expect(page.locator('#foundationBoard .target, #foundationBoard .capture, #foundationBoard .selected')).to_have_count(0)
     expect(page.locator('#foundationOutcome')).to_have_text(original_outcome)
     expect(page.locator('#foundationSave')).to_have_text(original_save)
@@ -108,7 +109,7 @@ def test_saved_response_delay_leave_or_account_change_no_followup_or_focus_theft
     else:page.evaluate("tab('home')")
     focused=page.evaluate('document.activeElement.id')
     page.evaluate('releaseSavedFoundation()')
-    expect(page.locator('#home')).to_have_class('view active')
+    expect(page.locator('#home')).to_have_class(re.compile(r'\bactive\b'))
     assert page.evaluate('document.activeElement.id')==focused
     assert page.evaluate('foundationPosts')==1
     if switch_account:
@@ -129,7 +130,7 @@ def test_promotion_leave_cancels_no_submit_and_keeps_destination_focus(page,site
     expect(page.locator('#cmaPromotionModal')).to_be_visible()
     page.evaluate("tab('home')")
     expect(page.locator('#cmaPromotionModal')).not_to_be_visible()
-    expect(page.locator('#home')).to_have_class('view active')
+    expect(page.locator('#home')).to_have_class(re.compile(r'\bactive\b'))
     assert page.evaluate("!document.querySelector('#foundationWorkspace').contains(document.activeElement)")
     assert not writes and page.evaluate("api('/foundations')")==before
 
@@ -173,7 +174,7 @@ def test_actual_protection_threat_and_guidance_layers(page,site):
     page.get_by_role('button',name='다음 단계',exact=True).click()
     expect(page.locator('#foundationVisualLegend')).to_contain_text('상대 공격: a8 룩 → a4 비숍 (이동 지시 아님)')
     expect(page.locator('#foundationVisualLegend')).to_contain_text('a4 → b3')
-    assert page.locator('#foundationBoard line[stroke-dasharray]').count()>0
+    assert page.locator('#foundationBoard path[stroke-dasharray]').count()>0
     page.screenshot(path='/tmp/cma-foundation-feedback-captures/threat-390.png',full_page=True)
     square(page,'foundationBoard','a4').click();square(page,'foundationBoard','b3').click()
     expect(page.locator('#foundationOutcome')).to_contain_text('과정 완료')
