@@ -26,5 +26,5 @@ window.addEventListener('storage',e=>{if(['chess_token','cma_guest_token','cma_l
 const oldTab=tab;tab=function(id){oldTab(id);if(id==='profile')links();};
 // A small acknowledged-response cache is a browser copy, never an authority for grading.
 const oldApi=api;api=async function(path,...args){const identity=token;const r=await oldApi(path,...args);if(identity&&identity===token&&identity===localStorage.getItem('cma_guest_token')&&['/journey','/foundations','/learning','/game'].includes(path)){try{localStorage.setItem('cma_guest_snapshot:'+path,JSON.stringify({at:Date.now(),response:r}));}catch(e){status.textContent='브라우저 사본 저장 공간이 부족합니다. 서버 저장 응답은 별도로 확인하세요.';}}return r;};
-const badge=$('userBadge');new MutationObserver(()=>{if(token&&token===localStorage.getItem('cma_guest_token')&&badge.textContent!=='게스트 · 이 브라우저 기록')badge.textContent='게스트 · 이 브라우저 기록';}).observe(badge,{childList:true});
+const badge=$('userBadge');new MutationObserver(()=>{if(!badge.dataset.readError&&token&&token===localStorage.getItem('cma_guest_token')&&badge.textContent!=='게스트 · 이 브라우저 기록')badge.textContent='게스트 · 이 브라우저 기록';}).observe(badge,{childList:true});
 })();

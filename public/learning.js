@@ -35,7 +35,14 @@
     if(!ready()||busy)return;
     await run(async()=>{const r=await api('/learning/import/'+$('reviewGameSelect').value,'POST');tab('training');await load();$('learningMessage').textContent=r.message;});
   }));
-  function clear(){cancelSettings();$('learningSettingsStatus').textContent='';needsRefresh=false;generation++;task=null;dashboard=null;selected=null;busy=false;render();$('learningCards').replaceChildren();$('learningAttempts').replaceChildren();$('learningSkills').replaceChildren();$('learningReason').textContent='로그인하면 나의 학습 경로를 안내합니다.';}
+  const returnPanel=el('section',null,'notice');returnPanel.id='learningRecommendationReturn';returnPanel.hidden=true;$('training').prepend(returnPanel);
+  let pendingReference=null,pendingIdentity=null;
+  function returnTarget(){if(pendingIdentity===token&&pendingReference)return pendingReference;if(summaryOwner!==token)return null;try{const value=JSON.parse(sessionStorage.getItem('cma_scoped_return_v1:'+user?.code)||'null');return value&&typeof value.report_id==='string'&&typeof value.item_id==='string'?value:null;}catch(e){return null;}}
+  function keepTarget(value){pendingReference=value;pendingIdentity=token;if(summaryOwner!==token||!user?.code)return;try{const key='cma_scoped_return_v1:'+user.code;if(value)sessionStorage.setItem(key,JSON.stringify(value));else sessionStorage.removeItem(key);}catch(e){}}
+  function scopedBlock(d,ref){const a=d?.active;if(a?.scoped_task?.report_id===ref.report_id&&a.scoped_task.item_id===ref.item_id)return null;if(a&&!a.done||d?.path&&!d.path.done)return 'active_training';if(d?.paused?.some(a=>a.scoped_task?.report_id===ref.report_id&&a.scoped_task.item_id===ref.item_id))return 'paused_training';return null;}
+  function renderReturn(){const ref=returnTarget();returnPanel.replaceChildren();returnPanel.hidden=!ref||!token;if(!ref)return;const blocked=scopedBlock(dashboard,ref);returnPanel.append(el('p',blocked?'추천 훈련 대기 · 기존 훈련을 보존했습니다. 먼저 이어서 완료하세요.':'선택했던 진단 추천이 대기 중입니다. 기존 훈련 완료만으로 추천 훈련이 자동 시작되지는 않습니다.'));if(blocked)returnPanel.append(button('기존 훈련 이어하기',()=>{if(dashboard?.active&&!dashboard.active.done){window.cmaFocusLayout?.resumeTraining();$('learningBoard').scrollIntoView({block:'center'});}else{document.querySelector('#training .focus-selection button')?.click();$('trainingRecords').open=true;$('learningSaved').scrollIntoView({block:'center'});}}));const retry=button('선택했던 진단 추천 다시 시작',()=>window.learningScoped(ref.report_id,ref.item_id));retry.disabled=busy||!!blocked||needsRefresh;returnPanel.append(retry,button('진단 추천으로 돌아가기',()=>tab('diagnosis')));}
+  window.cmaLearningReturn=()=>{if(pendingIdentity===token&&pendingReference&&summaryOwner===token)keepTarget(pendingReference);renderReturn();};
+  function clear(){pendingReference=null;pendingIdentity=null;returnPanel.hidden=true;cancelSettings();$('learningSettingsStatus').textContent='';needsRefresh=false;generation++;task=null;dashboard=null;selected=null;busy=false;render();$('learningCards').replaceChildren();$('learningAttempts').replaceChildren();$('learningSkills').replaceChildren();$('learningReason').textContent='로그인하면 나의 학습 경로를 안내합니다.';}
   async function run(fn,waiting='저장 중입니다. 상황 대국은 엔진 응수를 기다려 주세요.',affectsBoard=true){
     if(busy)return;const notice=$(affectsBoard?'learningMessage':'learningSettingsStatus');
     busy=true;renderControls();lockControls();
@@ -164,7 +171,7 @@
     renderControls();lockControls();
   }
   function renderControls(){
-    const area=$('learningControls');area.replaceChildren();if(!task?.growth_task&&dashboard?.path?.current===1&&dashboard.path.steps[1].status==='active'){area.append(el('span','설명을 읽은 뒤 옆 또는 아래 경로의 개념 읽기 확인을 눌러 주세요.','subtle'));return;}if(!task)return;
+    renderReturn();const area=$('learningControls');area.replaceChildren();if(!task?.growth_task&&dashboard?.path?.current===1&&dashboard.path.steps[1].status==='active'){area.append(el('span','설명을 읽은 뒤 옆 또는 아래 경로의 개념 읽기 확인을 눌러 주세요.','subtle'));return;}if(!task)return;
     if(task.done&&(task.growth_task||task.scoped_task)){area.append(el('p',outcomeLabel(task.outcome),'tag'),button('추천 훈련과 진행률 보기',()=>tab('diagnosis')));return;}
     if(task.done){area.append(el('p',outcomeLabel(task.outcome)||'완료','tag'));if(task.path_id){area.append(button('경로 다음 단계',()=>continuePath()));return;}area.append(button('같은 위치 다시',()=>start({card_id:task.card_id,mode:task.mode})),button('다음 첫 수 검증',()=>start({fresh:true,mode:'verify',category:task.outcome.category})));return;}
     if(task.growth_task&&task.selection?.source_card&&task.rating){area.append(button('너무 어려워요 · 더 낮은 난도 찾기',()=>{if(!confirm('현재 착수는 보존하고 같은 과제 슬롯을 더 낮은 난도의 미노출 문제로 바꿀까요? 완료 횟수는 늘지 않습니다.'))return;run(async()=>{const identity=token,rev=generation;const r=await api('/learning/cycle/easier','POST',{report_id:task.growth_task.report_id,item_id:task.growth_task.task_id,card_id:task.card_id,session_id:task.session_id,revision:task.revision});if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;await updateStats();render();});}));}
@@ -202,7 +209,16 @@
   window.cmaLearningSettings={load:loadSettings};settingsControls();
   window.learningRetention=async(report_id,item_id)=>{if(!ready('training')||busy)return;tab('training');generation++;await run(async()=>{const identity=token,rev=generation;const r=await api('/learning/retention/start','POST',{report_id,item_id});if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;await updateStats();render();},'7일 기억 확인을 위한 미노출 전체 수순 검증을 준비합니다…');};
   window.learningCycle=async(report_id,item_id)=>{if(!ready('training')||busy)return;tab('training');generation++;await run(async()=>{const identity=token,rev=generation;const result=await api('/learning/cycle/start','POST',{report_id,item_id});if(identity!==token||rev!==generation)return;task=result;selected=null;playbackIndex=-1;await updateStats();render();},'추천 훈련을 준비하고 있어요…');};
-  window.learningScoped=async(report_id,item_id)=>{if(!ready('training')||busy)return;tab('training');generation++;await run(async()=>{const identity=token,rev=generation;const result=await api('/learning/scoped/start','POST',{report_id,item_id});if(identity!==token||rev!==generation)return;task=result;selected=null;playbackIndex=-1;await updateStats();render();},'추천 훈련을 준비하고 있어요…');};
+  window.learningScoped=async(report_id,item_id)=>{if(!ready('training')||busy)return;const reference={report_id,item_id};keepTarget(reference);tab('training');generation++;await run(async()=>{const identity=token,rev=generation;
+    const current=await api('/learning/dashboard');if(identity!==token||rev!==generation)return;dashboard=current;task=current.active;selected=null;playbackIndex=-1;renderDashboard();render();
+    if(scopedBlock(current,reference)){$('learningMessage').textContent='추천 시작 보류 · 기존 훈련을 먼저 완료하세요. 새 훈련은 시작하지 않았습니다.';renderReturn();return;}
+    let result;try{result=await api('/learning/scoped/start','POST',reference);}catch(e){if(identity!==token||rev!==generation)return;if(e.status===409&&['active_training','paused_training'].includes(e.detail?.code)){
+      $('learningMessage').textContent='추천 시작 거절 · '+e.message+' 새 훈련은 시작되지 않았습니다.';
+      // A confirmed conflict is not an unknown save result. Refresh the existing task only.
+      try{const latest=await api('/learning/dashboard');if(identity!==token||rev!==generation)return;dashboard=latest;task=latest.active;renderDashboard();render();$('learningMessage').textContent='추천 시작 보류 · 기존 훈련을 먼저 완료하세요.';}catch(readError){if(identity===token&&rev===generation)$('learningMessage').textContent='추천 시작은 거절되었습니다. 기존 훈련 조회 실패 · 기록 새로고침으로 확인하세요.';}
+      renderReturn();return;
+    }needsRefresh=true;throw e;}
+    if(identity!==token||rev!==generation)return;keepTarget(null);task=result;selected=null;playbackIndex=-1;await updateStats();render();},'추천 훈련을 준비하고 있어요…');};
   window.learningFromDiagnosis=async(report_id,item_id)=>{
     if(!ready('training')||busy)return;
     tab('training');generation++;
