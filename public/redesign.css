@@ -16,3 +16,5 @@
  #guestAccess .btn-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
 }
 @media(prefers-reduced-motion:reduce){.board *, .drag-ghost{scroll-behavior:auto!important}}
+/* The legacy first-visit gate hides unlisted home children; full access must be listed. */
+body.entry-guest #home>#guestAccess{display:block!important}

@@ -29,6 +29,8 @@ A newly opened browser tab shares the existing account. It is NOT a genuine anon
 - Modified JavaScript syntax checks and git diff --check pass.
 - An initial test-harness extraction failed for the multiline education function; the extractor was corrected and the test passed. This was not an application regression.
 
+A source wiring audit also found the legacy first-visit stylesheet hides every unlisted home child. The new full guest entry is explicitly exempted; without that override its implementation would be invisible to actual guests. This fix still requires browser verification.
+
 ## Not verified / not complete
 - Modified code has not been deployed or operated in a browser. No after screenshot, UI pass or production pass is claimed.
 - No independently isolated anonymous browser context was available; a new tab shared the existing account.
