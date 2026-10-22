@@ -237,7 +237,10 @@ def attach_journey(app, ns):
 
     @app.get('/api/journey/replay-evaluation/{report_id}/{item_id}/{frame}')
     def replay_evaluation(report_id: str, item_id: str, frame: int, authorization: str | None = Header(default=None)):
-        code=auth(authorization);state=read(code)
+        import time, logging
+        started=time.monotonic();timings={};stage='auth'
+        code=auth(authorization);timings['auth_ms']=round((time.monotonic()-started)*1000,3)
+        t=time.monotonic();state=read(code);timings['state_read_ms']=round((time.monotonic()-t)*1000,3)
         saved=next((r for r in state['results'] if r.get('id')==report_id),None)
         active=state.get('active');played=None
         if saved:
@@ -248,9 +251,12 @@ def attach_journey(app, ns):
             elif item.get('complete'):played=active.get('played')
         else:item=None
         if not item:raise HTTPException(404,'제출을 마친 이 계정의 문항에서만 복기 분석을 이용할 수 있습니다.')
-        data=replay_snapshot(item,played)
+        t=time.monotonic();data=replay_snapshot(item,played);timings['replay_ms']=round((time.monotonic()-t)*1000,3)
         if not data['available'] or frame<0 or frame>=len(data['frames']):raise HTTPException(404,'복기 위치를 확인할 수 없습니다.')
-        return evaluate_frame(data['frames'][frame]['fen'],ns.get('STOCKFISH_PATH',''))
+        t=time.monotonic();result=evaluate_frame(data['frames'][frame]['fen'],ns.get('STOCKFISH_PATH',''))
+        timings['engine_ms']=round((time.monotonic()-t)*1000,3);timings['handler_ms']=round((time.monotonic()-started)*1000,3)
+        logging.getLogger('uvicorn.error').info('replay_request status=%s timings_ms=%s',result['status'],timings)
+        return result
 
     @app.get('/api/journey/blueprint')
     def blueprint():

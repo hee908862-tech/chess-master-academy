@@ -1,0 +1,13 @@
+# PR41 operating follow-up
+
+Production QA reported a replay analysis failure on 2026-10-22. Render application logs show the relevant replay-evaluation request returned HTTP 200 at **21:24:58.881 UTC**. The operator initiated it around 21:24:55 and observed the failure text by 21:25:22. These observations do not establish 27 seconds of server processing. The response can carry `status=failed` with HTTP 200. Existing code did not log exception class or phase, so the original failure cause is **unconfirmed**. Nearby `/api/me` at 21:25:52 returned 200; this does not disprove the separately observed account lookup failure or establish a common cause.
+
+Replay engine initialization previously used a three-second timeout independently of a 0.2-second search budget. It now uses the existing application's eight-second engine communication allowance, while keeping the same search limit, minimum depth, single-engine admission and no automatic retries. This is a bounded cold-start mitigation, not proof that the production failure was initialization. Tests use an explicitly synthetic UCI process with 3.2-second initialization, phase-specific failure doubles, and real Stockfish on the operator-supplied piece arrangement. The latter has unseen clocks/castling rights normalized for the local test and is not a fetched production FEN.
+
+Logs contain only phase, result, exception class and monotonic durations: auth, state read, replay reconstruction, engine queue/startup/configure/analysis/shutdown, and handler total. They omit account identifiers, session IDs, positions, tokens and arbitrary exception strings. Pre-handler/proxy scheduling, network transport and browser observation delay are not measured by these logs. No claim that the account-read delay is resolved.
+
+The resume report was corrected by operating QA: legacy choices appeared temporarily during refresh, then disappeared. Route paint was overriding the active-task hidden state before the next response. Re-entry now retains the saved mode and active layout without changing session contents. New tests cover home, profile, reload and back with delayed reads.
+
+A historical partial report's one observed area was described as balanced across areas. Display now requires at least two areas with numeric scores and existing comparable evidence flags before describing an inter-area comparison. Unknown areas remain unknown. Stored messages, scores, training assignments and original records are not rewritten.
+
+Production UI remains inaccessible from this executor because of the previously confirmed CONNECT proxy403. Do not retry or bypass it. Parent operating browser must confirm replay analysis success after deployment; local success alone is not operating success.
