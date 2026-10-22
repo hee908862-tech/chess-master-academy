@@ -41,7 +41,8 @@ def test_balanced_24_snapshots_cycle_unlock_and_new_positions(setup):
     c,ns,legacy,db=attach(setup);legacy.clear()
     s=post(c,'start',{'mode':'balanced'})
     rows=saved(db)['active']['items'];assert len(rows)==24
-    assert 'competency' not in s['question'] and 'rating' not in s['question']
+    assert s['question']['competency'] and 'rating' not in s['question'] and 'total_plies' not in s['question']
+    assert s['version']=='journey-v5' and s['measurement_scope']=='broad_area_execution_v1'
     from collections import Counter
     assert set(Counter((r['competency'],tuple(r['band'])) for r in rows).values())=={2}
     report=finish_diagnosis(c,s,db)

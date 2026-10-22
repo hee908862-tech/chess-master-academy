@@ -18,7 +18,7 @@ from pydantic import BaseModel
 from competencies import VERSION, COMPETENCIES, position_key, line_positions
 from v9_server import LIB, DATA_FILE
 from mate_explanation import explain_mate
-from diagnostic_replay import replay_snapshot
+from diagnostic_replay import replay_snapshot, evaluate_frame
 from journey_evidence import JOURNEY_VERSION, COVERAGE_POLICY, CUED, UNCUED, recheck_gate, additional_plan, build_report, learning_observation
 
 
@@ -174,6 +174,11 @@ def attach_journey(app, ns):
         uncertain = bool(legacy.get('puzzle_results') or legacy.get('assessment_v8') or legacy.get('assessment_history') or legacy.get('assessment_v8_history') or legacy.get('assessment_v8_latest') or legacy.get('assessment') or legacy.get('games') or legacy.get('completed_lessons'))
         return ids,positions,uncertain,learning
 
+    def replay_data(item, report_id, played=None):
+        result=replay_snapshot(item,played)
+        result['evaluation_url']=f"/journey/replay-evaluation/{report_id}/{item['id']}"
+        return result
+
     def payload(s):
         if s['phase']=='complete': return {k:copy.deepcopy(s[k]) for k in ('session_id','revision','phase','report')}
         item=s['items'][s['index']]; b=chess.Board(s['fen'])
@@ -186,13 +191,16 @@ def attach_journey(app, ns):
         if s.get('measurement_scope')==UNCUED and s['phase']=='question':
             for field in ('competency','label','rating','total_plies'):q.pop(field,None)
             q['goal']='이 국면에서 유효하다고 생각하는 수를 선택하고 상대 응수 뒤에도 계속 두세요.'
+        if s.get('measurement_scope')=='broad_area_execution_v1' and s['phase']=='question':
+            for field in ('rating','total_plies'):q.pop(field,None)
+            q['goal']='분야의 넓은 범위만 안내합니다. 상대 응수 뒤에도 유효하다고 생각하는 수를 이어 두세요.'
         out['measurement_scope']=s.get('measurement_scope','legacy_cued_execution')
         if s.get('mode')=='gentle':q['goal']='백 차례예요. 말을 누른 뒤 이동할 칸을 누르세요.' if b.turn else '흑 차례예요. 말을 누른 뒤 이동할 칸을 누르세요.'
         out['starting_conditions']=copy.deepcopy(s.get('starting_conditions'))
         out['question']=q
         if s['phase']=='feedback':
             out['feedback']=copy.deepcopy(item['feedback'])
-            out['feedback']['replay']=replay_snapshot(item, s.get('played') if item.get('complete') else None)
+            out['feedback']['replay']=replay_data(item,s['session_id'],s.get('played') if item.get('complete') else None)
         return out
 
     def begin_item(s):
@@ -207,7 +215,8 @@ def attach_journey(app, ns):
         path=learning.get('path');active_training=learning.get('active')
         visible=[state['results'][-1] if state['results'] else None,latest_cycle_report(state['results'])]
         evidence={r['id']:{i['id']:learning_observation(i) for i in (r.get('items') or []) if isinstance(i,dict) and i.get('id')} for r in visible if r and r.get('id')}
-        return {'learning_evidence':evidence,'preparing':_inventory_lock.locked(),'training':{'path_id':path['id'] if path else None,'path_done':path.get('done',False) if path else False,'active':bool(active_training and not active_training.get('done')),'has_path':bool(path)},
+        from skill_index import cumulative_evidence
+        return {'profile_evidence':cumulative_evidence(state['results']),'learning_evidence':evidence,'preparing':_inventory_lock.locked(),'training':{'path_id':path['id'] if path else None,'path_done':path.get('done',False) if path else False,'active':bool(active_training and not active_training.get('done')),'has_path':bool(path)},
                 'activity':{'diagnoses':len(state['results']),'answered':sum(bool(i.get('submitted')) for r in state['results'] for i in r.get('items',[])), 'recommended_completed':sum(len(c.get('completed',{})) for c in learning.get('cycles',{}).values())},
                 'cycle':cycle_status(latest_cycle_report(state['results']),learning),
                 'growth':[{'id':r.get('id'),'at':r.get('at'),'snapshot':r.get('snapshot'),'version':r.get('version')} for r in state['results']],
@@ -224,7 +233,24 @@ def attach_journey(app, ns):
         saved_report=report(code,report_id)
         item=next((i for i in (saved_report or {}).get('items',[]) if i.get('id')==item_id),None)
         if not item:raise HTTPException(404,'이 계정의 진단 문항이 없습니다.')
-        return replay_snapshot(item)
+        return replay_data(item,report_id)
+
+    @app.get('/api/journey/replay-evaluation/{report_id}/{item_id}/{frame}')
+    def replay_evaluation(report_id: str, item_id: str, frame: int, authorization: str | None = Header(default=None)):
+        code=auth(authorization);state=read(code)
+        saved=next((r for r in state['results'] if r.get('id')==report_id),None)
+        active=state.get('active');played=None
+        if saved:
+            item=next((i for i in saved['items'] if i['id']==item_id),None)
+        elif active and active['session_id']==report_id and active['phase']=='feedback':
+            item=active['items'][active['index']]
+            if item['id']!=item_id:item=None
+            elif item.get('complete'):played=active.get('played')
+        else:item=None
+        if not item:raise HTTPException(404,'제출을 마친 이 계정의 문항에서만 복기 분석을 이용할 수 있습니다.')
+        data=replay_snapshot(item,played)
+        if not data['available'] or frame<0 or frame>=len(data['frames']):raise HTTPException(404,'복기 위치를 확인할 수 없습니다.')
+        return evaluate_frame(data['frames'][frame]['fen'],ns.get('STOCKFISH_PATH',''))
 
     @app.get('/api/journey/blueprint')
     def blueprint():
@@ -267,7 +293,7 @@ def attach_journey(app, ns):
         if state['active']: raise HTTPException(409,'저장된 진단을 먼저 이어서 완료하세요.')
         for x in state['reserved']: ids.add(x['puzzle_id']); positions.add(key(x['fen']))
         items=[]
-        measurement_scope=UNCUED if body.mode in ('recheck',*MODES) else CUED
+        measurement_scope='broad_area_execution_v1' if body.mode in ('balanced','quick','domain') else UNCUED if body.mode in ('recheck',*MODES) else CUED
         focused_band=None
         if body.mode=='targeted' and cycle:
             previous=latest_cycle_report(state['results'])
@@ -288,13 +314,13 @@ def attach_journey(app, ns):
             raise HTTPException(409,'선택한 범위의 미노출 기초·응용 문제가 부족합니다. 기존 기록은 유지됩니다. 다른 주제를 선택하세요.')
         if not items: raise HTTPException(409,'조건에 맞는 미노출 국면이 없습니다. 기존 훈련을 이용하세요.')
         if body.mode in MODES:secrets.SystemRandom().shuffle(items)
-        s={'session_id':secrets.token_hex(16),'revision':0,'version':'journey-v4' if body.mode in MODES else 'journey-entry-v1' if body.mode=='gentle' else JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':measurement_scope,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
+        s={'session_id':secrets.token_hex(16),'revision':0,'version':'journey-v5' if body.mode in (*MODES,'domain') else 'journey-entry-v1' if body.mode=='gentle' else JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':measurement_scope,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
         s['starting_conditions']={'self_choice':starting.get('choice','unselected'),'mode':body.mode,'assessment_scope':'full_line','bands':sorted({tuple(i['band']) for i in items}),'helped':False}
         if body.mode in MODES:s['corpus_sha256']=hashlib.sha256(DATA_FILE.read_bytes()).hexdigest()
         if body.mode in MODES:s['scoring_version']=SKILL_VERSION
         if body.mode in ('domain','subskill'):
             from diagnostic_blueprint import VERSION as BLUEPRINT_VERSION
-            s['version']=BLUEPRINT_VERSION
+            s['version']='journey-v5' if body.mode=='domain' else BLUEPRINT_VERSION
             s['scoring_version']=SKILL_VERSION
             s['corpus_sha256']=hashlib.sha256(DATA_FILE.read_bytes()).hexdigest()
             s['diagnostic_scope']={'level':body.mode,'competency':body.competency,'topic':body.topic}
