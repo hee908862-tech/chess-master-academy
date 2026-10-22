@@ -3,7 +3,8 @@
 function install(){const $=id=>document.getElementById(id),profile=$('profile'),toolbar=profile.querySelector('.feature-toolbar');toolbar.querySelector('span').textContent='내 정보';
  const account=$('codeField').closest('.entry-auth-layout'),settings=$('boardThemeSelect').closest('.card'),danger=$('resetProfileV5').closest('.card');
  const info=document.createElement('section');info.id='profileInformation';info.setAttribute('aria-label','성장과 활동 기록');
- for(const sibling of [...account.children])if(!sibling.contains($('codeField')))info.append(sibling);
+ const guestAccount=$('guestAccountAccess');if(guestAccount)account.append(guestAccount);
+ for(const sibling of [...account.children])if(sibling!==guestAccount&&!sibling.contains($('codeField')))info.append(sibling);
  const nav=document.createElement('nav');nav.id='profileSections';nav.className='btn-row';nav.setAttribute('aria-label','내 정보와 설정');toolbar.after(nav);
  for(const node of [...profile.children])if(![toolbar,nav,account,settings,danger].includes(node))info.append(node);
  profile.append(info,settings,account,danger);settings.id='profileSettings';danger.id='profileDataManagement';
