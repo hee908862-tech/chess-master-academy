@@ -86,6 +86,8 @@ def test_partial_read_failure_keeps_confirmed_progress_and_targeted_retry(isolat
     expect(page.locator('#homeNextAction .flow-read-errors')).to_contain_text('훈련 진행')
     expect(page.locator('#homeNextAction > button')).to_have_text('기초 이어하기')
     expect(page.locator('#homeNextAction > button')).to_be_enabled()
+    # Finish independent startup catalog/history reads before attributing requests to retry.
+    page.wait_for_load_state('networkidle')
     page.unroute('**/api/me');page.unroute('**/api/learning/dashboard')
     reads=[];page.on('request',lambda r:reads.append(r.url.split('/api')[-1]) if r.method=='GET' and '/api/' in r.url else None)
     page.locator('#homeNextAction .flow-read-errors button').click()

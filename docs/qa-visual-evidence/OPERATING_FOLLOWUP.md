@@ -11,3 +11,7 @@ The resume report was corrected by operating QA: legacy choices appeared tempora
 A historical partial report's one observed area was described as balanced across areas. Display now requires at least two areas with numeric scores and existing comparable evidence flags before describing an inter-area comparison. Unknown areas remain unknown. Stored messages, scores, training assignments and original records are not rewritten.
 
 Production UI remains inaccessible from this executor because of the previously confirmed CONNECT proxy403. Do not retry or bypass it. Parent operating browser must confirm replay analysis success after deployment; local success alone is not operating success.
+
+## Final local verification
+
+38 unique tests have passing latest outcomes. This includes real Stockfish on the supplied arrangement, slow UCI initialization, four failure phases, owner-only/no-write replay access, old sessions, evidence aggregation, local Chromium resume/reload/back with delayed reads, sparse-versus-equal summary fixtures, and confirmed training conflict/partial-read recovery. The final focused suite passed 6/6. Some initial browser assertions targeted an old hidden control or counted unrelated initial reads; corrected tests use the visible recommendation control and isolate synthetic display data and startup traffic. No production success is inferred.
