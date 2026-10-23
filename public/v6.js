@@ -33,7 +33,7 @@ async function c6LoadSuggestions(){
   }
  }catch(e){recommendBox.textContent=e.message}
 }
-function c6Draw(){
+function c6Draw(){window.cmaExplore?.offer('guidedBoard',null);
  if(!c6Course || c6Course.done)return;
  const pos=fromFen(c6Course.fen);
  const targets=c6Selected?(c6Course.legal||[]).filter(s=>s.slice(0,2)===c6Selected).map(s=>({to:s.slice(2,4)})):[];
@@ -62,8 +62,8 @@ async function c6Click(s){
  try{
   const r=await api('/v6/course/move','POST',{move:from+s});
   if(!r.correct){c6Draw();$('lessonStatus').textContent='힌트: '+r.message;return;}
-  drawBoard('guidedBoard',fromFen(r.played_fen),{last:[from,s]});playMoveSound(pos[s]?'capture':'move');
-  $('guidedPrompt').textContent='✓ '+r.message;
+  window.cmaBoardPresentation.transition('guidedBoard',from+s,()=>drawBoard('guidedBoard',fromFen(r.played_fen),{last:[from,s]}));
+  window.cmaExplore?.offer('guidedBoard',r.played_fen);$('guidedPrompt').textContent='✓ '+r.message;
   if(r.done){c6Course={done:true};$('v5ScenarioProgress').textContent='교육 과목 완료';
    $('lessonStatus').textContent=r.passed?`✓ 숙련 기준 달성 · 첫 시도 ${r.first_try}/${r.total}`:`연습 완료 · 첫 시도 ${r.first_try}/${r.total}. 숙련 확인을 위해 다시 도전하세요.`;
    await c6LoadCourses();await c6LoadSuggestions();await refreshSummaryOnly();
@@ -92,7 +92,7 @@ function c6DisplayFeedback(data){
  feedbackBox.append(status,explanation,code,btn);
  $('testProgress').textContent=`채점 완료 · ${(data.index??0)+1} / 25`;
  notice('testStatus',correct?'정답입니다. 다음 문제 버튼을 눌러 진행하세요.':'체스판에 정답 수순을 재생했습니다. 확인 후 넘어가세요.',correct?'ok':'');
- if(c6Feedback.answer_fen){drawBoard('testBoard',fromFen(c6Feedback.answer_fen),{last:c6Feedback.solution?[c6Feedback.solution.slice(0,2),c6Feedback.solution.slice(2,4)]:[]});}
+ if(c6Feedback.answer_fen){window.cmaBoardPresentation.transition('testBoard',c6Feedback.solution,()=>drawBoard('testBoard',fromFen(c6Feedback.answer_fen),{last:c6Feedback.solution?[c6Feedback.solution.slice(0,2),c6Feedback.solution.slice(2,4)]:[]}));}
 }
 async function c6Advance(){if(v3Busy||!c6Feedback)return;v3Busy=true;
  try{const r=await api('/v6/assessment/advance','POST');c6ClearFeedback();if(r.phase==='game')v3StartGame(r);else v3QuestionShown(r)}
@@ -112,7 +112,7 @@ v3TestClick=async function(s){
  const uci=moves.find(m=>m.slice(0,2)===v3Selected&&m.slice(2,4)===s);
  if(!uci){v3Selected=pieces[s]&&pieces[s]===pieces[s].toUpperCase()?s:null;v3TestDraw();return;}
  const from=v3Selected;v3Selected=null;v3Busy=true;
- try{const r=await api('/assessment-v3/answer','POST',{question_id:v3Question.id,move:uci});playMoveSound(pieces[s]?'capture':'move');c6DisplayFeedback(r)}
+ try{const r=await api('/assessment-v3/answer','POST',{question_id:v3Question.id,move:uci});c6DisplayFeedback(r)}
  catch(e){notice('testStatus',e.message,'err');v3TestDraw()}finally{v3Busy=false}
 };
 const v6BaseStart=v3Start;

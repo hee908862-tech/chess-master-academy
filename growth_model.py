@@ -70,7 +70,7 @@ def decorate(report):
         from diagnostic_blueprint import training_recommendations
         report['scoped_training']=training_recommendations(report)
     report['snapshot']={'version':report['score_version'],'assessment_version':report['version'],'competency_version':report['competency_version'],'mode':report['mode'],
-                        'scope':report['measurement_scope'],'diagnostic_scope':report.get('diagnostic_scope'),'corpus':report.get('corpus_sha256'),'at':report['at'],'areas':{a['id']:copy.deepcopy(a['performance']) for a in report['areas']}}
+                        'scope':report['measurement_scope'],'answer_policy':report.get('answer_policy','reference-line-v1'),'diagnostic_scope':report.get('diagnostic_scope'),'corpus':report.get('corpus_sha256'),'at':report['at'],'areas':{a['id']:copy.deepcopy(a['performance']) for a in report['areas']}}
     return report
 
 
@@ -144,3 +144,60 @@ def verify_loss(fen,move,path):
         timings['total_ms']=round((time.monotonic()-started)*1000,3)
         logging.getLogger(__name__).info('diagnostic_engine_timing stage=%s timings_ms=%s',stage,timings)
         _diagnostic_slot.release()
+
+
+ANSWER_POLICY = 'goal-alternatives-v1'
+
+
+def prove_mate_alternative(fen, move, item, correct_plies=0, *, max_nodes=6000, seconds=.15):
+    """Exhaustive bounded mate objective, not an engine evaluation or win estimate.
+
+    All legal defender replies must admit a mating continuation within the original
+    remaining own-move allowance. Budget exhaustion is unknown, never a negative.
+    Original item/line are read-only; returned PV is a separate execution branch.
+    """
+    import chess
+    import time
+    tags=item.get('tags',[])
+    if not any(t.startswith('mateIn') for t in tags):return None
+    try:
+        original=chess.Board(item['fen'])
+        for u in item['line']:original.push_uci(u)
+        if not original.is_checkmate():return None
+        remaining=(len(item['line'])+1)//2-correct_plies
+        if not 1<=remaining<=3:return None
+        board=chess.Board(fen);side=board.turn;m=chess.Move.from_uci(move)
+        if not board.is_valid() or m not in board.legal_moves:return None
+    except (ValueError,KeyError,TypeError):return None
+    started=time.monotonic();nodes=0;cache={}
+    base={'policy':ANSWER_POLICY,'basis':'all_legal_defenses','objective':'mate_within_original_bound',
+          'remaining_own_moves':remaining,'limits':{'nodes':max_nodes,'seconds':seconds},'status':'unverified'}
+    class Budget(Exception):pass
+    def solve(b,left):
+        nonlocal nodes
+        nodes+=1
+        if nodes>max_nodes or time.monotonic()-started>seconds:raise Budget()
+        if b.is_checkmate():return (b.turn!=side,[])
+        if b.is_game_over() or left<=0:return (False,[])
+        key=(b.fen(),left)
+        if key in cache:return cache[key]
+        attacker=b.turn==side
+        moves=sorted(b.legal_moves,key=lambda x:(not b.gives_check(x),x.uci()))
+        best=[]
+        for candidate in moves:
+            b.push(candidate);ok,pv=solve(b,left-1);b.pop()
+            if attacker and ok:
+                result=(True,[candidate.uci()]+pv);cache[key]=result;return result
+            if not attacker and not ok:
+                cache[key]=(False,[]);return (False,[])
+            if not attacker and len(pv)+1>len(best):best=[candidate.uci()]+pv
+        result=(not attacker,best if not attacker else [])
+        cache[key]=result;return result
+    board.push(m)
+    try:
+        ok,pv=solve(board,2*remaining-2)
+        return {**base,'status':'verified_goal' if ok else 'verified_non_mate',
+                'reason':'forced_mate_proved' if ok else 'no_mate_within_bound','continuation':pv,'nodes':nodes,
+                'elapsed_ms':round((time.monotonic()-started)*1000,3)}
+    except Budget:
+        return {**base,'reason':'mate_proof_budget','nodes':nodes,'elapsed_ms':round((time.monotonic()-started)*1000,3)}

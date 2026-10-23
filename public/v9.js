@@ -7,7 +7,7 @@ const catalogText=document.createElement('span'),catalogRetry=document.createEle
 function catalogFeedback(state,text){catalogState=state;catalogText.textContent=text;if(!modes.puzzle.task)status('puzzle',text);for(const id of ['v9PuzzleStart','v9PuzzleTheme','v9PuzzleLevel']){el(id).disabled=state!=='ready';el(id).setAttribute('aria-describedby','v9CatalogStatus');}catalogRetry.hidden=state==='ready'||state==='loading';catalogRetry.disabled=state==='loading';catalogNotice.setAttribute('aria-busy',String(state==='loading'));}
 catalogRetry.onclick=()=>{if(catalogState!=='loading')catalogReady=init();};
 const savedBox=document.createElement("div");savedBox.id="v9SavedCourse";savedBox.className="notice";el("v9CourseCards").before(savedBox);
-function invalidate(kind,message){window.cmaMate?.clear(boardName(kind));window.cmaBoardTools.cancel(boardName(kind));const st=modes[kind];st.revision++;st.task=null;st.selected=null;st.solved=false;st.last=[];st.busy=false;el(boardName(kind)).replaceChildren();el('v9'+props(kind)+'Next').hidden=true;el('v9'+props(kind)+'Hint').disabled=true;el('v9'+props(kind)+'Meta').textContent='새 문제 대기 중';if(message)status(kind,message);window.cmaFeedback.clear(boardName(kind));}
+function invalidate(kind,message){window.cmaExplore?.offer(boardName(kind),null);window.cmaMate?.clear(boardName(kind));window.cmaBoardTools.cancel(boardName(kind));const st=modes[kind];st.revision++;st.task=null;st.selected=null;st.solved=false;st.last=[];st.busy=false;el(boardName(kind)).replaceChildren();el('v9'+props(kind)+'Next').hidden=true;el('v9'+props(kind)+'Hint').disabled=true;el('v9'+props(kind)+'Meta').textContent='새 문제 대기 중';if(message)status(kind,message);window.cmaFeedback.clear(boardName(kind));}
 async function failed(kind,error){
  const st=modes[kind],revision=st.revision,identity=token,session=st.task?.session_id;
  window.cmaBoardTools.cancel(boardName(kind));st.selected=null;
@@ -16,7 +16,7 @@ async function failed(kind,error){
   if(revision!==st.revision||identity!==token)return;
   if(!session||saved.session_id!==session){invalidate(kind,error.message+' · 새 문제를 시작해 주세요.');return;}
   if(saved.result){window.cmaMate?.show(boardName(kind),saved.result.mate_explanation,st.side==='black');st.solved=true;el('v9'+props(kind)+'Next').hidden=false;el('v9'+props(kind)+'Hint').disabled=true;
-   drawBoard(boardName(kind),fromFen(saved.result.completed_fen),{flip:st.side==='black'});status(kind,saved.result.message+' · 저장된 결과를 확인했습니다.');boardFeedback(kind,'문제 완료 · 저장 결과 복원','저장 조회 확인됨','complete');
+   window.cmaExplore?.offer(boardName(kind),saved.result.completed_fen,{flip:st.side==='black'});drawBoard(boardName(kind),fromFen(saved.result.completed_fen),{flip:st.side==='black'});status(kind,saved.result.message+' · 저장된 결과를 확인했습니다.');boardFeedback(kind,'문제 완료 · 저장 결과 복원','저장 조회 확인됨','complete');
   }else if(saved.fen){st.task=saved;st.solved=false;el('v9'+props(kind)+'Hint').disabled=false;el('v9'+props(kind)+'Next').hidden=true;paint(kind);status(kind,error.message+' · 저장된 위치를 복원했습니다.');boardFeedback(kind,'저장된 위치에서 다시 확인','저장 조회 확인됨','error');}
   else invalidate(kind,error.message+' · 새 문제를 시작해 주세요.');
  }catch(recovery){
@@ -36,7 +36,7 @@ function props(kind){return kind==='course'?'Course':'Puzzle'}
 function paint(kind){const st=modes[kind];if(!st.task)return;if(kind==='puzzle')window.cmaFocusLayout?.puzzleReady(st.task.session_id);
  const data=st.task, fen=data.fen, p=fromFen(fen), turn=st.side==='white';
  const targets=st.selected?(data.legal||[]).filter(u=>u.slice(0,2)===st.selected).map(u=>({to:u.slice(2,4)})):[];
- drawBoard(boardName(kind),p,{flip:!turn,opponent:data.opponent_last_move?[data.opponent_last_move.slice(0,2),data.opponent_last_move.slice(2,4)]:[],hint:st.hint||[],selected:st.selected,targets,last:st.last,onClick:sq=>tap(kind,sq)});
+ window.cmaExplore?.offer(boardName(kind),null);drawBoard(boardName(kind),p,{flip:!turn,opponent:data.opponent_last_move?[data.opponent_last_move.slice(0,2),data.opponent_last_move.slice(2,4)]:[],hint:st.hint||[],selected:st.selected,targets,last:st.last,onClick:sq=>tap(kind,sq)});
  el('v9'+props(kind)+'Meta').textContent=`${kind==='course'?`${data.index+1}/${data.total} · `:''}${data.rating} 퍼즐 레이팅 · ${data.themes.join(' / ')} · ${data.ply}번째 반수`;
 }
 function optimisticPosition(fen,from,to,promotion){
@@ -63,20 +63,22 @@ async function tap(kind,sq){const st=modes[kind];if(st.busy){window.cmaBoardTool
  const promotion=await choosePromotion(from,sq,p[from],task.legal||[]);
  if(revision!==st.revision)return;
  if(promotion===null||accountToken!==token||viewVersion!==window.cmaBoardTools.version()){st.busy=false;return;}
+ if(window.cmaExplore&&!await window.cmaExplore.requireExposureSaved('v9'+props(kind)+'Message')){st.busy=false;return;}
+ if(revision!==st.revision||accountToken!==token||viewVersion!==window.cmaBoardTools.version()||task!==st.task){st.busy=false;return;}
  const selectedMove=promotion?from+sq+promotion:u;
  st.busy=true;st.selected=null;st.hint=null;boardFeedback(kind,'착수 판정 중','판정·저장 응답 대기','pending');
  const priorLast=st.last;
  const temporary=optimisticPosition(task.fen,from,sq,promotion);
  if(task.session_id)window.cmaBoardTools.begin(boardName(kind),task,temporary,st.side);else window.cmaBoardTools.unavailable(boardName(kind));
  animateBoardTransition(boardName(kind),from,sq,()=>drawBoard(boardName(kind),temporary,{flip:st.side==='black',last:[from,sq],onClick:s=>tap(kind,s)}));
- playMoveSound(p[sq]?'capture':'move');
+
  try{const r=await api(`/v9/${kind}/move`,'POST',{move:selectedMove,session_id:task.session_id,expected_fen:task.fen});if(revision!==st.revision||accountToken!==token)return;
   if(!r.correct){window.cmaBoardTools.cancel(boardName(kind));}
   if(!r.correct){st.last=priorLast;st.mistakes++;status(kind,`${r.message} (${st.mistakes}회 오답)${st.mistakes>=2?' · 정답 확인 버튼으로 수순을 확인할 수 있습니다.':''}`);st.task=r;paint(kind);boardFeedback(kind,'이번 수는 기준과 다름','저장 응답 확인됨','error');return;}
   st.mistakes=0;st.last=[from,sq];
   if(r.solved){window.cmaMate?.show(boardName(kind),r.mate_explanation,st.side==='black');window.cmaBoardTools.cancel(boardName(kind));st.solved=true;status(kind,r.done?(kind==='puzzle'?r.message:`${r.message} · 첫 시도 정답 ${r.correct_count}/${r.total} ${r.mastered?'· 숙련 달성':''}`):r.message);
    el('v9'+props(kind)+'Next').hidden=false;boardFeedback(kind,r.done&&kind==='course'?'과정 완료 · 문제 수순 확인':'문제 완료 · 수순 확인','저장 응답 확인됨','complete');
-   if(r.completed_fen){const draw=()=>drawBoard(boardName(kind),fromFen(r.completed_fen),{flip:st.side==='black',last:st.last});if(r.reply)window.cmaBoardPresentation.transition(boardName(kind),r.reply,draw);else draw();}
+   if(r.completed_fen){window.cmaExplore?.offer(boardName(kind),r.completed_fen,{flip:st.side==='black'});const draw=()=>drawBoard(boardName(kind),fromFen(r.completed_fen),{flip:st.side==='black',last:st.last});if(r.reply)window.cmaBoardPresentation.transition(boardName(kind),r.reply,draw);else draw();}
    await refreshSummaryOnly();if(kind==='course'&&r.done)await history();
   }else{st.task=r;status(kind,r.reply?`정답: ${selectedMove} · 상대 응수: ${r.reply}. 마지막 이동 칸을 강조했습니다. 다음 수를 찾아보세요.`:r.message);if(r.reply)window.cmaBoardPresentation.transition(boardName(kind),r.reply,()=>paint(kind));else paint(kind);boardFeedback(kind,'한 수 정답 · 계속 풀어보세요');}
  }catch(e){if(revision===st.revision&&accountToken===token)await failed(kind,e)}finally{if(revision===st.revision)st.busy=false;}
@@ -84,6 +86,7 @@ async function tap(kind,sq){const st=modes[kind];if(st.busy){window.cmaBoardTool
  if(queued){st.selected=queued.from;await tap(kind,queued.to);}
 }
 async function start(kind){if(kind==='puzzle'&&catalogState!=='ready')return;if(!ready(kind==='course'?(window.cmaNavigation?.tacticDestination()||'learn'):'puzzle'))return;const st=modes[kind];if(st.busy)return;
+ const preflightRevision=st.revision,preflightTask=st.task;st.busy=true;const exposureReady=!window.cmaExplore||await window.cmaExplore.requireExposureSaved('v9'+props(kind)+'Message');st.busy=false;if(!exposureReady||preflightRevision!==st.revision||preflightTask!==st.task)return;
  let replacement=null;
  if(kind==='course'){const identity=token,rev=st.revision;st.busy=true;try{const saved=await api('/v9/session/course');if(identity!==token||rev!==st.revision)return;if(saved.active&&!saved.done){if(!confirm('저장된 과정의 착수·힌트·진행을 보존하고 새 과정을 시작할까요? 저장된 과정 목록에서 다시 이어갈 수 있습니다.'))return;replacement=saved.replace_token;}}catch(e){if(identity===token)status(kind,e.message);return;}finally{if(identity===token&&rev===st.revision)st.busy=false;}}
  invalidate(kind);const revision=st.revision,identity=token;st.busy=true;try{
@@ -97,7 +100,7 @@ async function start(kind){if(kind==='puzzle'&&catalogState!=='ready')return;if(
 }
 async function next(kind){const st=modes[kind];if(!st.solved||st.busy)return;
  if(kind==='puzzle')return start('puzzle');
- const revision=st.revision,identity=token;st.busy=true;try{const r=await api('/v9/course/next','POST',{session_id:st.task?.session_id});if(revision!==st.revision||identity!==token)return;if(r.done){status(kind,`15문제 과정 완료 · 첫 시도 정답 ${r.correct_count}/15`);return;}
+ const revision=st.revision,identity=token;st.busy=true;try{if(window.cmaExplore&&!await window.cmaExplore.requireExposureSaved('v9CourseMessage'))return;if(revision!==st.revision||identity!==token)return;const r=await api('/v9/course/next','POST',{session_id:st.task?.session_id});if(revision!==st.revision||identity!==token)return;if(r.done){status(kind,`15문제 과정 완료 · 첫 시도 정답 ${r.correct_count}/15`);return;}
  window.cmaMate?.clear(boardName(kind));window.cmaBoardTools.cancel(boardName(kind));st.task=r;st.side=r.side||(r.fen.split(' ')[1]==='w'?'white':'black');st.hint=null;st.solved=false;st.selected=null;st.last=[];st.mistakes=0;el('v9CourseNext').hidden=true;
  status(kind,'다음 상황입니다. 상대의 위협과 후속 수순까지 계산해 보세요.');paint(kind);boardFeedback(kind,(st.side==='black'?'흑':'백')+' 차례 · 새 문제');
  }catch(e){if(revision===st.revision&&identity===token)await failed(kind,e)}finally{if(revision===st.revision)st.busy=false}
@@ -106,7 +109,7 @@ async function restore(kind,force=false,choice=null){const navigationVersion=win
  try{const r=await api('/v9/session/'+kind);if(revision!==st.revision||identity!==token||st.busy||!r.active)return;
   if(kind==='course'){if(navigationVersion!==window.cmaNavigation?.version()||(choice&&(r.theme!==choice.theme||r.level!==choice.level)))return;selectCourse(r.theme,{navigate:!choice,level:r.level});courseSaved=r;}
   if(r.result){st.task={session_id:r.session_id,fen:r.result.completed_fen,theme:r.theme,level:r.level};st.side=r.result.completed_fen.split(' ')[1]==='w'?'black':'white';st.solved=true;
-   drawBoard(boardName(kind),fromFen(st.task.fen),{flip:st.side==='black'});status(kind,r.result.message);if(kind==='course')el('v9CourseMeta').textContent=`${r.index}/${r.total} 해결 · ${r.done?'과정 완료':'다음 문제 대기'}`;el('v9'+props(kind)+'Next').hidden=false;el('v9'+props(kind)+'Hint').disabled=true;
+   window.cmaExplore?.offer(boardName(kind),st.task.fen,{flip:st.side==='black'});drawBoard(boardName(kind),fromFen(st.task.fen),{flip:st.side==='black'});status(kind,r.result.message);if(kind==='course')el('v9CourseMeta').textContent=`${r.index}/${r.total} 해결 · ${r.done?'과정 완료':'다음 문제 대기'}`;el('v9'+props(kind)+'Next').hidden=false;el('v9'+props(kind)+'Hint').disabled=true;
    window.cmaMate?.show(boardName(kind),r.result.mate_explanation,st.side==='black');boardFeedback(kind,'문제 완료 · 저장 결과 복원','저장 조회 확인됨','complete');
   }else if(r.fen){st.task=r;st.side=r.side;st.solved=false;el('v9'+props(kind)+'Hint').disabled=false;paint(kind);status(kind,'진행 중인 문제를 복원했습니다.');boardFeedback(kind,(st.side==='black'?'흑':'백')+' 차례 · 저장된 문제 이어하기','저장 조회 확인됨');}
  }catch(e){if(revision===st.revision&&identity===token)status(kind,'저장된 문제 확인 실패: '+e.message);}
