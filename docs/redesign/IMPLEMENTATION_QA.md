@@ -69,3 +69,8 @@ See [whole-app survey and QA](../qa-whole-app/README.md) for the screen-by-scree
 ## PR40-baseline visual teaching and evidence follow-up
 
 See [visual teaching / diagnostic evidence QA](../qa-visual-evidence/README.md) for legal attack/protection diagrams, automatic en-passant, separated diagnostic scopes, read-only replay analysis, versioned cumulative evidence and radar comparisons. Prior scores and active sessions remain unchanged; newly exposed broad diagnostic areas use a new measurement condition. Original attached pixels are unavailable in this execution environment; the parent operator will independently compare them after deployment.
+
+
+## PR43 초기 진단 과정 후속 (2026-10-23 UTC)
+
+유한한 초기48관찰·최대24대체·판단보류, 기존 근거/기준선 보존, 초기보충과 성장재진단 게이트 분리, 결과→훈련 및 별도 AI 메이트장면 관찰을 추가했다. 최종 로컬125개 통과(실제 Stockfish와 API doubles 구별), 운영 UI/실기기/초보자 관찰은 미검증이다. 기존 운영 API지연·복기평가 성공을 해결했다고 주장하지 않는다. [설계](INITIAL_JOURNEY.md), [상세 검증·운영 재현 경로](INITIAL_JOURNEY_QA.md).
