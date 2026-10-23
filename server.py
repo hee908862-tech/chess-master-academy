@@ -1275,6 +1275,8 @@ attach_study(app, globals())
 
 from foundation_server import attach_foundations
 attach_foundations(app, globals())
+from movement_server import attach_movement
+attach_movement(app, globals())
 
 from puzzle_challenge import attach_challenge
 attach_challenge(app, globals())

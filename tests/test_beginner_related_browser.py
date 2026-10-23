@@ -9,7 +9,7 @@ from test_redesign_browser_followup import isolated,site
 @pytest.mark.parametrize('width,height',[(1366,540),(390,844)])
 def test_all_existing_lessons_show_rule_before_action_and_keep_controls(isolated,site,width,height):
     page,_=isolated;page.set_viewport_size({'width':width,'height':height})
-    page.locator('#flowBasicsStart').click()
+    open_legacy_intro(page)
     page.wait_for_function('!!cmaFoundations.state()?.active && !cmaFoundations.status().busy')
     for course in COURSES:
         page.evaluate("cmaNavigation.go('learn/basics')")
@@ -38,8 +38,17 @@ def test_all_existing_lessons_show_rule_before_action_and_keep_controls(isolated
     assert state['completed']==10 and not state['introduction']['done']
 
 
+def open_legacy_intro(page):
+    # Explicit guest creation, then opt into preserved PR48.
+    page.locator('#flowBasicsStart').click()
+    page.wait_for_function('!!cmaMovement.state().unit && !cmaMovement.state().loading')
+    page.evaluate("cmaNavigation.go('learn/basics')")
+    page.wait_for_function('!!cmaFoundations.state() && !cmaFoundations.status().busy')
+    page.locator('#foundation-recommended-action').click()
+
+
 def test_intro_demo_uses_one_common_move_sound_per_playback(isolated,site):
-    page,_=isolated;page.locator('#flowBasicsStart').click()
+    page,_=isolated;open_legacy_intro(page)
     page.wait_for_function('!!cmaFoundations.state()?.active && !cmaFoundations.status().busy')
     page.evaluate("window.introSounds=[];playMoveSound=(kind,ctx)=>{if(ctx?.board==='foundationBoard')introSounds.push(kind)}")
     page.locator('#foundationBoard [aria-label^="a1 "]').click()

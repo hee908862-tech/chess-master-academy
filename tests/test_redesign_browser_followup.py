@@ -20,8 +20,9 @@ def test_guest_link_logout_reload_owner_resume(isolated,site,width,height):
     page.locator('#flowBasicsStart').click()
     expect(page.locator('#learn')).to_have_class(__import__('re').compile(r'\bactive\b'))
     page.wait_for_function("token && localStorage.getItem('cma_guest_token')===token")
-    expect(page.locator('#foundationWorkspace')).to_be_visible(timeout=20000)
-    before=page.evaluate("api('/foundations')")
+    expect(page.locator('#movementStudio')).to_be_visible(timeout=20000)
+    page.wait_for_function('!!cmaMovement.state().unit && !cmaMovement.state().loading')
+    before=page.evaluate("api('/movement')")
     guest=page.evaluate('token')
     other=context.new_page();other.goto(site[0]);other.wait_for_function('!!token')
     page.evaluate("cmaNavigation.go('profile/account')")
@@ -30,29 +31,29 @@ def test_guest_link_logout_reload_owner_resume(isolated,site,width,height):
     page.locator('#codeField').fill(code);page.locator('#pinField').fill(pin);page.locator('#signup').click()
     page.wait_for_function("localStorage.getItem('chess_token')===token && localStorage.getItem('cma_identity')==='account'")
     expect(page.locator('#home')).to_have_class(__import__('re').compile(r'\bactive\b'))
-    account_before=page.evaluate("api('/foundations')")
+    account_before=page.evaluate("api('/movement')")
     page.evaluate("cmaNavigation.go('profile/account')")
     page.get_by_role('button',name='이 브라우저의 게스트 기록을 계정에 별도 연결',exact=True).click()
     page.wait_for_function("!localStorage.getItem('cma_guest_token')")
     other.wait_for_function("token===''")
-    assert context.request.get(site[0]+'/api/foundations',headers={'Authorization':'Bearer '+guest}).status==401
+    assert context.request.get(site[0]+'/api/movement',headers={'Authorization':'Bearer '+guest}).status==401
     resume=page.locator('#guestAccountAccess').get_by_role('button',name=__import__('re').compile('이어하기$'))
     resume.click();page.wait_for_function("localStorage.getItem('cma_identity')==='linked'")
-    assert page.evaluate("api('/foundations')")==before
+    assert page.evaluate("api('/movement')")==before
     delegated=page.evaluate('token')
     other.reload();other.wait_for_function("localStorage.getItem('cma_linked_token')===token")
     page.evaluate("cmaNavigation.go('profile/account')");page.locator('#signout').click()
     page.wait_for_function("token===''");other.wait_for_function("token===''")
     page.reload();page.wait_for_function("token===''")
-    assert context.request.get(site[0]+'/api/foundations',headers={'Authorization':'Bearer '+delegated}).status==401
+    assert context.request.get(site[0]+'/api/movement',headers={'Authorization':'Bearer '+delegated}).status==401
     page.evaluate("cmaNavigation.go('profile/account')")
     page.locator('#codeField').fill(code);page.locator('#pinField').fill(pin);page.locator('#signin').click()
     page.wait_for_function("localStorage.getItem('chess_token')===token && !!token")
     expect(page.locator('#home')).to_have_class(__import__('re').compile(r'\bactive\b'))
-    assert page.evaluate("api('/foundations')")==account_before
+    assert page.evaluate("api('/movement')")==account_before
     page.evaluate("cmaNavigation.go('profile/account')");resume.click()
     page.wait_for_function("localStorage.getItem('cma_identity')==='linked'")
-    assert page.evaluate("api('/foundations')")==before
+    assert page.evaluate("api('/movement')")==before
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
 
 @pytest.mark.parametrize('width,height',[(1366,768),(360,800),(390,844)])

@@ -7,6 +7,7 @@ from diagnostic_replay import position_facts
 from fastapi import Header, HTTPException
 from pydantic import BaseModel, Field
 from foundation_content import COURSES, BY_ID as LEGACY_BY_ID, CHOICES
+from movement_server import summary as movement_summary
 from beginner_content import INTRO, INTRO_ID, VERSION as INTRO_VERSION, lesson_teaching
 BY_ID = {**LEGACY_BY_ID, INTRO_ID: INTRO}
 
@@ -102,7 +103,7 @@ def attach_foundations(app, ns):
             if s['kind']=='judge':
                 keys=['mate','stalemate','playing'] if s['answer'] in ('mate','stalemate') else ['castle','no_castle'] if 'castle' in s['answer'] else ['ep','no_ep']
                 task['choices']=[{'id':key,'label':CHOICES[key]} for key in keys]
-        return {'version':1,'rules_first':state.get('learner_start',{}).get('choice')=='rules','revision':saved.get('revision',0),'courses':courses,'introduction':introduction,'active':task,'recommended':recommended,'completed':sum(c['done'] for c in courses),'total':len(courses),'scope':'기초 연습 기록 · 진단 점수와 훈련 크레딧에 포함하지 않습니다. 시범·안내 연습·새 이해 확인은 별도 표시합니다.'}
+        return {'movement':movement_summary(state),'version':1,'rules_first':state.get('learner_start',{}).get('choice')=='rules','revision':saved.get('revision',0),'courses':courses,'introduction':introduction,'active':task,'recommended':recommended,'completed':sum(c['done'] for c in courses),'total':len(courses),'scope':'기초 연습 기록 · 진단 점수와 훈련 크레딧에 포함하지 않습니다. 시범·안내 연습·새 이해 확인은 별도 표시합니다.'}
 
     @app.get('/api/foundations')
     def read(authorization: str|None=Header(default=None)):

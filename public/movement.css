@@ -1,0 +1,18 @@
+#movementStudio{max-width:760px;width:100%;margin:0 auto;line-height:1.5;overflow-wrap:anywhere}
+#movementStudio[hidden]{display:none!important}.movement-heading{display:flex;gap:12px;align-items:center;margin:8px 0}
+#movementPiece{width:58px;height:58px;flex:0 0 58px;display:grid;place-items:center;background:var(--board-light);border-radius:12px}
+#movementTitle{margin:0;font-size:22px;line-height:1.3}#movementRule{margin:4px 0;font-size:16px}
+.movement-task{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin:8px 0}
+#movementProgress{font-size:13px;color:var(--muted)}#movementBoard{max-width:540px;margin:0 auto;position:relative}
+#movementBoard .movement-target{position:absolute;inset:0;display:grid;place-items:center;font-size:26px;line-height:1;color:#142c43;text-shadow:0 0 3px #fff,0 0 3px #fff;pointer-events:none;z-index:3}
+#movementBoard .sq:has(.piece-img) .movement-target{inset:auto 3px 3px auto;font-size:17px;background:#fce6a4;border-radius:3px;padding:2px;text-shadow:none}
+#movementFeedback{min-height:2.8em;font-size:15px;margin:8px 0}#movementActions{margin:8px 0}
+#movementHelp{border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:12px}
+#movementHelp summary{cursor:pointer;min-height:36px}#movementHelp p{font-size:14px;color:var(--muted)}
+#movementHelp label{display:block;margin:12px 0}#movementHelp select{max-width:100%}#movementChoices{margin-top:14px}
+#movementStudio button:not(.sq),#movementStudio select{min-height:44px}#movementStudio .movement-error,#movementStudio.movement-error #movementFeedback{color:#ffd5c9}
+#movementStudio.movement-error #movementFeedback{border-left:3px solid #f1b4a4;padding-left:10px}
+body.movement-practice .topbar,body.movement-practice #onboardingInvitation{display:none}
+body.movement-practice .feature-toolbar{min-height:40px;margin-bottom:4px}body.movement-practice .learning-route-nav{margin-bottom:4px}
+@media(min-width:851px){#movementBoard{max-width:min(540px,max(360px,calc(100dvh - 260px)))}}
+@media(max-width:850px){#movementStudio{padding:0}#movementPiece{width:48px;height:48px;flex-basis:48px}#movementTitle{font-size:20px}.movement-heading{margin:4px 0;gap:9px}#movementRule{font-size:15px}#movementBoard{max-width:440px}#movementHelp{margin-top:8px}#movementFeedback{font-size:14px}.movement-task{font-size:15px}}
