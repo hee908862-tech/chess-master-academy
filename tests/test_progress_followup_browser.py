@@ -59,7 +59,7 @@ def test_past_lazy_evidence_is_read_only_during_active_diagnosis(page,site):
     expect(page.locator('#journeyPastReport .journey-item')).to_have_count(1)
     expect(page.locator('#journeyPastReport button:enabled:not([data-readonly])')).to_have_count(0)
     expect(page.locator('#journeyPastReport button:not(.sq):not([data-readonly])')).to_have_count(0)
-    expect(page.locator('#journeyPastReport button[data-readonly]')).to_have_count(5)
+    expect(page.locator('#journeyPastReport button[data-readonly]')).to_have_count(6)
     assert not mutations
     assert page.evaluate("api('/learning/dashboard')")==before
     expect(page.locator('#journeyProgress')).to_contain_text('1 / 2')

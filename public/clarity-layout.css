@@ -35,3 +35,6 @@
 @media(max-width:480px){.skill-radar{min-height:280px}.skill-radar text{font-size:17px}}
 
 .radar-compare{display:flex;align-items:center;gap:8px;min-height:44px}.radar-compare input{min-width:24px;min-height:24px}
+#initialProfile progress{display:block;width:100%;height:16px;margin:12px 0}.initial-tasks{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px}.initial-tasks li{display:grid;gap:8px;border:1px solid var(--line);border-radius:12px;padding:12px}#initialProfile .board{max-width:320px}#initialProfile article{border-top:1px solid var(--line);padding:12px 0}#initialProfile button{white-space:normal}#initialProgress{min-height:3em;font-size:14px}
+
+.initial-area{padding:14px 0;border-top:1px solid var(--border,#354157)}.initial-area>summary{font-weight:700;cursor:pointer;min-height:44px;display:list-item;padding:10px 4px}
