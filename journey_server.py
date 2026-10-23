@@ -9,7 +9,7 @@ import threading
 from functools import lru_cache
 from pathlib import Path
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Literal, Any
 import chess
 from skill_index import VERSION as SKILL_VERSION
@@ -18,6 +18,8 @@ from branch_exposure import exposure_info, FIELD as BRANCH_EXPOSURE_FIELD
 from growth_model import decorate, latest_cycle_report, cycle_status, MODES, verify_loss, prove_mate_alternative, ANSWER_POLICY
 from attempt_review import attach_attempt_review, initial_view
 from diagnosis_timing import accumulate
+import solving_timing
+from solving_score import VERSION as SOLVING_VERSION, item_score, report_score, target as solving_target
 from fastapi import Header, HTTPException
 from pydantic import BaseModel
 from competencies import VERSION, COMPETENCIES, position_key, line_positions
@@ -113,6 +115,13 @@ class Action(BaseModel):
     action: Literal['move','skip','next']
     move: str | None = None
     thinking_time: Any = None
+    solving_time: Any = None
+
+
+class Prepare(BaseModel):
+    session_id: str
+    item_id: str
+    revision: int
 
 
 def attach_journey(app, ns):
@@ -213,6 +222,10 @@ def attach_journey(app, ns):
         out['starting_conditions']=copy.deepcopy(s.get('starting_conditions'))
         out['initial_course']=bool(s.get('initial_course'))
         q['thinking_time']=copy.deepcopy(item.get('thinking_time'))
+        out['solving_score_version']=s.get('solving_score_version')
+        if s.get('solving_score_version'):
+            q['solving_time']=copy.deepcopy(item.get('solving_time'))
+            q['target_seconds']=solving_target(item)['target_seconds']
         out['question']=q
         if s['phase']=='feedback':
             out['feedback']=copy.deepcopy(item['feedback'])
@@ -307,7 +320,9 @@ def attach_journey(app, ns):
         initial_plan=None
         if initial_request:
             corpus=corpus_digest()
+            new_course=not state.get('initial_profile')
             initial_profile.initialize(state,corpus)
+            if new_course:state['initial_profile']['solving_score_version']=SOLVING_VERSION
             course=state['initial_profile']
             if course['corpus']!=corpus:raise HTTPException(409,'진행 과정의 자료 버전이 다릅니다. 기존 기록을 보존하며 새 배정을 보류합니다.')
             initial_plan=initial_profile.status(state)
@@ -376,6 +391,8 @@ def attach_journey(app, ns):
         if body.mode in MODES:secrets.SystemRandom().shuffle(items)
         s={'session_id':secrets.token_hex(16),'revision':0,'version':'journey-v5' if body.mode in (*MODES,'domain') else 'journey-entry-v1' if body.mode=='gentle' else JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':measurement_scope,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
         s['answer_policy']='goal-alternatives-v1'
+        if not initial_request or course.get('solving_score_version')==SOLVING_VERSION:
+            s['solving_score_version']=SOLVING_VERSION
         s['starting_conditions']={'self_choice':starting.get('choice','unselected'),'mode':body.mode,'assessment_scope':'full_line','bands':sorted({tuple(i['band']) for i in items}),'helped':False}
         if body.mode in MODES:s['corpus_sha256']=corpus_digest()
         if body.mode in MODES:s['scoring_version']=SKILL_VERSION
@@ -482,6 +499,11 @@ def attach_journey(app, ns):
         if item.get('alternative_evidence'):item['feedback']['goal_evidence']=copy.deepcopy(item['alternative_evidence'])
         if complete and chess.Board(s['fen']).is_checkmate():
             item['feedback']['mate_explanation']=explain_mate(chess.Board(s['fen']))
+        if s.get('solving_score_version')==SOLVING_VERSION:
+            solving_timing.finish(item)
+            item['solving_score']=item_score(item)
+            item['feedback']['solving_score']=copy.deepcopy(item['solving_score'])
+            item['feedback']['solving_time']=copy.deepcopy(item.get('solving_time'))
         s['phase']='feedback'
 
     def finish(s, previous):
@@ -491,13 +513,36 @@ def attach_journey(app, ns):
         if s.get('answer_policy'):result['answer_policy']=s['answer_policy']
         if s.get('corpus_sha256'):result['corpus_sha256']=s['corpus_sha256']
         if s.get('initial_course'):result['initial_course']=s['initial_course']
-        return decorate(result)
+        result=decorate(result)
+        if s.get('solving_score_version')==SOLVING_VERSION:
+            result['solving_score_version']=SOLVING_VERSION
+            result['solving_score']=report_score(s)
+            result['solving_score']['comparison']={'formula_version':SOLVING_VERSION,'timing_version':solving_timing.VERSION,'target_policy_version':'authored-target-v1','corpus':s.get('corpus_sha256'),'answer_policy':s.get('answer_policy'),'measurement_scope':s.get('measurement_scope'),'question_set_sha256':hashlib.sha256(json.dumps([(i['puzzle_id'],i['fen'],i['line']) for i in s['items']],sort_keys=True).encode()).hexdigest()}
+            result['solving_score']['comparison_note']='문항 집합·준비·기준시간·채점 정책·자료 버전이 같은 경우에만 직접 비교합니다. 서로 다른 문항의 점수 차이를 성장으로 확정하지 않습니다.'
+        return result
+
+    @app.post('/api/journey/prepare')
+    def prepare_question(body:Prepare, authorization: str | None = Header(default=None)):
+        code=auth(authorization)
+        with store(code) as state:
+            s=state['active']
+            if not s or s['session_id']!=body.session_id or s['revision']!=body.revision or s['phase']!='question':
+                raise HTTPException(409,'문항 상태가 바뀌었습니다. 저장된 위치를 다시 확인하세요.')
+            item=s['items'][s['index']]
+            if item['id']!=body.item_id or s.get('solving_score_version')!=SOLVING_VERSION:
+                raise HTTPException(409,'현재 문항의 시간 평가 조건과 다릅니다.')
+            return solving_timing.prepare(item,now())
 
     @app.post('/api/journey/action')
     def action(body:Action, authorization: str | None = Header(default=None)):
+        received_at=now()
         code=auth(authorization)
         engine_evidence=None
         initial=read(code).get('active')
+        if initial and initial.get('solving_score_version')==SOLVING_VERSION and initial['session_id']==body.session_id and initial['revision']==body.revision and body.action in ('move','skip'):
+            prep=initial['items'][initial['index']].get('solving_time',{}).get('prep_started_at')
+            if prep and received_at<datetime.fromisoformat(prep)+timedelta(seconds=3):
+                raise HTTPException(409,'보드를 살펴보는 3초 준비가 끝난 뒤 입력하세요. 시간은 초기화되지 않습니다.')
         if initial and initial['revision']==body.revision and initial['session_id']==body.session_id and initial['phase']=='question' and body.action=='move':
             row=initial['items'][initial['index']]
             if body.move!=initial.get('answer_line',row['line'])[initial['offset']]:
@@ -519,7 +564,9 @@ def attach_journey(app, ns):
                     item['independent']=False
                     item['app_new']=False
             if body.action in ('move','skip') and s['phase']=='question':
-                accumulate(s['items'][s['index']], body.thinking_time, now())
+                if s.get('solving_score_version')==SOLVING_VERSION:
+                    solving_timing.accumulate(s['items'][s['index']], body.solving_time, received_at)
+                else:accumulate(s['items'][s['index']], body.thinking_time, received_at)
             if body.action=='next':
                 if s['phase']!='feedback': raise HTTPException(409,'문항 풀이를 먼저 마치세요.')
                 s['index']+=1
@@ -565,6 +612,8 @@ def attach_journey(app, ns):
                         if b.is_checkmate() or s['offset']==len(s.get('answer_line',item['line'])): finish_item(s,True,'상대 응수를 포함한 전체 수순을 완료했습니다.')
                         else:
                             reply=s.get('answer_line',item['line'])[s['offset']]; b.push_uci(reply); s['played'].append(reply); s.update(offset=s['offset']+1,fen=b.fen(),reply=reply)
+            if body.action=='move' and s['phase']=='question' and s.get('solving_score_version')==SOLVING_VERSION:
+                solving_timing.mark_ready(s['items'][s['index']],now())
             s['revision']+=1
             result=payload(s)
             if s.get('initial_course'):result['initial_profile']=initial_view(state)

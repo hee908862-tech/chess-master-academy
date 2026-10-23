@@ -150,3 +150,16 @@ def freeze(state,at,held_reason=None):
     if view['state'] not in ('ready','held'):raise ValueError('관찰이 진행 중입니다.')
     course['baseline']=copy.deepcopy(view);course['baseline']['baseline_version']='initial-baseline-v1'
     course['baseline']['frozen_at']=at
+    if course.get('solving_score_version')=='solving-performance-v1':
+        from solving_score import report_score
+        reports=[r for r in state.get('results',[]) if compatible(r,course['corpus'])]
+        current=[r for r in reports if r.get('solving_score_version')=='solving-performance-v1']
+        score=report_score({'items':[i for r in current for i in r.get('items',[])]})
+        score['source_report_ids']=[r['id'] for r in current]
+        score['comparison']={'formula_version':'solving-performance-v1','timing_version':'solving-time-v1','target_policy_version':'authored-target-v1','corpus':course['corpus'],'answer_policies':sorted({r.get('answer_policy','reference-line-v1') for r in current}),'measurement_scope':'initial_original_assignments','question_set_sha256':hashlib.sha256(json.dumps([(i.get('puzzle_id'),i.get('fen'),i.get('line')) for r in current for i in r.get('items',[])],sort_keys=True).encode()).hexdigest()}
+        score['scope_note']='새 준비·시간 규칙으로 배정한 모든 문항의 수행 점수입니다. 미확정·중단을 성공 대체로 지우지 않습니다.'
+        if len(current)!=len(reports):
+            score.update(status='held',final_score=None,time_adjustment=None)
+            score['reasons'].append('legacy_observations_without_solving_time')
+            score['scope_note']='이전 조건의 관찰이 함께 있어 초기 과정 전체의 새 시간 점수는 보류합니다. 신버전 회차 점수는 각 회차에서 확인하세요.'
+        course['baseline']['solving_score']=score
