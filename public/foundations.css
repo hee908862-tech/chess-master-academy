@@ -32,3 +32,12 @@ body.focus-foundation #foundationAcademy #foundationLive{min-height:0;padding:6p
 body.focus-foundation #foundationAcademy #foundationLive.foundation-error{padding:12px}
 body.focus-foundation #foundationAcademy #foundationSave{font-size:12px}
 #foundationFeedback:empty{display:none}
+/* Legacy lessons retain their exact state; background context is available on demand. */
+#foundationAcademy #foundationPieceName{font-size:19px}
+#foundationAcademy #foundationPhase{font-size:12px}
+#foundationAcademy #foundationPiecePicture{width:52px;height:52px;flex-basis:52px}
+#foundationAcademy #foundationTeaching{padding:4px 0}
+#foundationAcademy #foundationRule{font-size:16px;margin:6px 0}
+#foundationAcademy #foundationFullInstruction #foundationPrior{font-size:14px}
+
+#foundationPhase:empty{display:none}

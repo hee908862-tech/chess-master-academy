@@ -5,6 +5,15 @@ from playwright.sync_api import expect
 from test_redesign_browser_followup import isolated,site
 
 
+def open_legacy_intro(page):
+    # Explicit guest creation, then opt into preserved PR48.
+    page.locator('#flowBasicsStart').click()
+    page.wait_for_function('!!cmaMovement.state().unit && !cmaMovement.state().loading')
+    page.evaluate("cmaNavigation.go('learn/basics')")
+    page.wait_for_function('!!cmaFoundations.state() && !cmaFoundations.status().busy')
+    page.locator('#foundation-recommended-action').click()
+
+
 def ready(page):
     page.wait_for_function('!!cmaFoundations.state()?.active && !cmaFoundations.status().busy')
 
@@ -37,9 +46,9 @@ def demo(page):
 @pytest.mark.parametrize('width,height',[(1366,768),(360,800),(390,844),(844,390)])
 def test_new_guest_recognition_demo_guided_independent_transfer(isolated,site,width,height):
     page,_=isolated;page.set_viewport_size(dict(width=width,height=height))
-    page.locator('#flowBasicsStart').click();ready(page)
+    open_legacy_intro(page);ready(page)
     assert page.evaluate('cmaFoundations.state().active.course_id')=='rook-first-v1'
-    expect(page.locator('#foundationPieceName')).to_have_text('이 말은 룩이에요')
+    expect(page.locator('#foundationPieceName')).to_have_text('룩')
     expect(page.locator('#foundationRule')).to_be_visible()
     assert not page.locator('#foundationCourseList').evaluate('e=>e.open')
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
@@ -70,7 +79,7 @@ def test_new_guest_recognition_demo_guided_independent_transfer(isolated,site,wi
 
 
 def test_existing_course_resume_and_optional_new_check_preserve_session(isolated,site):
-    page,_=isolated;page.locator('#flowBasicsStart').click();ready(page)
+    page,_=isolated;open_legacy_intro(page);ready(page)
     page.evaluate("cmaNavigation.go('learn/basics')")
     page.get_by_role('button',name='이미 알고 있어요 · 원하는 과정 고르기',exact=True).click()
     page.locator('#foundation-open-king-check').click();ready(page)
@@ -100,7 +109,7 @@ def test_existing_course_resume_and_optional_new_check_preserve_session(isolated
 
 def test_reduced_motion_keyboard_and_save_failure_preserves_state(isolated,site):
     page,_=isolated;page.emulate_media(reduced_motion='reduce');page.set_viewport_size(dict(width=390,height=844))
-    page.locator('#flowBasicsStart').click();ready(page)
+    open_legacy_intro(page);ready(page)
     page.locator('#foundationAnswers').get_by_role('button',name=re.compile('룩 선택')).focus();page.keyboard.press('Enter');ready(page)
     next_step(page);expect(page.locator('#foundationObserve')).to_be_enabled()
     before=page.evaluate("api('/foundations')")
@@ -117,7 +126,7 @@ def test_reduced_motion_keyboard_and_save_failure_preserves_state(isolated,site)
 
 def test_new_account_separate_from_guest_and_completed_legacy_optional_intro(isolated,site):
     from foundation_content import COURSES
-    page,context=isolated;page.locator('#flowBasicsStart').click();ready(page)
+    page,context=isolated;open_legacy_intro(page);ready(page)
     page.locator('#foundationBoard [aria-label^="a1 "]').click();ready(page)
     guest=page.evaluate('token');guest_before=page.evaluate("api('/foundations')")
     account=context.request.post(site[0]+'/api/register',data={'code':'BEGINNER-'+secrets.token_hex(4),'pin':secrets.token_urlsafe(14)})

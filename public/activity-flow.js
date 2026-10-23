@@ -4,12 +4,13 @@ const $=id=>document.getElementById(id),make=(p,t,text,id)=>{const e=document.cr
 function fold(parent,id,label,nodes){const d=make(parent,'details',null,id);d.className='card flow-disclosure';make(d,'summary',label);for(const n of nodes)if(n)d.append(n);return d;}
 function button(p,label,fn){const b=make(p,'button',label);b.className='btn';b.type='button';b.onclick=fn;return b;}
 let stateOwner=null,observed={},last='',scheduled=false,installed=false,bootstrapOwner=null,bootRun=null,journeyEpoch=0;
-const routeFor=path=>path.startsWith('/foundations')?'learn':path.startsWith('/journey')?'diagnosis':path.startsWith('/learning')?'training':path.startsWith('/game')?'play':null;
+const routeFor=path=>path.startsWith('/movement')?'learn':path.startsWith('/foundations')?'learn':path.startsWith('/journey')?'diagnosis':path.startsWith('/learning')?'training':path.startsWith('/game')?'play':null;
 function reset(){stateOwner=token;observed={failures:{},readSeq:{}};last='';}
 function remember(route){if(!route)return;last=route;if(!observed.code)return;try{localStorage.setItem('cma_recent_activity_v1:'+observed.code,route);}catch(e){}}
 const priorApi=api;api=async function(path,method,...args){if(path.startsWith('/journey/')&&method==='POST')journeyEpoch++;const readEpoch=journeyEpoch;const identity=token;if(stateOwner!==token)reset();const tracked=(method||'GET')==='GET'&&['/me','/foundations','/journey','/learning/dashboard','/game'].includes(path),seq=tracked?(observed.readSeq[path]||0)+1:0;if(tracked)observed.readSeq[path]=seq;let r;try{r=await priorApi(path,method,...args);}catch(e){if(tracked&&identity===token&&observed.readSeq[path]!==seq){const stale=Object.assign(new Error(e.message),e,{staleRead:true});throw stale;}if(identity===token&&tracked&&observed.readSeq[path]===seq){observed.failures[path]=e.message;if(path==='/me')accountReadFailure(e);queue();}throw e;}if(identity!==token)return r;if(tracked){if(observed.readSeq[path]!==seq)return r;delete observed.failures[path];}
  if(path==='/me'){user=r;summaryOwner=identity;accountReadSuccess();renderSummary();window.cmaLearningReturn?.();observed.code=r.code;try{const key='cma_recent_activity_v1:'+r.code;if(last)localStorage.setItem(key,last);else last=localStorage.getItem(key)||'';}catch(e){}}
  if(path==='/foundations'||path==='/foundations/action')observed.foundation=r;
+ if(['/movement','/movement/start','/movement/save'].includes(path)&&r.summary)observed.foundation={...(observed.foundation||{}),movement:r.summary};
  if(path==='/journey'&&readEpoch===journeyEpoch)observed.journey=r;
  if(path==='/journey/start'||path==='/journey/action')observed.journey={...(observed.journey||{}),active:['complete','initial_held'].includes(r.phase)?null:r,...(r.initial_profile?{initial_profile:r.initial_profile}:{}),...(r.report?{latest:r.report}:{})};
  if(path==='/learning/dashboard')observed.learning=r;
@@ -23,6 +24,7 @@ function skippedBasics(){try{return !!observed.code&&localStorage.getItem('cma.s
 function model(){if(observed.pending&&!observed.foundation&&!observed.journey&&!observed.learning&&!observed.game)return {label:'저장된 활동 확인 중…',detail:observed.slow?'조회가 지연되고 있습니다. 다른 학습 메뉴는 계속 이용할 수 있습니다.':'기존 진행을 확인하고 있습니다.',reason:'조회 중에는 새 활동을 추천하지 않습니다.',run:()=>{},disabled:true,choices:{}};const f=observed.foundation,a=f?.active,j=observed.journey,l=observed.learning,g=observed.game;
  const choices={};
  if(!skippedBasics()&&a&&(!a.done||!a.solved||a.step+1<a.total))choices.learn={label:'기초 이어하기',detail:`${a.course_title} · ${a.step+1}/${a.total}단계 · ${a.title}`,run:()=>window.cmaNavigation.foundationStart()};
+ const movement=f?.movement;if(!skippedBasics()&&movement?.preferred&&movement.started)choices.learn={label:movement.completed===movement.total?'기초 복습하기':'기초 이어하기',detail:`기초 직접 연습 · ${movement.name||'저장된 단원'} · ${movement.completed}/${movement.total}실습 확인`,run:()=>window.cmaMovement.enter()};
  if(j?.active)choices.diagnosis={label:'진단 이어하기',detail:`${j.active.index+1}/${j.active.total}문항 · 시작한 진단의 수순과 응답을 이어갑니다.`,run:()=>tab('diagnosis')};
  if(l?.active&&!l.active.done)choices.training={label:'훈련 이어하기',detail:`${l.active.category||'주제 비공개'} · ${l.active.assessment_scope==='first_move'?'첫 수 판단':'진행 중 수순'} · ${l.active.turns||0}수 진행`,run:()=>tab('training')};
  if(g?.board&&!g.board.is_over&&!g.finished)choices.play={label:'대국 이어하기',detail:`${g.board.turn==='black'?'흑':'백'} 차례 · 저장된 대국`,run:()=>tab('play')};
