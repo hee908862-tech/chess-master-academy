@@ -106,7 +106,8 @@
     $('learningSaved').replaceChildren(el('h3','저장된 훈련 이어하기'));
     if(task&&!task.done){$('learningSaved').append(el('p','현재 훈련은 착수·도움 사용과 함께 저장됩니다. 새 문제로 전환하려면 보존 확인이 필요합니다.'),button('현재 훈련 이어하기',()=>{if(window.cmaFocusLayout)window.cmaFocusLayout.resumeTraining();else $('learningBoard').scrollIntoView({block:'center'});}));}
     for(const saved of dashboard.paused||[]){$('learningSaved').append(button(`${saved.category||'검증'} · ${saved.card_id.slice(-8)} · ${saved.turns}수 진행 이어하기`,()=>run(async()=>{const identity=token,rev=generation;const r=await api('/learning/resume','POST',{session_id:saved.session_id,active_id:task?.session_id,active_revision:task?.revision});if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;await updateStats();render();})));}
-    if(!task&&!dashboard.paused?.length)$('learningSaved').append(el('p','아직 진행 중인 훈련이 없습니다.'));
+    if(!task&&dashboard.path&&!dashboard.path.done)$('learningSaved').append(button('경로 다음 단계',()=>continuePath()));
+    else if(!task&&!dashboard.paused?.length)$('learningSaved').append(el('p','아직 진행 중인 훈련이 없습니다.'));
     $('learningReason').textContent=`${dashboard.reason} · 복습할 위치 ${dashboard.due_count??dashboard.due.length}개`;
     if(!settingsActive)$('learningIntervals').value=dashboard.intervals.join(',');
     $('learningPath').replaceChildren();
@@ -171,7 +172,7 @@
     renderControls();lockControls();
   }
   function renderControls(){
-    renderReturn();const area=$('learningControls');area.replaceChildren();if(!task?.growth_task&&dashboard?.path?.current===1&&dashboard.path.steps[1].status==='active'){area.append(el('span','설명을 읽은 뒤 옆 또는 아래 경로의 개념 읽기 확인을 눌러 주세요.','subtle'));return;}if(!task)return;
+    renderReturn();const area=$('learningControls');area.replaceChildren();if(!task?.growth_task&&dashboard?.path?.current===1&&dashboard.path.steps[1].status==='active'){area.append(button('개념 읽기 확인',()=>continuePath('acknowledge')));return;}if(!task)return;
     if(task.done&&(task.growth_task||task.scoped_task)){area.append(el('p',outcomeLabel(task.outcome),'tag'),button('추천 훈련과 진행률 보기',()=>tab('diagnosis')));return;}
     if(task.done){area.append(button('퍼즐에서 적용하기',()=>tab('puzzle')),button('AI 대국에서 적용하기',()=>tab('play')));area.append(el('p',outcomeLabel(task.outcome)||'완료','tag'));if(task.path_id){area.append(button('경로 다음 단계',()=>continuePath()));return;}area.append(button('같은 위치 다시',()=>start({card_id:task.card_id,mode:task.mode})),button('다음 첫 수 검증',()=>start({fresh:true,mode:'verify',category:task.outcome.category})));return;}
     if(task.growth_task&&task.selection?.source_card&&task.rating){area.append(button('너무 어려워요 · 더 낮은 난도 찾기',()=>{if(!confirm('현재 착수는 보존하고 같은 과제 슬롯을 더 낮은 난도의 미노출 문제로 바꿀까요? 완료 횟수는 늘지 않습니다.'))return;run(async()=>{const identity=token,rev=generation;const r=await api('/learning/cycle/easier','POST',{report_id:task.growth_task.report_id,item_id:task.growth_task.task_id,card_id:task.card_id,session_id:task.session_id,revision:task.revision});if(identity!==token||rev!==generation)return;task=r;selected=null;playbackIndex=-1;await updateStats();render();});}));}
@@ -220,7 +221,7 @@
       renderReturn();return;
     }needsRefresh=true;throw e;}
     if(identity!==token||rev!==generation)return;keepTarget(null);task=result;selected=null;playbackIndex=-1;await updateStats();render();},'추천 훈련을 준비하고 있어요…');};
-  window.learningFromDiagnosis=async(report_id,item_id)=>{
+  window.learningFromDiagnosis=async(report_id,item_id,initial_baseline_id)=>{
     if(!ready('training')||busy)return;
     tab('training');generation++;
     task=null;dashboard=null;selected=null;playbackIndex=-1;render();
@@ -228,7 +229,7 @@
     await run(async()=>{
       const identity=token,rev=generation;
       try{
-        const result=await api('/learning/from-diagnosis','POST',{report_id,item_id});
+        const result=await api('/learning/from-diagnosis','POST',{report_id,item_id,...(initial_baseline_id?{initial_baseline_id}:{})});
         if(identity!==token||rev!==generation)return;
         task=result.active;selected=null;playbackIndex=-1;
         await updateStats();render();

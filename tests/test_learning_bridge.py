@@ -146,13 +146,15 @@ def test_concept_uses_real_source_and_locks_pending_transition(route_page,site,w
     page.screenshot(path=f'/tmp/learning-concept-v2-{width}.png',full_page=True)
     pending=[]
     page.route('**/api/learning/path',lambda route:pending.append(route))
-    page.locator('#learningRoute > summary').click()
-    page.get_by_role('button',name='개념 읽기 확인',exact=True).click()
+    page.locator('#learningControls').get_by_role('button',name='개념 읽기 확인',exact=True).click()
     expect(page.locator('#learningFresh')).to_be_disabled()
-    expect(page.get_by_role('button',name='개념 읽기 확인',exact=True)).to_be_disabled()
+    expect(page.locator('#learningControls').get_by_role('button',name='개념 읽기 확인',exact=True)).to_be_disabled()
     assert len(pending) == 1
     pending[0].continue_()
-    expect(page.get_by_role('button',name='경로 시작 · 이어가기',exact=True)).to_be_enabled()
+    expect(page.locator('#learningSaved').get_by_role('button',name='경로 다음 단계',exact=True)).to_be_visible()
+    page.unroute('**/api/learning/path')
+    page.locator('#learningSaved').get_by_role('button',name='경로 다음 단계',exact=True).click()
+    expect(page.locator('#learningMode')).not_to_have_text('준비')
 
 
 def test_previous_pending_diagnosis_path_opens_same_source_without_duplicate(setup):

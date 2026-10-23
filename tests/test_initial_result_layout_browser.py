@@ -9,7 +9,10 @@ from initial_profile import initialize,freeze,status
 
 @pytest.mark.parametrize('width',[360,390])
 def test_initial_result_chart_labels_and_training_primary(isolated,width):
-    page,_=isolated;page.set_viewport_size({'width':width,'height':844});guest(page)
+    page,_=isolated;page.set_viewport_size({'width':width,'height':844})
+    page.evaluate("cmaNavigation.go('diagnosis/initial')")
+    page.get_by_role('button',name='로그인 없이 초기 진단 시작',exact=True).click()
+    page.wait_for_function('!!token && !cmaJourney.status().busy')
     rows=real_rows()
     for row in rows:row['outcome']='completed'
     r=report(rows);state={'results':[r],'active':None};initialize(state,r['corpus_sha256']);freeze(state,'fixture');state['initial_profile']['reviewed_at']='fixture'

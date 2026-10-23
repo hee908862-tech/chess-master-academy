@@ -1,5 +1,7 @@
 """Finite authored observation plan; no rating calibration or historical writes."""
 import copy
+import hashlib
+import json
 from competencies import COMPETENCIES, VERSION as COMPETENCY_VERSION, line_positions
 from skill_index import VERSION as SCORE_VERSION, BANDS, score_areas, summary
 
@@ -44,7 +46,14 @@ def collect(state,corpus,include_active=True):
 def status(state,corpus=None):
     course=state.get('initial_profile') or {}
     if course.get('baseline'):
-        return {**copy.deepcopy(course['baseline']),'reviewed':bool(course.get('reviewed_at')),'active':bool(state.get('active'))}
+        baseline=copy.deepcopy(course['baseline'])
+        identity=[baseline.get('baseline_version'),baseline.get('corpus'),baseline.get('frozen_at'),
+                  [(s['report_id'],s['item_id']) for s in baseline.get('sources',[])]]
+        baseline['baseline_id']=hashlib.sha256(json.dumps(identity,separators=(',',':')).encode()).hexdigest()
+        sources=baseline.get('sources',[])
+        source=next((s for s in sources if s['outcome']!='completed'),sources[0] if sources else None)
+        baseline['recommended_source']={k:source[k] for k in ('report_id','item_id')} if source else None
+        return {**baseline,'reviewed':bool(course.get('reviewed_at')),'active':bool(state.get('active'))}
     corpus=course.get('corpus') or corpus or next((r.get('corpus_sha256') for r in reversed(state.get('results',[])) if r.get('version')=='journey-v5'),None)
     slots,rows,excluded=collect(state,corpus)
     areas=[]
