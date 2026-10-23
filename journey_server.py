@@ -137,6 +137,7 @@ def attach_journey(app, ns):
         reports = read(code)['results']
         return next((r for r in reversed(reports) if report_id is None or r['id']==report_id),None)
     ns['journey_report'] = report
+    ns['journey_initial_profile'] = lambda code: initial_profile.status(read(code))
     ns['journey_cycle_report'] = lambda code: latest_cycle_report(read(code)['results'])
     ns['journey_seen'] = lambda code: {x['puzzle_id'] for x in read(code)['reserved']}
     ns['journey_positions'] = lambda code: {key(x['fen']) for x in read(code)['reserved']}

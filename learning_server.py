@@ -115,6 +115,7 @@ class PathAction(BaseModel):
 class DiagnosisSource(BaseModel):
     report_id: str
     item_id: str
+    initial_baseline_id: str | None = Field(default=None,max_length=64)
 
 
 class ReplaceTask(DiagnosisSource):
@@ -233,17 +234,32 @@ def attach_learning(app, ns):
         code = auth(authorization)
         report = ns.get('journey_report', lambda *_: None)(code, body.report_id)
         if not report or report.get('id') != body.report_id: raise HTTPException(404, '완료한 진단 결과를 찾을 수 없습니다.')
+        if body.initial_baseline_id is not None:
+            baseline=ns.get('journey_initial_profile',lambda *_: {})(code)
+            if (not baseline.get('reviewed') or baseline.get('baseline_id')!=body.initial_baseline_id
+                or not any(s['report_id']==body.report_id and s['item_id']==body.item_id for s in baseline.get('sources',[]))):
+                raise HTTPException(409,'현재 확인한 초기 기준선의 추천 출처가 아닙니다. 결과를 다시 확인하세요.')
         item = next((i for i in report.get('items', []) if i.get('id') == body.item_id), None)
         if not item: raise HTTPException(404, '이 진단의 문항 근거를 찾을 수 없습니다.')
         with store(code) as state:
             legacy = context(code)
             path = state.get('path')
+            if path and path['done'] and body.initial_baseline_id and path.get('initial_baseline_id')==body.initial_baseline_id:
+                if state.get('active') and not state['active']['done']:
+                    raise HTTPException(409,'진행 중인 훈련을 먼저 마쳐 주세요. 현재 착수는 보존했습니다.')
+                existing=state['cards'].get(path.get('source_card'),{}).get('diagnosis',{})
+                if existing.get('report_id')==body.report_id and existing.get('item_id')==body.item_id:
+                    return {'path':public_path(state),'active':payload(state),'diagnosis':existing}
             if path and not path['done']:
                 existing = state['cards'].get(path.get('source_card'), {}).get('diagnosis', {})
                 if existing.get('report_id') == body.report_id and existing.get('item_id') == body.item_id:
                     active=state.get('active')
                     if active and not active['done'] and active.get('path_id')!=path['id']:
                         raise HTTPException(409, '진행 중인 다른 훈련의 착수를 보존했습니다. 먼저 완료해 주세요.')
+                    if body.initial_baseline_id:
+                        if path.get('initial_baseline_id') not in (None,body.initial_baseline_id):
+                            raise HTTPException(409,{'code':'active_learning_path','path_id':path['id'],'message':'다른 기준선의 진행 경로를 보존했습니다. 먼저 마친 뒤 현재 추천을 시작하세요.'})
+                        path['initial_baseline_id']=body.initial_baseline_id
                     if path['current']==0 and path['steps'][0]['status']=='pending':
                         begin(state,state['cards'][path['source_card']],'practice')
                         state['active'].update(path_id=path['id'],path_step=0)
@@ -256,6 +272,7 @@ def attach_learning(app, ns):
                 raise HTTPException(409, '진행 중인 훈련을 먼저 마쳐 주세요. 현재 착수는 보존했습니다.')
             card = diagnosis_card(state, report, item)
             create_path(state, legacy, card)
+            if body.initial_baseline_id:state['path']['initial_baseline_id']=body.initial_baseline_id
             begin(state, card, 'practice')
             state['active'].update(path_id=state['path']['id'], path_step=0)
             state['path']['steps'][0]['status']='active'
@@ -700,6 +717,7 @@ def attach_learning(app, ns):
         path = state.get('path')
         if not path: return None
         result = {k: path[k] for k in ('id', 'date', 'revision', 'current', 'done', 'source_card', 'selection_reason')}
+        result['initial_baseline_id']=path.get('initial_baseline_id')
         result['fresh'] = path.get('fresh', False)
         source = state['cards'].get(path.get('source_card'), {})
         result['diagnosis'] = source.get('diagnosis')
