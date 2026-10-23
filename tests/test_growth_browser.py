@@ -61,7 +61,7 @@ def test_empty_result_error_loading_and_double_size(page,site):
     data=mock_status(page,report_fixture('empty',2));data['results']=[data['latest']]
     page.route('**/api/games/analysis',lambda r:r.fulfill(status=503,json={'detail':'분석 기록을 잠시 불러오지 못했어요.'}))
     open_page(page,site);page.evaluate("tab('diagnosis')")
-    expect(page.locator('.growth-intro')).to_contain_text('아직 직접 둔 수가 없어요')
+    expect(page.locator('.growth-intro')).to_contain_text('분야 간 비교 근거가 부족합니다')
     expect(page.locator('.ability-card').first).to_contain_text('아직 응답 없음')
     page.evaluate("document.documentElement.style.zoom='200%'")
     for view in ('home','diagnosis','profile'):

@@ -11,7 +11,7 @@ const priorApi=api;api=async function(path,method,...args){if(path.startsWith('/
  if(path==='/me'){user=r;summaryOwner=identity;accountReadSuccess();renderSummary();window.cmaLearningReturn?.();observed.code=r.code;try{const key='cma_recent_activity_v1:'+r.code;if(last)localStorage.setItem(key,last);else last=localStorage.getItem(key)||'';}catch(e){}}
  if(path==='/foundations'||path==='/foundations/action')observed.foundation=r;
  if(path==='/journey'&&readEpoch===journeyEpoch)observed.journey=r;
- if(path==='/journey/start'||path==='/journey/action')observed.journey={...(observed.journey||{}),active:r.phase==='complete'?null:r,...(r.report?{latest:r.report}:{})};
+ if(path==='/journey/start'||path==='/journey/action')observed.journey={...(observed.journey||{}),active:['complete','initial_held'].includes(r.phase)?null:r,...(r.initial_profile?{initial_profile:r.initial_profile}:{}),...(r.report?{latest:r.report}:{})};
  if(path==='/learning/dashboard')observed.learning=r;
  if(['/learning/start','/learning/action','/learning/resume'].includes(path))observed.learning={...(observed.learning||{}),active:r};
  if(path==='/game'||path==='/game/new'||path==='/game/move')observed.game=r;
@@ -26,6 +26,7 @@ function model(){if(observed.pending&&!observed.foundation&&!observed.journey&&!
  if(j?.active)choices.diagnosis={label:'진단 이어하기',detail:`${j.active.index+1}/${j.active.total}문항 · 시작한 진단의 수순과 응답을 이어갑니다.`,run:()=>tab('diagnosis')};
  if(l?.active&&!l.active.done)choices.training={label:'훈련 이어하기',detail:`${l.active.category||'주제 비공개'} · ${l.active.assessment_scope==='first_move'?'첫 수 판단':'진행 중 수순'} · ${l.active.turns||0}수 진행`,run:()=>tab('training')};
  if(g?.board&&!g.board.is_over&&!g.finished)choices.play={label:'대국 이어하기',detail:`${g.board.turn==='black'?'흑':'백'} 차례 · 저장된 대국`,run:()=>tab('play')};
+ const initial=window.cmaInitial?.recommendation(j,l,choices,skippedBasics());if(initial)return {...initial,choices};
  const waitingForRecent=observed.pending&&(!observed.code||!({learn:f,diagnosis:j,training:l,play:g})[last]);
  const followReport=j?.latest&&['diagnosis','training'].includes(last)&&!choices[last];
  const id=waitingForRecent?null:choices[last]?last:followReport?null:Object.keys(choices)[0];

@@ -13,6 +13,7 @@ import chess
 import chess.engine
 from fastapi import Header,HTTPException
 from app_rating import summary as rating_summary, public_game as rating_game
+from game_observations import observe_game
 
 VERSION='move-quality-v2'
 _slots=threading.BoundedSemaphore(1)
@@ -99,10 +100,17 @@ def attach_analysis(app,ns):
         code=auth(authorization);state=ns['get_state'](code);games=state.get('games',[])
         with db() as conn:
             stored={r['game_key']:json.loads(r['state']) for r in execute(conn,'SELECT game_key,state FROM game_analysis WHERE code=?',(code,)).fetchall()}
-        records=[{'index':i,'game_key':game_key(g),'at':g.get('ended'),'color':g.get('color','white'),'app_rating':rating_game(g),'time_mode':g.get('time_mode','unknown'),**visible(stored.get(game_key(g)))} for i,g in enumerate(games)]
+        records=[{'index':i,'game_key':game_key(g),'observations_available':True,'at':g.get('ended'),'color':g.get('color','white'),'app_rating':rating_game(g),'time_mode':g.get('time_mode','unknown'),**visible(stored.get(game_key(g)))} for i,g in enumerate(games)]
         eligible=[r for r in records if r.get('quality') is not None and r.get('representative') and r.get('score_version')==VERSION and r['status']=='complete']
         return {'games':records,'average':round(sum(r['quality']*r.get('quality_moves',r['user_moves']) for r in eligible)/sum(r.get('quality_moves',r['user_moves']) for r in eligible),1) if eligible else None,
                 'representative_games':len(eligible),'app_rating':rating_summary(state),'rating':None,'rating_reason':'정확도 하나로 Elo를 환산하지 않습니다. 검증된 모델이 없어 외부 사람 레이팅으로의 환산은 보류합니다.'}
+    @app.get('/api/games/observations/{key}')
+    def observations(key:str,authorization:str|None=Header(default=None)):
+        code=auth(authorization)
+        game=next((g for g in ns['get_state'](code).get('games',[]) if game_key(g)==key),None)
+        if game is None:raise HTTPException(404,'저장된 대국을 찾을 수 없습니다.')
+        return observe_game(game,key)
+
     @app.post('/api/games/analysis/{key}')
     def start(key:str,authorization:str|None=Header(default=None)):
         code=auth(authorization);game=next((g for g in ns['get_state'](code).get('games',[]) if game_key(g)==key),None)

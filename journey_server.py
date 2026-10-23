@@ -6,12 +6,14 @@ import gzip
 import hashlib
 import os
 import threading
+from functools import lru_cache
 from pathlib import Path
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Literal
 import chess
 from skill_index import VERSION as SKILL_VERSION
+import initial_profile
 from growth_model import decorate, latest_cycle_report, cycle_status, MODES, verify_loss
 from fastapi import Header, HTTPException
 from pydantic import BaseModel
@@ -67,6 +69,12 @@ _inventory_lock=threading.Lock()
 _prepared=None
 
 
+@lru_cache(maxsize=1)
+def corpus_digest():
+    # LIB and inventory are fixed for the lifetime of this deployment process.
+    return hashlib.sha256(DATA_FILE.read_bytes()).hexdigest()
+
+
 def inventory():
     global _prepared
     if _prepared is not None:return _prepared
@@ -76,7 +84,7 @@ def inventory():
         if _prepared is not None:return _prepared
         try:
             with gzip.open(INDEX_PATH,'rt',encoding='utf8') as f:cached=json.load(f)
-            digest=hashlib.sha256(DATA_FILE.read_bytes()).hexdigest()
+            digest=corpus_digest()
             if cached['policy']!=INDEX_POLICY or cached['corpus_sha256']!=digest:raise ValueError('stale index')
             if set(cached['pools'])!={c for c,v in COMPETENCIES.items() if v['measured']}:raise ValueError('invalid index')
             _prepared={c:[cached['items'][pid] for pid in ids] for c,ids in cached['pools'].items()}
@@ -91,7 +99,7 @@ def inventory():
 
 
 class Start(BaseModel):
-    mode: Literal['basic','targeted','recheck','balanced','quick','entry','gentle','domain','subskill'] = 'basic'
+    mode: Literal['basic','targeted','recheck','balanced','quick','entry','gentle','domain','subskill','initial'] = 'basic'
     competency: str | None = None
     topic: str | None = None
 
@@ -197,6 +205,7 @@ def attach_journey(app, ns):
         out['measurement_scope']=s.get('measurement_scope','legacy_cued_execution')
         if s.get('mode')=='gentle':q['goal']='백 차례예요. 말을 누른 뒤 이동할 칸을 누르세요.' if b.turn else '흑 차례예요. 말을 누른 뒤 이동할 칸을 누르세요.'
         out['starting_conditions']=copy.deepcopy(s.get('starting_conditions'))
+        out['initial_course']=bool(s.get('initial_course'))
         out['question']=q
         if s['phase']=='feedback':
             out['feedback']=copy.deepcopy(item['feedback'])
@@ -216,7 +225,7 @@ def attach_journey(app, ns):
         visible=[state['results'][-1] if state['results'] else None,latest_cycle_report(state['results'])]
         evidence={r['id']:{i['id']:learning_observation(i) for i in (r.get('items') or []) if isinstance(i,dict) and i.get('id')} for r in visible if r and r.get('id')}
         from skill_index import cumulative_evidence
-        return {'profile_evidence':cumulative_evidence(state['results']),'learning_evidence':evidence,'preparing':_inventory_lock.locked(),'training':{'path_id':path['id'] if path else None,'path_done':path.get('done',False) if path else False,'active':bool(active_training and not active_training.get('done')),'has_path':bool(path)},
+        return {'initial_profile':initial_profile.status(state,corpus_digest()),'profile_evidence':cumulative_evidence(state['results']),'learning_evidence':evidence,'preparing':_inventory_lock.locked(),'training':{'path_id':path['id'] if path else None,'path_done':path.get('done',False) if path else False,'active':bool(active_training and not active_training.get('done')),'has_path':bool(path)},
                 'activity':{'diagnoses':len(state['results']),'answered':sum(bool(i.get('submitted')) for r in state['results'] for i in r.get('items',[])), 'recommended_completed':sum(len(c.get('completed',{})) for c in learning.get('cycles',{}).values())},
                 'cycle':cycle_status(latest_cycle_report(state['results']),learning),
                 'growth':[{'id':r.get('id'),'at':r.get('at'),'snapshot':r.get('snapshot'),'version':r.get('version')} for r in state['results']],
@@ -266,6 +275,7 @@ def attach_journey(app, ns):
     @app.post('/api/journey/start')
     def start(body:Start, authorization: str | None = Header(default=None)):
         code=auth(authorization)
+        initial_request=body.mode=='initial'
         if read(code)['active']:raise HTTPException(409,'저장된 진단을 먼저 이어서 완료하세요.')
         # Preserve existing legacy sessions, but new requests cannot reuse a spent cycle.
         if body.mode=='basic' and latest_cycle_report(read(code)['results']):
@@ -284,6 +294,17 @@ def attach_journey(app, ns):
         state=read(code)
         before=copy.deepcopy(state)
         cycle=cycle_status(latest_cycle_report(state['results']),learning)
+        initial_plan=None
+        if initial_request:
+            corpus=corpus_digest()
+            initial_profile.initialize(state,corpus)
+            course=state['initial_profile']
+            if course['corpus']!=corpus:raise HTTPException(409,'진행 과정의 자료 버전이 다릅니다. 기존 기록을 보존하며 새 배정을 보류합니다.')
+            initial_plan=initial_profile.status(state)
+            if initial_plan['state'] in ('ready','held') or course.get('baseline'):raise HTTPException(409,'초기 과정의 결과를 확인하세요. 추가 출제를 자동 반복하지 않습니다.')
+            area=body.competency or initial_plan['next_area']
+            if area not in [a['id'] for a in initial_plan['areas'] if a['missing']]:raise HTTPException(409,'이 분야의 필수 관찰은 이미 확보했습니다. 남은 분야를 선택하세요.')
+            body=Start(mode='domain',competency=area)
         if body.mode in ('basic',*MODES) and cycle and not cycle['unlocked']:
             raise HTTPException(409,cycle['message'])
         if body.mode not in ('basic','gentle',*MODES) and (body.competency not in COMPETENCIES or not COMPETENCIES[body.competency]['measured']):
@@ -305,8 +326,15 @@ def attach_journey(app, ns):
             previous=latest_cycle_report(state['results'])
             area=next((a for a in previous['areas'] if a['id']==body.competency),{})
             focused_band=(1800,2400) if area.get('full_success',0)>=2 else (900,1500) if area.get('first_success',0) else (600,1200)
+        initial_bands=[]
+        if initial_request:
+            deficit=next(a for a in initial_plan['areas'] if a['id']==body.competency)['missing_bands']
+            allocated=course.get('assigned_by_area',{}).get(body.competency,0)
+            first_remaining=max(0,course.get('initial_missing_by_area',{}).get(body.competency,sum(deficit))-allocated)
+            chunk=min(initial_profile.CHUNK,first_remaining) if first_remaining else 4
+            initial_bands=[band for n,band in zip(deficit,initial_profile.BANDS) for _ in range(n)][:min(chunk,initial_plan['budget_left'])]
         for c in (list(pools) if body.mode in ('basic','gentle',*MODES) else [body.competency]):
-            for lo,hi in ([(600,1000)] if body.mode=='gentle' else [(600,1200),(1200,1800)]*(2 if body.mode=='balanced' else 1) if body.mode in ('basic','gentle',*MODES) else [(600,1200),(1200,1800)]*(4 if body.mode=='domain' else 2) if body.mode in ('domain','subskill') else [focused_band or additional_plan(state['results'],c,measurement_scope)['band']]*3):
+            for lo,hi in (initial_bands if initial_request else [(600,1000)] if body.mode=='gentle' else [(600,1200),(1200,1800)]*(2 if body.mode=='balanced' else 1) if body.mode in ('basic','gentle',*MODES) else [(600,1200),(1200,1800)]*(4 if body.mode=='domain' else 2) if body.mode in ('domain','subskill') else [focused_band or additional_plan(state['results'],c,measurement_scope)['band']]*3):
                 choices=[p for p in pools[c] if p['puzzle_id'] not in ids and lo<=p['rating']<hi and (body.mode!='subskill' or body.topic in p['tags']) and (body.mode!='gentle' or len(p['line'])<=5) and not positions.intersection(footprint(p))]
                 if not choices: continue
                 p=copy.deepcopy(secrets.choice(choices)); p.update(id=secrets.token_hex(8),competency=c,band=[lo,hi],independent=not uncertain,app_new=True,prior_exposure_unknown=True,legacy_exposure_unknown=uncertain,helped=False,first_attempt=True)
@@ -316,20 +344,34 @@ def attach_journey(app, ns):
                     board.push_uci(uci); positions.add(key(board.fen()))
         if body.mode in MODES and len(items)!=(24 if body.mode=='balanced' else 12):
             raise HTTPException(409,'균형 있게 확인할 새 문제가 부족합니다. 저장된 결과와 훈련은 유지되며 분야별 추가 확인을 이용할 수 있어요.')
-        if body.mode in ('domain','subskill') and len(items)!=(8 if body.mode=='domain' else 4):
+        if not initial_request and body.mode in ('domain','subskill') and len(items)!=(8 if body.mode=='domain' else 4):
             raise HTTPException(409,'선택한 범위의 미노출 기초·응용 문제가 부족합니다. 기존 기록은 유지됩니다. 다른 주제를 선택하세요.')
+        if initial_request and not items:
+            state['initial_profile']['held']='필수 분야·난도의 미노출 문제가 부족해 추가 확인을 보류합니다.'
+            with store(code) as current:
+                if current!=before or external_snapshot(code)!=snapshot:raise HTTPException(409,'기록이 바뀌었습니다. 저장 상태를 다시 확인하세요.')
+                current.update(state)
+            return {'initial_profile':initial_profile.status(state),'phase':'initial_held'}
         if not items: raise HTTPException(409,'조건에 맞는 미노출 국면이 없습니다. 기존 훈련을 이용하세요.')
         if body.mode in MODES:secrets.SystemRandom().shuffle(items)
         s={'session_id':secrets.token_hex(16),'revision':0,'version':'journey-v5' if body.mode in (*MODES,'domain') else 'journey-entry-v1' if body.mode=='gentle' else JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':measurement_scope,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
         s['starting_conditions']={'self_choice':starting.get('choice','unselected'),'mode':body.mode,'assessment_scope':'full_line','bands':sorted({tuple(i['band']) for i in items}),'helped':False}
-        if body.mode in MODES:s['corpus_sha256']=hashlib.sha256(DATA_FILE.read_bytes()).hexdigest()
+        if body.mode in MODES:s['corpus_sha256']=corpus_digest()
         if body.mode in MODES:s['scoring_version']=SKILL_VERSION
         if body.mode in ('domain','subskill'):
             from diagnostic_blueprint import VERSION as BLUEPRINT_VERSION
             s['version']='journey-v5' if body.mode=='domain' else BLUEPRINT_VERSION
             s['scoring_version']=SKILL_VERSION
-            s['corpus_sha256']=hashlib.sha256(DATA_FILE.read_bytes()).hexdigest()
+            s['corpus_sha256']=corpus_digest()
             s['diagnostic_scope']={'level':body.mode,'competency':body.competency,'topic':body.topic}
+        if initial_request:
+            s['initial_course']=initial_profile.VERSION
+            s['starting_conditions']['mode']='initial'
+            s['starting_conditions']['sampling_policy']='initial-targeted-v1'
+            s['diagnostic_scope']['initial_targeted']=True
+            state['initial_profile']['assigned']+=len(items)
+            allocation=state['initial_profile'].setdefault('assigned_by_area',{})
+            allocation[body.competency]=allocation.get(body.competency,0)+len(items)
         begin_item(s); state['active']=s
         for item in items:
             board=chess.Board(item['fen'])
@@ -341,7 +383,31 @@ def attach_journey(app, ns):
             if current!=before or external_snapshot(code)!=snapshot:
                 raise HTTPException(409,'다른 화면에서 기록이 바뀌었습니다. 저장 상태를 확인한 뒤 다시 시작해 주세요.')
             current.update(state)
-        return payload(s)
+        result=payload(s)
+        if initial_request:result['initial_profile']=initial_profile.status(state)
+        return result
+
+    @app.post('/api/journey/initial/review')
+    def initial_review(authorization: str | None = Header(default=None)):
+        code=auth(authorization)
+        with store(code) as state:
+            if state['active']:raise HTTPException(409,'진행 중인 묶음을 먼저 마치세요. 저장된 풀이를 유지합니다.')
+            corpus=corpus_digest()
+            initial_profile.initialize(state,corpus)
+            if not state['initial_profile'].get('baseline') and state['initial_profile']['corpus']!=corpus:raise HTTPException(409,'자료 버전이 달라 기준선 확정을 보류합니다. 기존 기록은 유지됩니다.')
+            if initial_profile.status(state)['state'] not in ('ready','held'):raise HTTPException(409,'필수 관찰이 남아 있습니다. 이어하기 또는 판단 보류로 마치기를 선택하세요.')
+            initial_profile.freeze(state,now().isoformat())
+            state['initial_profile'].setdefault('reviewed_at',now().isoformat())
+            return initial_profile.status(state)
+
+    @app.post('/api/journey/initial/stop')
+    def initial_stop(authorization: str | None = Header(default=None)):
+        code=auth(authorization)
+        with store(code) as state:
+            if state['active']:raise HTTPException(409,'진행 중인 묶음은 저장되어 있습니다. 먼저 이 묶음을 마친 뒤 중단할 수 있습니다.')
+            initial_profile.initialize(state,corpus_digest())
+            initial_profile.freeze(state,now().isoformat(),'사용자가 추가 확인을 멈췄습니다. 미확인 분야는 판단 보류입니다.')
+            return initial_profile.status(state)
 
     def finish_item(s, complete, reason, skipped=False, outcome=None):
         item=s['items'][s['index']]; b=chess.Board(item['fen']); frames=[]
@@ -361,6 +427,7 @@ def attach_journey(app, ns):
         result['starting_conditions']=copy.deepcopy(s.get('starting_conditions'))
         if s.get('scoring_version'):result['scoring_version']=s['scoring_version']
         if s.get('corpus_sha256'):result['corpus_sha256']=s['corpus_sha256']
+        if s.get('initial_course'):result['initial_course']=s['initial_course']
         return decorate(result)
 
     @app.post('/api/journey/action')
@@ -421,4 +488,6 @@ def attach_journey(app, ns):
                         else:
                             reply=item['line'][s['offset']]; b.push_uci(reply); s['played'].append(reply); s.update(offset=s['offset']+1,fen=b.fen(),reply=reply)
             s['revision']+=1
-            return payload(s)
+            result=payload(s)
+            if s.get('initial_course'):result['initial_profile']=initial_profile.status(state)
+            return result
