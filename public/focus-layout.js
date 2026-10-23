@@ -6,7 +6,9 @@ function install(){
  const actions=document.querySelector('.foundation-actions');
  actions.prepend($('foundationLive'),$('foundationAnswers'),$('foundationNext'));
  const brief=document.createElement('p');brief.id='foundationReasonBrief';brief.className='focus-reason';$('foundationNext').after(brief);
- const explanation=details(actions,'foundationExplanation','이유 · 자세한 해설 원문',[$('foundationFeedback'),$('foundationFullInstruction')]);
+ $('foundationNext').before($('foundationFeedback'));
+ const explanation=details(actions,'foundationExplanation','보충 설명 · 자세한 안내',[$('foundationFullInstruction')]);
+ brief.hidden=true;
  const visual=$('foundationVisualTools');actions.append(visual);const tools=details(actions,'foundationFocusTools','안내 표시의 의미',[$('foundationVisualLegend')]);
  tools.after($('foundationAlternative'));
  const policy=actions.querySelector(':scope > .subtle');if(policy)explanation.append(policy);

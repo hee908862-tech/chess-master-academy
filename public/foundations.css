@@ -6,3 +6,29 @@
 /* Stack based on available content width as well as viewport (including text/CSS zoom). */
 #foundationWorkspace{container-type:inline-size}
 @container(max-width:650px){.foundation-work{grid-template-columns:minmax(0,1fr)}}
+/* Beginner teaching is visible before action; optional tools remain discoverable. */
+#foundationTeaching{padding:10px 0 4px;max-width:38rem}
+.foundation-piece-name{display:flex;align-items:center;gap:12px}
+#foundationPiecePicture{width:72px;height:72px;flex:0 0 72px;background:var(--board-light);border-radius:14px;display:grid;place-items:center}
+#foundationPiecePicture .piece-wrap{width:88%;height:88%}
+#foundationPieceName{margin:0;font-size:22px}#foundationPhase{margin:0 0 4px}
+#foundationPrior{font-size:14px;margin:8px 0;color:var(--muted)}
+#foundationRule{font-size:18px;font-weight:700;line-height:1.55;margin:8px 0}
+#foundationInstruction{font-size:16px;min-height:2.5em}
+#foundationLive{min-height:0;padding:8px 0;border:0;background:none}
+#foundationOutcome{min-height:1.6em;margin:0 0 4px;font-size:15px}
+#foundationSave{min-height:1.5em;font-size:12px;color:var(--muted)}
+#foundationLive.foundation-error{padding:12px;border:2px solid #ef9d8f;border-radius:12px}
+#foundationLive.foundation-error #foundationSave{font-size:14px;color:var(--text)}
+#foundationFeedback{min-height:3em;font-size:15px;line-height:1.7;margin:8px 0;padding:12px}
+#foundationLessonDemo{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+#foundationLessonDemo p{width:100%;margin:0}
+#foundationAnswers .btn:has(.piece-wrap){display:inline-flex;align-items:center;gap:8px;text-align:left}
+#foundationAnswers .piece-wrap{width:44px;height:44px;flex:0 0 44px;background:var(--board-light);border-radius:8px}
+.foundation-check-result{font-size:14px;line-height:1.6}
+#foundationReasonBrief[hidden]{display:none!important}
+@media(max-width:850px){#foundationWorkspace .foundation-work{gap:8px}#foundationPiecePicture{width:60px;height:60px;flex-basis:60px}#foundationPieceName{font-size:20px}#foundationRule{font-size:17px}#foundationStepTitle{font-size:16px;margin:4px 0}#foundationTurn{margin:4px 0;font-size:14px}#foundationInstruction{margin:6px 0}#foundationTeaching{padding-top:4px}}
+body.focus-foundation #foundationAcademy #foundationLive{min-height:0;padding:6px 0}
+body.focus-foundation #foundationAcademy #foundationLive.foundation-error{padding:12px}
+body.focus-foundation #foundationAcademy #foundationSave{font-size:12px}
+#foundationFeedback:empty{display:none}
