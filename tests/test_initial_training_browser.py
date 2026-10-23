@@ -98,7 +98,7 @@ def test_primary_training_sends_baseline_and_keeps_score_limits_visible(page,sit
     refresh_home(page);page.evaluate("cmaNavigation.go('diagnosis/initial')")
     panel=page.locator('#initialProfile')
     for text in ['1~3000','기초 40%','응용 60%','체스 전체 숙련을 뜻하지 않습니다.','잠정',
-                 '이번 평가 범위의 수행 점수','측정 난도: 문제은행 기초 600–1199 · 응용 1200–1799',
+                 '기존 선택 관찰 수행점수 · 원본 보존','측정 난도: 문제은행 기초 600–1199 · 응용 1200–1799',
                  '같은 구간 안의 문항별 난이도 차이는 점수에 반영하지 않습니다.',
                  '난이도 보정된 능력 추정은 아직 구현·검증되지 않았습니다.']:
         expect(panel).to_contain_text(text)
