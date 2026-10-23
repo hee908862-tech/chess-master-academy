@@ -74,3 +74,7 @@ See [visual teaching / diagnostic evidence QA](../qa-visual-evidence/README.md) 
 ## PR43 초기 진단 과정 후속 (2026-10-23 UTC)
 
 유한한 초기48관찰·최대24대체·판단보류, 기존 근거/기준선 보존, 초기보충과 성장재진단 게이트 분리, 결과→훈련 및 별도 AI 메이트장면 관찰을 추가했다. 최종 로컬125개 통과(실제 Stockfish와 API doubles 구별), 운영 UI/실기기/초보자 관찰은 미검증이다. 기존 운영 API지연·복기평가 성공을 해결했다고 주장하지 않는다. [설계](INITIAL_JOURNEY.md), [상세 검증·운영 재현 경로](INITIAL_JOURNEY_QA.md).
+
+## PR45 이후 채점 근거 정밀화
+
+원래 시도 전체 분모·별도 재검증 이력·부분 수순·외부 난도·활동 시간의 분리와 원본 점수 보존은 [모델](ATTEMPT_EVIDENCE_MODEL.md), [검증 및 한계](ATTEMPT_PRECISION_QA.md)를 참조한다. 실제 계정 자동 재채점은 하지 않는다.

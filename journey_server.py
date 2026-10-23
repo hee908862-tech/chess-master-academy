@@ -10,12 +10,14 @@ from functools import lru_cache
 from pathlib import Path
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Literal, Any
 import chess
 from skill_index import VERSION as SKILL_VERSION
 import initial_profile
 from branch_exposure import exposure_info, FIELD as BRANCH_EXPOSURE_FIELD
 from growth_model import decorate, latest_cycle_report, cycle_status, MODES, verify_loss, prove_mate_alternative, ANSWER_POLICY
+from attempt_review import attach_attempt_review, initial_view
+from diagnosis_timing import accumulate
 from fastapi import Header, HTTPException
 from pydantic import BaseModel
 from competencies import VERSION, COMPETENCIES, position_key, line_positions
@@ -110,6 +112,7 @@ class Action(BaseModel):
     revision: int
     action: Literal['move','skip','next']
     move: str | None = None
+    thinking_time: Any = None
 
 
 def attach_journey(app, ns):
@@ -138,7 +141,8 @@ def attach_journey(app, ns):
         reports = read(code)['results']
         return next((r for r in reversed(reports) if report_id is None or r['id']==report_id),None)
     ns['journey_report'] = report
-    ns['journey_initial_profile'] = lambda code: initial_profile.status(read(code))
+    ns['journey_initial_profile'] = lambda code: initial_view(read(code))
+    attach_attempt_review(app, auth, read, store, now)
     ns['journey_cycle_report'] = lambda code: latest_cycle_report(read(code)['results'])
     ns['journey_seen'] = lambda code: {x['puzzle_id'] for x in read(code)['reserved']}
     ns['journey_positions'] = lambda code: {key(x['fen']) for x in read(code)['reserved']}
@@ -208,6 +212,7 @@ def attach_journey(app, ns):
         if s.get('mode')=='gentle':q['goal']='백 차례예요. 말을 누른 뒤 이동할 칸을 누르세요.' if b.turn else '흑 차례예요. 말을 누른 뒤 이동할 칸을 누르세요.'
         out['starting_conditions']=copy.deepcopy(s.get('starting_conditions'))
         out['initial_course']=bool(s.get('initial_course'))
+        q['thinking_time']=copy.deepcopy(item.get('thinking_time'))
         out['question']=q
         if s['phase']=='feedback':
             out['feedback']=copy.deepcopy(item['feedback'])
@@ -228,7 +233,7 @@ def attach_journey(app, ns):
         visible=[state['results'][-1] if state['results'] else None,latest_cycle_report(state['results'])]
         evidence={r['id']:{i['id']:learning_observation(i) for i in (r.get('items') or []) if isinstance(i,dict) and i.get('id')} for r in visible if r and r.get('id')}
         from skill_index import cumulative_evidence
-        return {'initial_profile':initial_profile.status(state,corpus_digest()),'profile_evidence':cumulative_evidence(state['results']),'learning_evidence':evidence,'preparing':_inventory_lock.locked(),'training':{'path_id':path['id'] if path else None,'path_done':path.get('done',False) if path else False,'active':bool(active_training and not active_training.get('done')),'has_path':bool(path)},
+        return {'initial_profile':initial_view(state,corpus_digest()),'profile_evidence':cumulative_evidence(state['results']),'learning_evidence':evidence,'preparing':_inventory_lock.locked(),'training':{'path_id':path['id'] if path else None,'path_done':path.get('done',False) if path else False,'active':bool(active_training and not active_training.get('done')),'has_path':bool(path)},
                 'activity':{'diagnoses':len(state['results']),'answered':sum(bool(i.get('submitted')) for r in state['results'] for i in r.get('items',[])), 'recommended_completed':sum(len(c.get('completed',{})) for c in learning.get('cycles',{}).values())},
                 'cycle':cycle_status(latest_cycle_report(state['results']),learning),
                 'growth':[{'id':r.get('id'),'at':r.get('at'),'snapshot':r.get('snapshot'),'version':r.get('version')} for r in state['results']],
@@ -366,7 +371,7 @@ def attach_journey(app, ns):
             with store(code) as current:
                 if current!=before or external_snapshot(code)!=snapshot:raise HTTPException(409,'기록이 바뀌었습니다. 저장 상태를 다시 확인하세요.')
                 current.update(state)
-            return {'initial_profile':initial_profile.status(state),'phase':'initial_held'}
+            return {'initial_profile':initial_view(state),'phase':'initial_held'}
         if not items: raise HTTPException(409,'조건에 맞는 미노출 국면이 없습니다. 기존 훈련을 이용하세요.')
         if body.mode in MODES:secrets.SystemRandom().shuffle(items)
         s={'session_id':secrets.token_hex(16),'revision':0,'version':'journey-v5' if body.mode in (*MODES,'domain') else 'journey-entry-v1' if body.mode=='gentle' else JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':measurement_scope,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
@@ -400,7 +405,7 @@ def attach_journey(app, ns):
                 raise HTTPException(409,'다른 화면에서 기록이 바뀌었습니다. 저장 상태를 확인한 뒤 다시 시작해 주세요.')
             current.update(state)
         result=payload(s)
-        if initial_request:result['initial_profile']=initial_profile.status(state)
+        if initial_request:result['initial_profile']=initial_view(state)
         return result
 
     @app.post('/api/journey/initial/supplement')
@@ -437,7 +442,7 @@ def attach_journey(app, ns):
         with store(code) as current:
             if current!=before or external_snapshot(code)!=snapshot:raise HTTPException(409,'기록이 바뀌었습니다. 저장 상태를 확인한 뒤 보충을 다시 선택하세요.')
             current.update(state)
-        return initial_profile.status(state)
+        return initial_view(state)
 
     @app.post('/api/journey/initial/review')
     def initial_review(authorization: str | None = Header(default=None)):
@@ -450,7 +455,7 @@ def attach_journey(app, ns):
             if initial_profile.status(state)['state'] not in ('ready','held'):raise HTTPException(409,'필수 관찰이 남아 있습니다. 이어하기 또는 판단 보류로 마치기를 선택하세요.')
             initial_profile.freeze(state,now().isoformat())
             state['initial_profile'].setdefault('reviewed_at',now().isoformat())
-            return initial_profile.status(state)
+            return initial_view(state)
 
     @app.post('/api/journey/initial/stop')
     def initial_stop(authorization: str | None = Header(default=None)):
@@ -459,7 +464,7 @@ def attach_journey(app, ns):
             if state['active']:raise HTTPException(409,'진행 중인 묶음은 저장되어 있습니다. 먼저 이 묶음을 마친 뒤 중단할 수 있습니다.')
             initial_profile.initialize(state,corpus_digest())
             initial_profile.freeze(state,now().isoformat(),'사용자가 추가 확인을 멈췄습니다. 미확인 분야는 판단 보류입니다.')
-            return initial_profile.status(state)
+            return initial_view(state)
 
     def finish_item(s, complete, reason, skipped=False, outcome=None):
         item=s['items'][s['index']]; b=chess.Board(item['fen']); frames=[]
@@ -513,6 +518,8 @@ def attach_journey(app, ns):
                 if item['puzzle_id'] in external_ids or external_positions.intersection(footprint(item)):
                     item['independent']=False
                     item['app_new']=False
+            if body.action in ('move','skip') and s['phase']=='question':
+                accumulate(s['items'][s['index']], body.thinking_time, now())
             if body.action=='next':
                 if s['phase']!='feedback': raise HTTPException(409,'문항 풀이를 먼저 마치세요.')
                 s['index']+=1
@@ -560,5 +567,5 @@ def attach_journey(app, ns):
                             reply=s.get('answer_line',item['line'])[s['offset']]; b.push_uci(reply); s['played'].append(reply); s.update(offset=s['offset']+1,fen=b.fen(),reply=reply)
             s['revision']+=1
             result=payload(s)
-            if s.get('initial_course'):result['initial_profile']=initial_profile.status(state)
+            if s.get('initial_course'):result['initial_profile']=initial_view(state)
             return result
