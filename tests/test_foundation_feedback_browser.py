@@ -7,6 +7,7 @@ from test_study_browser import login
 
 def start(page,site,course='rook-bishop'):
     login(page,site);page.evaluate("cmaNavigation.go('learn/basics')")
+    page.locator('#foundationCourseList').evaluate('(e)=>e.open=true')
     page.locator('#foundation-open-'+course).click()
     expect(page.locator('#foundationWorkspace')).to_be_visible()
     expect(page.locator('#foundationAcademy')).to_have_attribute('aria-busy','false')
@@ -86,9 +87,13 @@ def test_ep_demo_and_overlay_replay_are_read_only(page,site,prior_alternative):
 
 
 def test_save_failure_recovery_and_long_message_do_not_move_board(page,site):
-    start(page,site);y=page.locator('#foundationBoard').bounding_box()['y']
+    start(page,site)
     page.route('**/api/foundations/action',lambda r:r.fulfill(status=503,json={'detail':'일시적인 저장 오류입니다. '*20}))
-    square(page,'foundationBoard','a1').click();square(page,'foundationBoard','a4').click()
+    # Selecting the bottom-rank rook may scroll it into view before any save.
+    # Measure from that settled pre-submit position so this tests error layout.
+    square(page,'foundationBoard','a1').click()
+    y=page.locator('#foundationBoard').bounding_box()['y']
+    square(page,'foundationBoard','a4').click()
     expect(page.locator('#foundationSave')).to_contain_text('저장 여부 미확인')
     expect(page.locator('#foundationOutcome')).not_to_contain_text('완료')
     assert abs(page.locator('#foundationBoard').bounding_box()['y']-y)<2
@@ -146,13 +151,13 @@ def test_check_black_board_reduced_motion_reflow_and_promotion_access(page,site,
         assert box['x']>=0 and box['x']+box['width']<=width+1
         assert page.evaluate('(b)=>{const r=b.getBoundingClientRect();return b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}',button.element_handle())
     page.keyboard.press('Escape')
-    page.evaluate("cmaNavigation.go('learn/basics')");page.locator('#foundation-open-mate-stalemate').click()
+    page.evaluate("cmaNavigation.go('learn/basics')");page.locator('#foundationCourseList').evaluate('(e)=>e.open=true');page.locator('#foundation-open-mate-stalemate').click()
     square(page,'foundationBoard','g6').click();square(page,'foundationBoard','g7').click()
     expect(page.locator('#foundationVisualLegend')).to_contain_text('체크메이트')
     expect(page.locator('#foundationBoard .foundation-check')).to_contain_text('체크')
     page.get_by_role('button',name='다음 단계',exact=True).click()
     # The actual black-side position has a check label but no answer / guide arrow.
-    expect(page.locator('#foundationTurn')).to_contain_text('흑 차례')
+    expect(page.locator('#foundationTurn')).to_contain_text('어두운색 말이 내 말')
     assert page.locator('#foundationBoard .sq').first.get_attribute('aria-label').startswith('h1 ')
     assert page.locator('#foundationBoard svg line').count()==0
     page.get_by_role('button',name='체크메이트',exact=True).click()

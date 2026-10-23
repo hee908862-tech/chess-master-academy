@@ -82,3 +82,7 @@ See [visual teaching / diagnostic evidence QA](../qa-visual-evidence/README.md) 
 ## PR46 이후 실제 시간 반영 점수
 
 새 진단의 준비·풀이·결과 상태, 제한된 시간 가산을 실제 저장하는 별도 수행 점수, 기존 기록 보존은 [산식](SOLVING_SCORE_MODEL.md)과 [저장·브라우저 검증 및 한계](SOLVING_TIME_QA.md)를 참조한다. 난도는 목표 시간에만 반영되며 난이도 보정 능력 추정은 아니다.
+
+## PR47 이후 초보 기초 이해 흐름
+
+기존10개 과정의 진도를 보존한 별도 룩 입문(말 식별→시범→안내→독립→새 배치)과 전체26개 실습의 행동 전 설명을 추가했다. [설계·보존·검사·운영 재검수 경로](../qa-beginner-understanding/README.md)를 참조한다. 실제 초보자 재검증·모바일 실기기 검사는 하지 않았다.
