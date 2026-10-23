@@ -9,7 +9,8 @@ async function freshPractice(){
  if(!ready())return;
  const btn=$('freshPuzzle');btn.disabled=true;
  try{
-  activePractice=await api('/practice/next','POST');practiceSelected=null;practicePending=false;
+  if(window.cmaExplore&&!await window.cmaExplore.requireExposureSaved('puzzleStatus'))return;
+  window.cmaExplore?.offer('puzzleBoard',null);activePractice=await api('/practice/next','POST');practiceSelected=null;practicePending=false;
   $('puzzleTitle').textContent=activePractice.theme;
   $('puzzleDesc').textContent=activePractice.description;
   $('puzzleLevel').textContent=activePractice.difficulty;
@@ -31,15 +32,15 @@ async function practiceClick(square){
  // This is the same server supplied legal list used for the green target markers.
  const allowed=(activePractice.legal||[]).some(u=>u===move||u.slice(0,4)===move);
  if(!allowed){practiceSelected=position[square]&&position[square]===position[square].toUpperCase()?square:null;drawPracticeBoard();return;}
- practiceSelected=null;practicePending=true;drawPracticeBoard();
+ const submittedPractice=activePractice;practiceSelected=null;practicePending=true;drawPracticeBoard();
  try{
-  const result=await api('/practice/answer','POST',{exercise_id:activePractice.id,move});
+  if(window.cmaExplore&&!await window.cmaExplore.requireExposureSaved('puzzleStatus'))return;if(activePractice!==submittedPractice)return;const result=await api('/practice/answer','POST',{exercise_id:activePractice.id,move});
   if(result.correct){
    ensureAudio(); const optimistic={...position,[square]:position[from]};delete optimistic[from];
    animateBoardTransition('puzzleBoard',from,square,()=>drawBoard('puzzleBoard',optimistic,{last:[from,square]}));
-   playMoveSound(position[square]?'capture':'move');
+
   } else drawPracticeBoard();
-  notice('puzzleStatus',result.explanation,result.correct?'ok':'err');
+  window.cmaExplore?.offer('puzzleBoard',activePractice.fen);notice('puzzleStatus',result.explanation,result.correct?'ok':'err');
   $('puzzleSolved').textContent=result.correct?'✓ 정답':'오답 · 재학습';
   $('nextPuzzle').style.display=result.correct?'inline-flex':'none';
   await refreshPuzzleStats();
@@ -132,7 +133,7 @@ let guided=null,guidedSelected=null,guidedBusy=false,guidedDone=false;
 let v3Test=null,v3Selected=null,v3Busy=false,v3Game=null,v3Question=null,v3Result=null;
 
 function moveTargets(fen,legal,source){return legal.filter(uci=>uci.slice(0,2)===source).map(uci=>({to:uci.slice(2,4)}));}
-function guidedDraw(){if(!guided)return;drawBoard('guidedBoard',fromFen(guided.fen),{selected:guidedSelected,targets:guidedSelected?moveTargets(guided.fen,guided.legal,guidedSelected):[],onClick:guidedClick})}
+function guidedDraw(){if(!guided)return;window.cmaExplore?.offer('guidedBoard',null);drawBoard('guidedBoard',fromFen(guided.fen),{selected:guidedSelected,targets:guidedSelected?moveTargets(guided.fen,guided.legal,guidedSelected):[],onClick:guidedClick})}
 async function beginGuided(){if(!token)return;guidedBusy=false;guidedDone=false;guidedSelected=null;
  try{guided=await api('/guided/start/'+encodeURIComponent(selectedLesson),'POST');$('guidedPrompt').textContent=`실습 1 / ${guided.total} · ${guided.prompt}`;guidedDraw();$('completeLesson').disabled=true;$('lessonQuizBox').textContent='체스판에서 개념을 직접 실습하면 이해도 확인 문제가 활성화됩니다.';}
  catch(e){$('guidedPrompt').textContent=e.message;}
@@ -144,7 +145,7 @@ async function guidedClick(s){if(guidedBusy||!guided||guidedDone)return;
  if(!guided.legal.includes(guidedSelected+s)){if(pos[s]&&pos[s]===pos[s].toUpperCase()){guidedSelected=s;guidedDraw();}else{guidedSelected=null;guidedDraw()}return;}
  const move=guidedSelected+s;guidedSelected=null;guidedBusy=true;
  try{const r=await api('/guided/move','POST',{lesson_id:selectedLesson,move});
-  if(r.correct){playMoveSound(pos[s]?'capture':'move');if(r.done){guidedDone=true;guided=null;$('guidedPrompt').textContent=r.message;$('completeLesson').disabled=false;$('lessonQuizBox').textContent='실습 완료! 이제 이해도 확인 문제를 진행하세요.';drawBoard('guidedBoard',pos);}else{guided=r;$('guidedPrompt').textContent=`실습 ${r.index+1} / ${r.total} · ${r.prompt}`;guidedDraw()}}
+  if(r.correct){if(r.done){guidedDone=true;guided=null;$('guidedPrompt').textContent=r.message;$('completeLesson').disabled=false;$('lessonQuizBox').textContent='실습 완료! 이제 이해도 확인 문제를 진행하세요.';drawBoard('guidedBoard',pos);}else{guided=r;$('guidedPrompt').textContent=`실습 ${r.index+1} / ${r.total} · ${r.prompt}`;guidedDraw()}}
   else{$('guidedPrompt').textContent=r.message;guidedDraw()}}
  catch(e){$('guidedPrompt').textContent=e.message;}finally{guidedBusy=false}
 }
@@ -182,10 +183,10 @@ async function v3TestClick(s){if(v3Busy||!v3Test)return;
  if(!picked){if(board[s]&&board[s]===board[s].toUpperCase())v3Selected=s;else v3Selected=null;v3TestDraw();return;}
  const from=v3Selected;v3Selected=null;v3Busy=true;
  try{
-  if(isGame){const r=await api('/assessment-v3/game-move','POST',{from_sq:from,to_sq:s,promotion:'q'});playMoveSound(board[s]?'capture':'move');
-   if(r.done){v3Game=r.board;v3Test=null;v3Result=r.result;v3TestDraw();showV3Result(r.result);}
-   else{v3Game=r.board;$('testProgress').textContent=`중급 AI 평가 대국 · ${r.white_moves}/12수`;notice('testStatus','AI 응수가 끝났습니다. 다음 수를 두세요.');v3TestDraw();}}
-  else{const r=await api('/assessment-v3/answer','POST',{question_id:v3Question.id,move:from+s});playMoveSound(board[s]?'capture':'move');if(r.phase==='game')v3StartGame(r);else v3QuestionShown(r)}
+  if(isGame){const r=await api('/assessment-v3/game-move','POST',{from_sq:from,to_sq:s,promotion:'q'});
+   if(r.done){v3Game=r.board;v3Test=null;v3Result=r.result;window.cmaBoardPresentation.transition('testBoard',{submitted:picked,played:[picked,r.board.last_move]},v3TestDraw);showV3Result(r.result);}
+   else{v3Game=r.board;$('testProgress').textContent=`중급 AI 평가 대국 · ${r.white_moves}/12수`;notice('testStatus','AI 응수가 끝났습니다. 다음 수를 두세요.');window.cmaBoardPresentation.transition('testBoard',{submitted:picked,played:[picked,r.board.last_move]},v3TestDraw);}}
+  else{const r=await api('/assessment-v3/answer','POST',{question_id:v3Question.id,move:from+s});if(r.phase==='game')v3StartGame(r);else v3QuestionShown(r)}
  }catch(e){notice('testStatus',e.message,'err');v3TestDraw();}
  finally{v3Busy=false}
 }

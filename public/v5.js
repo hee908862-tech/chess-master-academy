@@ -6,7 +6,7 @@ const v5UserNotice=id=>$(id);
 $('puzzleReset').onclick=async()=>{
  if(!ready()||!activePractice)return;
  try{
-  activePractice=await api('/practice/retry','POST');practiceSelected=null;practicePending=false;
+  if(window.cmaExplore&&!await window.cmaExplore.requireExposureSaved('puzzleStatus'))return;activePractice=await api('/practice/retry','POST');practiceSelected=null;practicePending=false;
   $('nextPuzzle').style.display='none';$('v5NextPuzzle').style.display='none';
   $('puzzleSolved').textContent='재도전';notice('puzzleStatus','같은 퍼즐을 처음부터 다시 풀 수 있습니다.');drawPracticeBoard();
  }catch(e){notice('puzzleStatus',e.message,'err')}
@@ -23,7 +23,7 @@ freshPractice=async function(){await v5FreshPractice();$('v5NextPuzzle').style.d
 
 // Standalone miniature tactical scenes; never a generic full opening game.
 function v5ScenarioRender(){
- if(!v5Scenario||v5Scenario.done)return;
+ if(!v5Scenario||v5Scenario.done)return;window.cmaExplore?.offer('guidedBoard',null);
  const pos=fromFen(v5Scenario.fen);
  const targets=v5ScenarioSelected?(v5Scenario.legal||[]).filter(u=>u.slice(0,2)===v5ScenarioSelected).map(u=>({to:u.slice(2,4)})):[];
  drawBoard('guidedBoard',pos,{selected:v5ScenarioSelected,targets,onClick:v5ScenarioClick});
@@ -52,9 +52,9 @@ async function v5ScenarioClick(square){
  try{
   const r=await api('/academy/scenario/move','POST',{lesson_id:selectedLesson,move:from+square});
   if(!r.correct){academyText(r.message);v5ScenarioRender();return}
-  playMoveSound(pos[square]?'capture':'move');
-  drawBoard('guidedBoard',fromFen(r.played_fen),{last:[from,square]});
-  academyText('✓ '+r.explanation+'\n다른 상황에서도 같은 원리를 적용해 보세요.');
+
+  window.cmaBoardPresentation.transition('guidedBoard',from+square,()=>drawBoard('guidedBoard',fromFen(r.played_fen),{last:[from,square]}));
+  window.cmaExplore?.offer('guidedBoard',r.played_fen);academyText('✓ '+r.explanation+'\n다른 상황에서도 같은 원리를 적용해 보세요.');
   if(r.done){v5Scenario={done:true};$('v5ScenarioProgress').textContent='실습 완료';$('lessonQuizBox').textContent='서로 다른 실전 포지션을 완료했습니다. 학습 기록이 저장되었습니다.';await refreshSummaryOnly()}
   else{v5Scenario=r.next;setTimeout(()=>{if(v5Scenario&&!v5Scenario.done)v5ScenarioRender()},850)}
  }catch(e){academyText(e.message);v5ScenarioRender()}finally{v5ScenarioBusy=false}
@@ -119,6 +119,7 @@ function v5RenderReview(){
  const rows=v5Review.moves;const i=v5ReviewIndex;
  const fen=i?rows[i-1].after_fen:chessStart;window.cmaFeedback.set('reviewBoard',{title:'원본 복기 · '+i+' / '+rows.length+' 반수',save:'읽기 전용 · 원본 기보 유지',kind:'ready',detail:(fen.split(' ')[1]==='b'?'흑':'백')+' 차례의 저장된 위치입니다. 여기부터 다시 두기는 별도 임시 분기입니다.',facts:null});
  const draw=()=>drawBoard('reviewBoard',fromFen(fen),{flip:v5Review.color==='black',last:i?[rows[i-1].uci.slice(0,2),rows[i-1].uci.slice(2,4)]:[]});
+ window.cmaExplore?.offer('reviewBoard',fen,{flip:v5Review.color==='black'});
  const previous=reviewMotionContext;reviewMotionContext={game:v5Review,index:i};if(previous?.game===v5Review&&Math.abs(previous.index-i)===1)window.cmaBoardPresentation.transition('reviewBoard',rows[Math.max(i,previous.index)-1].uci,draw,i<previous.index);else draw();
  $('reviewStep').textContent=`${i} / ${rows.length} 반수`;
  document.querySelectorAll('.review-move').forEach((e,n)=>e.classList.toggle('active',n===i-1));
@@ -135,7 +136,7 @@ let reviewListReady=false,reviewListRevision=0,reviewOwner='';
 function syncReviewOwner(){
  if(reviewOwner===token)return;
  reviewOwner=token;v5Review=null;v5ReviewIndex=0;reviewMotionContext=null;++reviewListRevision;
- $('reviewBoard').replaceChildren();$('reviewMoves').replaceChildren();$('reviewStep').textContent='분석할 대국을 선택하세요.';
+ window.cmaExplore?.offer('reviewBoard',null);$('reviewBoard').replaceChildren();$('reviewMoves').replaceChildren();$('reviewStep').textContent='분석할 대국을 선택하세요.';
  window.cmaFeedback?.clear('reviewBoard');
  if($('reviewBranchStatus'))$('reviewBranchStatus').textContent='먼저 대국을 불러오세요.';
 }

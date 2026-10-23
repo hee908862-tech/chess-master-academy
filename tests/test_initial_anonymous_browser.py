@@ -10,7 +10,7 @@ def test_anonymous_direct_entry_explicit_single_guest_and_resume(isolated,site,w
     starts=[];diagnoses=[]
     page.on('request',lambda r:starts.append(1) if r.method=='POST' and r.url.endswith('/api/guest/start') else diagnoses.append(1) if r.method=='POST' and r.url.endswith('/api/journey/start') else None)
     page.goto(site[0]+'/#diagnosis/initial')
-    expect(page.locator('#initialProfile')).to_contain_text('48문항')
+    expect(page.locator('#initialProfile')).to_contain_text('48개 유효 관찰')
     expect(page.locator('#initialProfile')).to_contain_text('계정 연결은 선택')
     expect(page.locator('#initialProfile').get_by_role('button',name='로그인 없이 초기 진단 시작')).to_be_visible()
     assert not starts and not diagnoses

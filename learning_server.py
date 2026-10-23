@@ -19,6 +19,7 @@ import chess.engine
 from fastapi import Header, HTTPException, Query
 from pydantic import BaseModel, Field
 from v9_server import LIB, THEMES
+from branch_exposure import exposure_info
 from competencies import VERSION as COMPETENCY_VERSION, COMPETENCIES, supports, line_positions
 
 CATEGORIES = {key: value['label'] for key, value in COMPETENCIES.items()}
@@ -194,11 +195,21 @@ def attach_learning(app, ns):
             yield state
             execute(conn, 'UPDATE learning_progress SET state=? WHERE code=?', (json.dumps(state, ensure_ascii=False), code))
 
-    def context(code):
+    def context(code, state):
         # Called under the shared evidence transaction lock before selecting a new position.
         legacy = copy.deepcopy(ns['get_state'](code))
         legacy['_journey_seen'] = list(ns.get('journey_seen', lambda _: set())(code))
-        legacy['_journey_positions'] = list(ns.get('journey_positions', lambda _: set())(code))
+        branch_positions,branch_unknown=exposure_info(legacy)
+        legacy['_branch_exposure_unknown']=branch_unknown
+        for card in state['cards'].values():
+            try:seen_branch=bool(branch_positions.intersection(line_positions(card['fen'],card.get('line',[]))))
+            except (ValueError,KeyError,TypeError):seen_branch=False
+            if branch_unknown or seen_branch:
+                card['prior_exposed']=True
+                card['exposure_unknown_reason']='branch_exposure_limit' if branch_unknown else 'branch_exploration'
+                active=state.get('active')
+                if active and not active.get('done') and active.get('card_id')==card['id']:active['first_exposure']=False
+        legacy['_journey_positions'] = list(set(ns.get('journey_positions', lambda _: set())(code)) | branch_positions)
         legacy['_journey_report'] = ns.get('journey_report', lambda *_: None)(code)
         return legacy
 
@@ -242,7 +253,7 @@ def attach_learning(app, ns):
         item = next((i for i in report.get('items', []) if i.get('id') == body.item_id), None)
         if not item: raise HTTPException(404, '이 진단의 문항 근거를 찾을 수 없습니다.')
         with store(code) as state:
-            legacy = context(code)
+            legacy = context(code, state)
             path = state.get('path')
             if path and path['done'] and body.initial_baseline_id and path.get('initial_baseline_id')==body.initial_baseline_id:
                 if state.get('active') and not state['active']['done']:
@@ -304,7 +315,7 @@ def attach_learning(app, ns):
             if not card:
                 item=next(i for i in report['items'] if i['id']==task['item_id'])
                 source=diagnosis_card(state,report,item)
-                card=source if task['kind']=='original' else new_puzzle(state,task['competency'],context(code),source['id'],rating_band=training_band(report,task['competency']))
+                card=source if task['kind']=='original' else new_puzzle(state,task['competency'],context(code, state),source['id'],rating_band=training_band(report,task['competency']))
                 card['full_line']=True
                 cycle['cards'][task['id']]=card['id']
             begin(state,card,'practice',fresh=task['kind']=='application')
@@ -333,7 +344,7 @@ def attach_learning(app, ns):
                 raise HTTPException(409,{'code':'paused_training','message':'보존된 훈련을 먼저 이어서 완료하세요.'})
             item=next(i for i in report['items'] if i['id']==body.item_id)
             source=diagnosis_card(state,report,item)
-            card=new_puzzle(state,item['competency'],context(code),source['id'],required_topic=recommendation['topic'])
+            card=new_puzzle(state,item['competency'],context(code, state),source['id'],required_topic=recommendation['topic'])
             card['full_line']=True
             begin(state,card,'practice',fresh=True)
             state['active']['scoped_task']=reference
@@ -349,7 +360,7 @@ def attach_learning(app, ns):
             item=next((i for i in (report or {}).get('items',[]) if i['id']==body.item_id),None)
             if not item:raise HTTPException(404,'진단 근거를 찾을 수 없습니다.')
             source=diagnosis_card(state,report,item)
-            card=new_puzzle(state,item['competency'],context(code),source['id'],rating_band=training_band(report,item['competency']))
+            card=new_puzzle(state,item['competency'],context(code, state),source['id'],rating_band=training_band(report,item['competency']))
             card['full_line']=True
             return begin(state,card,'verify',fresh=True)
 
@@ -370,7 +381,7 @@ def attach_learning(app, ns):
             source_id=old.get('selection',{}).get('source_card')
             rating=old.get('rating')
             if not source_id or not rating:raise HTTPException(409,'난도 근거가 없어 안전하게 교체하지 않았습니다.')
-            try:card=new_puzzle(state,task['competency'],context(code),source_id,rating_band=(max(400,rating-500),rating-1))
+            try:card=new_puzzle(state,task['competency'],context(code, state),source_id,rating_band=(max(400,rating-500),rating-1))
             except HTTPException as exc:
                 if exc.status_code!=409:raise
                 raise HTTPException(409,'같은 학습 목표의 더 낮은 난도 미노출 문제가 없어 교체하지 않았습니다. 현재 착수와 도움 기록은 그대로입니다.') from exc
@@ -432,7 +443,7 @@ def attach_learning(app, ns):
                 'category': None if verify and not s['done'] else CATEGORIES[card['category']],
                 'concept': None if verify and not s['done'] else CONCEPTS[card['category']],
                 'source': card['source'], 'goal': s['goal'], 'message': s.get('message', ''),
-                'board_explanation':learning_facts(card,s), 'played_moves':s.get('moves',[])[-2:], 'opponent_last_move': s.get('opponent_last_move'), 'hint_level': s['hints'],
+                'board_explanation':learning_facts(card,s), 'played_moves':s.get('moves',[])[-2:], 'opponent_last_move': s.get('opponent_last_move'), 'hint_level': s['hints'], 'analysis_help_recorded':bool(s['revealed']),
                 'context': card.get('context', '직전 위치 기록이 없어 변화의 의미를 추측하지 않습니다.'),
                 'explanation': s.get('explanation'), 'playback': s.get('playback', []),
                 'learning_link':None if verify and not s['done'] else copy.deepcopy(link), 'growth_task':s.get('growth_task'), 'scoped_task':copy.deepcopy(s.get('scoped_task')), 'outcome': s.get('outcome'), 'selection': None if verify and not s['done'] else s.get('selection'), 'path_id': s.get('path_id'), 'premove': False}
@@ -626,6 +637,9 @@ def attach_learning(app, ns):
              'full_line': bool(source and source.get('full_line')), 'rating':p['rating'], 'puzzle_id':p['id'], 'created_at':now().isoformat(),
              'prior': p['moves'][0], 'category': cat, 'source': 'Lichess CC0 검증 수순 · 대안은 메이트 또는 엔진 확인',
              'due': now().isoformat(), 'successes': 0}
+        if legacy.get('_branch_exposure_unknown'):
+            c['prior_exposed']=True;c['exposure_unknown_reason']='branch_exposure_limit'
+            c['selection']['evidence']='분기 노출 기록 한도로 독립 관찰 여부 미확정 · 연습은 가능'
         state['cards'][key] = c; state['seen'].append(p['id'])
         return c
 
@@ -656,7 +670,7 @@ def attach_learning(app, ns):
                     raise HTTPException(409,'진행 중인 훈련을 보존했습니다. 이어서 완료하거나 저장 후 전환을 확인하세요.')
                 state.setdefault('paused',{})[active['id']]={**copy.deepcopy(active),'revision':active['revision']+1}
                 state['active']=None
-            legacy = context(code)
+            legacy = context(code, state)
             if body.fresh or body.similar_to or not body.card_id: card = new_puzzle(state, body.category, legacy, body.similar_to)
             else:
                 card = state['cards'].get(body.card_id)
@@ -774,7 +788,7 @@ def attach_learning(app, ns):
     def path_action(body: PathAction, authorization: str | None = Header(default=None)):
         code = auth(authorization)
         with store(code) as state:
-            legacy = context(code)
+            legacy = context(code, state)
             path = state.get('path')
             active=state.get('active')
             if active and not active['done'] and (not path or active.get('path_id')!=path['id']):

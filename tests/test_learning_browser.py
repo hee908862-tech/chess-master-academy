@@ -5,6 +5,13 @@ from playwright.sync_api import expect
 from test_qa_browser import site,page,open_page,square
 from v9_server import LIB
 
+def open_parent_disclosures(page, selector):
+    parents=page.locator(selector).evaluate_handle("node=>{const a=[];for(let p=node.parentElement?.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')a.unshift(p);return a;}")
+    for parent in parents.get_properties().values():
+        if parent.as_element() and not parent.evaluate('el=>el.open'):
+            parent.as_element().query_selector(':scope > summary').click()
+    parents.dispose()
+
 @pytest.mark.parametrize('width,height',[(1440,1000),(390,844),(844,390),(768,1024)])
 def test_learning_responsive_real_persistence(page,site,width,height):
     page.set_viewport_size({'width':width,'height':height})
@@ -36,7 +43,7 @@ def test_learning_responsive_real_persistence(page,site,width,height):
     page.screenshot(path=f'/tmp/learning-{width}x{height}.png',full_page=True)
     page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).click()
     page.locator('#learningVerify').click()
-    expect(page.locator('#learningTitle')).to_have_text('주제 비공개 · 독립 판단')
+    expect(page.locator('#learningTitle')).to_have_text('주제 비공개 · 첫 수만 판단')
     assert page.get_by_role('button',name='힌트 1단계',exact=True).count()==0
     page.evaluate("tab('home')")
     expect(page.locator('#learningPath button')).to_have_count(4)
@@ -65,7 +72,7 @@ def test_saved_route_review_concept_transfer_resume(route_page,site,width,height
     page.evaluate("api('/learning/start','POST',{fresh:true})")
     page.evaluate("tab('home')")
     expect(page.locator('#learningReason')).to_contain_text('복습할 위치 1개')
-    page.locator('#homeExplore > summary').click()
+    open_parent_disclosures(page,'.learning-home > summary')
     page.locator('.learning-home > summary').click()
     page.locator('#learningPath button').first.click()
     expect(page.locator('#learningRouteStatus')).to_contain_text('1/4')
@@ -80,6 +87,9 @@ def test_saved_route_review_concept_transfer_resume(route_page,site,width,height
     expect(page.locator('#learningMode')).to_have_text('연습 완료')
     page.get_by_role('button',name='경로 다음 단계',exact=True).click()
     expect(page.locator('#learningRouteStatus')).to_contain_text('2/4')
+    if page.locator('#trainingLibrary').is_hidden():
+        page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).click()
+    open_parent_disclosures(page,'#learningRoute > summary')
     page.locator('#learningRoute > summary').click()
     page.get_by_role('button',name='개념 읽기 확인',exact=True).click()
     page.get_by_role('button',name='경로 시작 · 이어가기',exact=True).click()
@@ -89,6 +99,6 @@ def test_saved_route_review_concept_transfer_resume(route_page,site,width,height
     assert source not in [x['id'] for x in second['due']]
     page.reload();page.evaluate("tab('training')")
     expect(page.locator('#learningRouteStatus')).to_contain_text('3/4')
-    expect(page.locator('#learningTitle')).to_have_text('주제 비공개 · 독립 판단')
+    expect(page.locator('#learningTitle')).to_have_text('주제 비공개 · 첫 수만 판단')
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
     page.screenshot(path=f'/tmp/learning-route-{width}.png',full_page=True)

@@ -14,7 +14,8 @@ from typing import Literal
 import chess
 from skill_index import VERSION as SKILL_VERSION
 import initial_profile
-from growth_model import decorate, latest_cycle_report, cycle_status, MODES, verify_loss
+from branch_exposure import exposure_info, FIELD as BRANCH_EXPOSURE_FIELD
+from growth_model import decorate, latest_cycle_report, cycle_status, MODES, verify_loss, prove_mate_alternative, ANSWER_POLICY
 from fastapi import Header, HTTPException
 from pydantic import BaseModel
 from competencies import VERSION, COMPETENCIES, position_key, line_positions
@@ -167,7 +168,7 @@ def attach_journey(app, ns):
                     scan(v)
             elif isinstance(value,list):
                 for v in value: scan(v)
-        scan(legacy); scan(learning)
+        scan({k:v for k,v in legacy.items() if k!=BRANCH_EXPOSURE_FIELD}); scan(learning)
         ids.update(learning.get('seen',[]))
         for game in legacy.get('games',[]):
             try:
@@ -217,6 +218,7 @@ def attach_journey(app, ns):
         item=s['items'][s['index']]
         item['shown_at']=now().isoformat()
         s.update(phase='question',fen=item['fen'],offset=0,correct=0,submitted=[],played=[],reply=item['prior'])
+        s.pop('answer_line',None)
 
     @app.get('/api/journey')
     def status(authorization: str | None = Header(default=None)):
@@ -283,6 +285,7 @@ def attach_journey(app, ns):
             raise HTTPException(409,'이후 진단은 균형 또는 간이 진단으로 시작해 주세요.')
         pools=inventory() # Always outside a user transaction, including cold fallback.
         snapshot=external_snapshot(code)
+        branch_positions,branch_unknown=exposure_info(snapshot[0])
         starting=snapshot[0].get('learner_start',{})
         if body.mode=='entry':
             from foundation_content import COURSES as foundation_courses
@@ -292,6 +295,7 @@ def attach_journey(app, ns):
                 raise HTTPException(409,'말 이동·잡기·체크·왕 안전 안내를 먼저 마치거나 시작 수준을 바꿔 주세요.')
             body=Start(mode='balanced' if starting.get('choice')=='experienced' else 'gentle')
         ids,positions,uncertain,learning=external(code,snapshot)
+        positions.update(branch_positions)
         state=read(code)
         before=copy.deepcopy(state)
         cycle=cycle_status(latest_cycle_report(state['results']),learning)
@@ -304,6 +308,13 @@ def attach_journey(app, ns):
             initial_plan=initial_profile.status(state)
             if initial_plan['state'] in ('ready','held') or course.get('baseline'):raise HTTPException(409,'초기 과정의 결과를 확인하세요. 추가 출제를 자동 반복하지 않습니다.')
             area=body.competency or initial_plan['next_area']
+            if body.competency is None:
+                blocked_ids=ids|{r['puzzle_id'] for r in state['reserved']}
+                blocked_positions=positions|{key(r['fen']) for r in state['reserved']}
+                pending=sorted((a for a in initial_plan['areas'] if a['missing']),key=lambda a:a['id']!=area)
+                area=next((a['id'] for a in pending if any(
+                    missing and any(p['puzzle_id'] not in blocked_ids and lo<=p['rating']<hi and not blocked_positions.intersection(footprint(p)) for p in pools.get(a['id'],[]))
+                    for (lo,hi),missing in zip(initial_profile.BANDS,a['missing_bands']))),area)
             if area not in [a['id'] for a in initial_plan['areas'] if a['missing']]:raise HTTPException(409,'이 분야의 필수 관찰은 이미 확보했습니다. 남은 분야를 선택하세요.')
             body=Start(mode='domain',competency=area)
         if body.mode in ('basic',*MODES) and cycle and not cycle['unlocked']:
@@ -338,7 +349,7 @@ def attach_journey(app, ns):
             for lo,hi in (initial_bands if initial_request else [(600,1000)] if body.mode=='gentle' else [(600,1200),(1200,1800)]*(2 if body.mode=='balanced' else 1) if body.mode in ('basic','gentle',*MODES) else [(600,1200),(1200,1800)]*(4 if body.mode=='domain' else 2) if body.mode in ('domain','subskill') else [focused_band or additional_plan(state['results'],c,measurement_scope)['band']]*3):
                 choices=[p for p in pools[c] if p['puzzle_id'] not in ids and lo<=p['rating']<hi and (body.mode!='subskill' or body.topic in p['tags']) and (body.mode!='gentle' or len(p['line'])<=5) and not positions.intersection(footprint(p))]
                 if not choices: continue
-                p=copy.deepcopy(secrets.choice(choices)); p.update(id=secrets.token_hex(8),competency=c,band=[lo,hi],independent=not uncertain,app_new=True,prior_exposure_unknown=True,legacy_exposure_unknown=uncertain,helped=False,first_attempt=True)
+                p=copy.deepcopy(secrets.choice(choices)); p.update(id=secrets.token_hex(8),competency=c,band=[lo,hi],independent=not (uncertain or branch_unknown),app_new=not branch_unknown,exposure_unknown_reason='branch_exposure_limit' if branch_unknown else None,prior_exposure_unknown=True,legacy_exposure_unknown=uncertain,helped=False,first_attempt=True)
                 ids.add(p['puzzle_id']); positions.add(key(p['fen'])); items.append(p)
                 board=chess.Board(p['fen'])
                 for uci in p['line']:
@@ -348,6 +359,9 @@ def attach_journey(app, ns):
         if not initial_request and body.mode in ('domain','subskill') and len(items)!=(8 if body.mode=='domain' else 4):
             raise HTTPException(409,'선택한 범위의 미노출 기초·응용 문제가 부족합니다. 기존 기록은 유지됩니다. 다른 주제를 선택하세요.')
         if initial_request and not items:
+            other_supply=any(missing and any(p['puzzle_id'] not in ids and lo<=p['rating']<hi and not positions.intersection(footprint(p)) for p in pools.get(a['id'],[]))
+                for a in initial_plan['areas'] for (lo,hi),missing in zip(initial_profile.BANDS,a['missing_bands']))
+            if other_supply:raise HTTPException(409,'이 분야의 새 문제가 부족합니다. 전체 초기 진단 이어하기에서 다른 부족 분야를 계속할 수 있습니다. 저장된 관찰은 유지됩니다.')
             state['initial_profile']['held']='필수 분야·난도의 미노출 문제가 부족해 추가 확인을 보류합니다.'
             with store(code) as current:
                 if current!=before or external_snapshot(code)!=snapshot:raise HTTPException(409,'기록이 바뀌었습니다. 저장 상태를 다시 확인하세요.')
@@ -356,6 +370,7 @@ def attach_journey(app, ns):
         if not items: raise HTTPException(409,'조건에 맞는 미노출 국면이 없습니다. 기존 훈련을 이용하세요.')
         if body.mode in MODES:secrets.SystemRandom().shuffle(items)
         s={'session_id':secrets.token_hex(16),'revision':0,'version':'journey-v5' if body.mode in (*MODES,'domain') else 'journey-entry-v1' if body.mode=='gentle' else JOURNEY_VERSION,'competency_version':VERSION,'coverage_policy':COVERAGE_POLICY,'measurement_scope':measurement_scope,'mode':body.mode,'index':0,'total':len(items),'items':items,'started_at':now().isoformat()}
+        s['answer_policy']='goal-alternatives-v1'
         s['starting_conditions']={'self_choice':starting.get('choice','unselected'),'mode':body.mode,'assessment_scope':'full_line','bands':sorted({tuple(i['band']) for i in items}),'helped':False}
         if body.mode in MODES:s['corpus_sha256']=corpus_digest()
         if body.mode in MODES:s['scoring_version']=SKILL_VERSION
@@ -388,6 +403,42 @@ def attach_journey(app, ns):
         if initial_request:result['initial_profile']=initial_profile.status(state)
         return result
 
+    @app.post('/api/journey/initial/supplement')
+    def initial_supplement(authorization: str | None = Header(default=None)):
+        code=auth(authorization)
+        state=read(code);before=copy.deepcopy(state)
+        if state['active']:raise HTTPException(409,'저장된 진단을 먼저 이어가세요. 새 보충을 만들지 않았습니다.')
+        course=state.get('initial_profile') or {};view=initial_profile.status(state)
+        if course.get('supplement_used'):raise HTTPException(409,'이번 보충 상한을 이미 사용했습니다. 부족 분야는 판단 보류로 보존합니다.')
+        if view['state']!='held' or not view['remaining']:raise HTTPException(409,'판단 보류된 부족 분야가 있을 때만 보충할 수 있습니다.')
+        if course.get('corpus')!=corpus_digest():raise HTTPException(409,'자료 버전이 달라 보충을 시작하지 않았습니다. 이전 기준선은 보존합니다.')
+        pools=inventory();snapshot=external_snapshot(code)
+        ids,positions,_,_=external(code,snapshot)
+        for row in state['reserved']:ids.add(row['puzzle_id']);positions.add(key(row['fen']))
+        available=0
+        for area in view['areas']:
+            for band,missing in zip(initial_profile.BANDS,area['missing_bands']):
+                for row in pools.get(area['id'],[]):
+                    if not missing or available>=initial_profile.SUPPLEMENT_LIMIT:break
+                    if row['puzzle_id'] in ids or not band[0]<=row['rating']<band[1] or positions.intersection(footprint(row)):continue
+                    ids.add(row['puzzle_id']);positions.update(footprint(row));missing-=1;available+=1
+        if not available:raise HTTPException(409,'부족 분야·난도의 미노출 문제가 없습니다. 기존 결과를 보존하며 추가 측정은 보류합니다.')
+        # A new, bounded revision; never rewrite a previously frozen result.
+        course.setdefault('history',[]).append({'at':now().isoformat(),'reason':'user_requested_supplement',
+            'baseline':copy.deepcopy(course.get('baseline')),'baseline_view':copy.deepcopy(view),'reviewed_at':course.get('reviewed_at'),
+            'course':{k:copy.deepcopy(v) for k,v in course.items() if k not in ('history','baseline','reviewed_at')}})
+        course.pop('baseline',None);course.pop('reviewed_at',None);course.pop('held',None)
+        course['supplement_used']=True;course['supplement_allocated']=available
+        # Technical credits stay finite and already-used credits must not inflate this extension.
+        credit=min(initial_profile.technical_failures(state),initial_profile.TECHNICAL_REPLACEMENTS) if course.get('budget_policy')=='separate-technical-v1' else 0
+        course['maximum']=course.get('assigned',0)+available-credit
+        course['supplement_cap']=course.get('assigned',0)+available
+        course['supplement_started_at']=now().isoformat()
+        with store(code) as current:
+            if current!=before or external_snapshot(code)!=snapshot:raise HTTPException(409,'기록이 바뀌었습니다. 저장 상태를 확인한 뒤 보충을 다시 선택하세요.')
+            current.update(state)
+        return initial_profile.status(state)
+
     @app.post('/api/journey/initial/review')
     def initial_review(authorization: str | None = Header(default=None)):
         code=auth(authorization)
@@ -417,8 +468,13 @@ def attach_journey(app, ns):
         item.update(first_correct=s['correct']>0,complete=complete,correct_plies=s['correct'],total_plies=(len(item['line'])+1)//2,
                     submitted=copy.deepcopy(s['submitted']),expected=item['line'][::2],reason=reason,skipped=skipped,completed_at=now().isoformat())
         item['outcome']=outcome or ('completed' if complete else 'partial_execution' if skipped and s['submitted'] else 'not_answered' if skipped else 'unverified_alternative')
+        if s.get('answer_policy'):
+            item['answer_policy']=s['answer_policy']
+            item['execution_rubric']={'version':'execution-observation-v1','first_move_confirmed':s['correct']>0,'confirmed_own_moves':s['correct'],'original_required_own_moves':(len(item['line'])+1)//2,'objective_complete':complete,'outcome':item['outcome'],'partial_score':None,'note':'확인한 수행 요소입니다. 임의 반점이나 전체 목표 달성으로 환산하지 않습니다.'}
         item['feedback']={k:copy.deepcopy(item[k]) for k in ('first_correct','complete','correct_plies','total_plies','submitted','expected','reason','outcome')}
         item['feedback'].update(fen=s['fen'],continuation=frames,engine_evidence=item.get('engine_evidence'))
+        if item.get('execution_rubric'):item['feedback']['execution_rubric']=copy.deepcopy(item['execution_rubric'])
+        if item.get('alternative_evidence'):item['feedback']['goal_evidence']=copy.deepcopy(item['alternative_evidence'])
         if complete and chess.Board(s['fen']).is_checkmate():
             item['feedback']['mate_explanation']=explain_mate(chess.Board(s['fen']))
         s['phase']='feedback'
@@ -427,6 +483,7 @@ def attach_journey(app, ns):
         result=build_report(s,previous,now())
         result['starting_conditions']=copy.deepcopy(s.get('starting_conditions'))
         if s.get('scoring_version'):result['scoring_version']=s['scoring_version']
+        if s.get('answer_policy'):result['answer_policy']=s['answer_policy']
         if s.get('corpus_sha256'):result['corpus_sha256']=s['corpus_sha256']
         if s.get('initial_course'):result['initial_course']=s['initial_course']
         return decorate(result)
@@ -438,14 +495,21 @@ def attach_journey(app, ns):
         initial=read(code).get('active')
         if initial and initial['revision']==body.revision and initial['session_id']==body.session_id and initial['phase']=='question' and body.action=='move':
             row=initial['items'][initial['index']]
-            if body.move!=row['line'][initial['offset']]:
-                engine_evidence=verify_loss(initial['fen'],body.move,ns.get('STOCKFISH_PATH',''))
-        external_ids,external_positions,uncertain,learning_snapshot=external(code)
+            if body.move!=initial.get('answer_line',row['line'])[initial['offset']]:
+                if initial.get('answer_policy')==ANSWER_POLICY:
+                    engine_evidence=prove_mate_alternative(initial['fen'],body.move,row,initial['correct'])
+                if engine_evidence is None:engine_evidence=verify_loss(initial['fen'],body.move,ns.get('STOCKFISH_PATH',''))
+        exposure_snapshot=external_snapshot(code)
+        external_ids,external_positions,uncertain,learning_snapshot=external(code,exposure_snapshot)
+        branch_positions,branch_unknown=exposure_info(exposure_snapshot[0])
         with store(code) as state:
             s=state['active']
             if not s or s['session_id']!=body.session_id or s['revision']!=body.revision: raise HTTPException(409,'진단 상태가 변경되었습니다. 저장 상태를 다시 확인하세요.')
             for item in s['items']:
                 if uncertain:item['independent']=False
+                if not item.get('outcome') and (branch_unknown or branch_positions.intersection(footprint(item))):
+                    item['independent']=False;item['app_new']=False
+                    item['exposure_unknown_reason']='branch_exposure_limit' if branch_unknown else 'branch_exploration_before_answer'
                 if item['puzzle_id'] in external_ids or external_positions.intersection(footprint(item)):
                     item['independent']=False
                     item['app_new']=False
@@ -468,16 +532,22 @@ def attach_journey(app, ns):
                     try: m=chess.Move.from_uci(body.move or '')
                     except ValueError: raise HTTPException(400,'올바른 착수 형식이 아닙니다.')
                     if m not in b.legal_moves: raise HTTPException(400,'현재 국면에서 합법적인 수가 아닙니다.')
-                    item=s['items'][s['index']]; expected=item['line'][s['offset']]
+                    item=s['items'][s['index']]; expected=s.get('answer_line',item['line'])[s['offset']]
+                    verified_branch=bool(engine_evidence and engine_evidence.get('status')=='verified_goal')
+                    if verified_branch:
+                        s['answer_line']=s['played']+[body.move]+engine_evidence['continuation']
+                        item.setdefault('alternative_evidence',[]).append(copy.deepcopy(engine_evidence))
                     s['submitted'].append(body.move)
                     item.setdefault('responses',[]).append({'at':now().isoformat(),'fen':b.fen(),'move':body.move,'expected':expected})
                     b.push(m); s['played'].append(body.move); s['fen']=b.fen()
                     state['reserved'].append({'puzzle_id':item['puzzle_id'],'fen':b.fen()})
-                    if body.move!=expected and not b.is_checkmate():
+                    if body.move!=expected and not b.is_checkmate() and not verified_branch:
                         if engine_evidence:item['engine_evidence']=engine_evidence
                         if engine_evidence and engine_evidence.get('status')=='verified_error' and engine_evidence.get('loss_cp',0)>=200:
                             item['engine_evidence']=engine_evidence
                             finish_item(s,False,'이 수에서 유리함을 놓친 것으로 분석됐어요. 상대의 위협과 후보 수를 비교해 보세요.',outcome='verified_error')
+                        elif engine_evidence and engine_evidence.get('status')=='verified_non_mate':
+                            finish_item(s,False,'이 수로는 원래 남은 수 안에 모든 합법 방어를 상대로 메이트할 수 없음을 확인했습니다. 더 긴 승리 가능성과는 별개입니다.',outcome='verified_non_mate')
                         elif item['competency']=='mate' and b.is_stalemate():
                             finish_item(s,False,'스테일메이트로 끝났습니다. 체크메이트 목표와 다른 결과임을 규칙으로 확인했습니다.',outcome='verified_non_mate')
                         elif engine_evidence and engine_evidence.get('status')=='equivalent_alternative':
@@ -485,9 +555,9 @@ def attach_journey(app, ns):
                         else:finish_item(s,False,'기준 수순과 다른 합법 수입니다. 미검증 대안으로 판단을 보류하며 실패나 약점 근거에 넣지 않습니다.',outcome='unverified_alternative')
                     else:
                         s['correct']+=1; s['offset']+=1
-                        if b.is_checkmate() or s['offset']==len(item['line']): finish_item(s,True,'상대 응수를 포함한 전체 수순을 완료했습니다.')
+                        if b.is_checkmate() or s['offset']==len(s.get('answer_line',item['line'])): finish_item(s,True,'상대 응수를 포함한 전체 수순을 완료했습니다.')
                         else:
-                            reply=item['line'][s['offset']]; b.push_uci(reply); s['played'].append(reply); s.update(offset=s['offset']+1,fen=b.fen(),reply=reply)
+                            reply=s.get('answer_line',item['line'])[s['offset']]; b.push_uci(reply); s['played'].append(reply); s.update(offset=s['offset']+1,fen=b.fen(),reply=reply)
             s['revision']+=1
             result=payload(s)
             if s.get('initial_course'):result['initial_profile']=initial_profile.status(state)

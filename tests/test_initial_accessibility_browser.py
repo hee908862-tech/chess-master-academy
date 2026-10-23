@@ -1,7 +1,12 @@
 """Local Chromium keyboard/zoom and controlled start failure, not physical devices."""
 from playwright.sync_api import expect
 from test_redesign_browser_followup import isolated,site
-from test_visual_evidence_browser import guest
+def guest(page):
+    page.evaluate("cmaNavigation.go('diagnosis/initial')")
+    page.get_by_role('button',name='로그인 없이 초기 진단 시작',exact=True).click()
+    page.wait_for_function('!!token && !cmaJourney.status().busy')
+    expect(page.locator('#initialProfile > button').first).to_have_text('진단 이어하기 · 남은 분야 바로 풀기')
+
 
 
 def test_keyboard_rotation_zoom_and_history_keep_active_session(isolated):

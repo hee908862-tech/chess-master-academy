@@ -1,0 +1,3 @@
+.branch-explorer{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:12px;max-width:100%;min-width:0}.branch-explorer summary{cursor:pointer;font-weight:650}.branch-explorer .board{width:min(100%,440px);margin:12px 0}.branch-explorer .btn-row{display:flex;flex-wrap:wrap;gap:8px}.branch-explorer p,.branch-explorer small{overflow-wrap:anywhere}.branch-explorer small,.branch-explorer>a{display:block;margin:8px 0}.branch-explorer meter{width:100%;height:20px}.branch-explorer button{min-height:44px}
+
+@media(max-width:480px){.branch-explorer>.btn-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.branch-explorer>.btn-row button{white-space:normal;overflow-wrap:anywhere;min-width:0;padding:8px}}

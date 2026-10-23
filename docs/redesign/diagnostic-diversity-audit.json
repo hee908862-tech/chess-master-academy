@@ -1,0 +1,167 @@
+{
+  "corpus_sha256": "241c7a902d7952b7a7501f383aaef4a4b7a189113b61c3b3c51e91d4881b7310",
+  "scope": "eligible 600<=rating<1800",
+  "areas": {
+    "mate": {
+      "eligible": 9430,
+      "basic": 4623,
+      "applied": 4807,
+      "structural_groups": 8851,
+      "largest_groups": [
+        {
+          "count": 11,
+          "examples": [
+            "1kpSP",
+            "7Qffx",
+            "J3Q4s"
+          ]
+        },
+        {
+          "count": 10,
+          "examples": [
+            "9Fli7",
+            "An0Dn",
+            "Tsxdx"
+          ]
+        }
+      ]
+    },
+    "calculation": {
+      "eligible": 23908,
+      "basic": 10449,
+      "applied": 13459,
+      "structural_groups": 21601,
+      "largest_groups": [
+        {
+          "count": 50,
+          "examples": [
+            "000o3",
+            "0uuov",
+            "4rK4f"
+          ]
+        },
+        {
+          "count": 44,
+          "examples": [
+            "2Qac8",
+            "5XFTX",
+            "5wQ7K"
+          ]
+        }
+      ]
+    },
+    "capture": {
+      "eligible": 10957,
+      "basic": 4664,
+      "applied": 6293,
+      "structural_groups": 10207,
+      "largest_groups": [
+        {
+          "count": 14,
+          "examples": [
+            "A838V",
+            "HQ9Xj",
+            "IyerT"
+          ]
+        },
+        {
+          "count": 12,
+          "examples": [
+            "4WXw9",
+            "8ZGEe",
+            "FfNOI"
+          ]
+        }
+      ]
+    },
+    "defense": {
+      "eligible": 1554,
+      "basic": 601,
+      "applied": 953,
+      "structural_groups": 1362,
+      "largest_groups": [
+        {
+          "count": 27,
+          "examples": [
+            "03mv2",
+            "290Nj",
+            "6J2Cp"
+          ]
+        },
+        {
+          "count": 10,
+          "examples": [
+            "CfGiI",
+            "QlI6p",
+            "RzMRn"
+          ]
+        }
+      ]
+    },
+    "promotion": {
+      "eligible": 1840,
+      "basic": 898,
+      "applied": 942,
+      "structural_groups": 1612,
+      "largest_groups": [
+        {
+          "count": 19,
+          "examples": [
+            "0DuXv",
+            "83TVM",
+            "D0bmb"
+          ]
+        },
+        {
+          "count": 14,
+          "examples": [
+            "5TsJp",
+            "X303y",
+            "Yivqg"
+          ]
+        }
+      ]
+    },
+    "endgame": {
+      "eligible": 3475,
+      "basic": 1892,
+      "applied": 1583,
+      "structural_groups": 2472,
+      "largest_groups": [
+        {
+          "count": 44,
+          "examples": [
+            "2Qac8",
+            "5XFTX",
+            "5wQ7K"
+          ]
+        },
+        {
+          "count": 39,
+          "examples": [
+            "2VQWX",
+            "3d112",
+            "3rk4O"
+          ]
+        }
+      ]
+    }
+  },
+  "overlap": {
+    "mate+promotion": 470,
+    "calculation+mate": 7746,
+    "calculation+capture": 10252,
+    "calculation+defense": 1551,
+    "calculation+promotion": 1718,
+    "calculation+endgame": 3362,
+    "capture+mate": 3700,
+    "capture+defense": 623,
+    "capture+promotion": 461,
+    "capture+endgame": 830,
+    "defense+mate": 4,
+    "defense+promotion": 67,
+    "defense+endgame": 687,
+    "endgame+mate": 336,
+    "endgame+promotion": 934
+  }
+}

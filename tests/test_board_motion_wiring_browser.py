@@ -98,4 +98,7 @@ def test_learning_full_line_final_single_ply_real_endpoint(page,site,tmp_path_fa
         assert page.evaluate('observedMotion.at(-1).ghosts')==count
     assert result['done'] and result['played_moves']==['b8c6','f1c4']
     assert result['board_explanation']['arrows']
-    expect(page.locator('#learningBoard .feedback-fact-label')).to_have_count(len(result['board_explanation']['arrows']))
+    # Relationship renderer uses an SVG overlay since PR41, not legacy cell labels.
+    expect(page.locator('#learningBoard .foundation-arrows')).to_have_count(1)
+    assert page.locator('#learningBoard .foundation-arrows path').count() >= len(result['board_explanation']['arrows'])
+    expect(page.locator('#learningBoardFacts')).to_be_visible()

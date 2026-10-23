@@ -4,6 +4,9 @@ No exploration endpoint calls game finish, rating, or learning credit functions.
 import csv
 import hashlib
 import json
+import threading
+import time
+from collections import OrderedDict
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -73,6 +76,7 @@ class Position(BaseModel):
     fen:str=Field(default=chess.STARTING_FEN,max_length=120)
     moves:list[str]=Field(default_factory=list,max_length=240)
     engine:bool=False
+    evaluate:bool=False
 
 class OpeningPosition(BaseModel):
     course_id:str=Field(max_length=80)
@@ -114,10 +118,42 @@ def opening_position(req):
 
 
 def attach_study(app,ns):
+    from branch_exposure import attach_branch_exposure
+    attach_branch_exposure(app,ns)
     auth=ns['auth']
+    analysis_lock=threading.Lock(); analysis_cache=OrderedDict(); analysis_last=OrderedDict(); global_last=[0.0]
     @app.post('/api/study/position')
     def position(req:Position,authorization:str|None=Header(default=None)):
-        auth(authorization);b=replay(req.fen,req.moves);result=view(b)
+        code=auth(authorization);b=replay(req.fen,req.moves);result=view(b)
+        if req.evaluate:
+            # Explicit read-only fallback; no scoring or original game writes.
+            if result['terminal']:
+                return {**result,'evaluation':{'kind':'terminal-mate' if b.is_checkmate() else 'draw','value':(-1 if b.turn else 1) if b.is_checkmate() else 0}}
+            position_key=b.fen(en_passant='fen');now=time.monotonic()
+            with analysis_lock:
+                cached=analysis_cache.get(position_key)
+                if cached:return {**result,'evaluation':cached}
+                if now-analysis_last.get(code,-100)<10 or now-global_last[0]<2:
+                    raise HTTPException(429,'분석 요청 간격을 두세요. 직접 탐색은 계속할 수 있습니다.',headers={'Retry-After':'10'})
+                analysis_last[code]=now;global_last[0]=now
+                while len(analysis_last)>512:analysis_last.popitem(last=False)
+            path=ns['STOCKFISH_PATH']
+            if not path or not Path(path).is_file():raise HTTPException(503,'분석 엔진을 사용할 수 없습니다. 직접 탐색은 계속할 수 있습니다.')
+            try:
+                with open_engine(path,timeout=3) as e:
+                    e.configure({'Threads':1,'Hash':16})
+                    info=e.analyse(b,chess.engine.Limit(time=.2,depth=14,nodes=60000))
+                    score=info['score'].white();depth=info.get('depth',0);pv=info.get('pv',[])
+                    if depth<10:raise ValueError('insufficient depth')
+                    value={'kind':'mate' if score.is_mate() else 'cp','value':score.mate() if score.is_mate() else score.score(),'depth':depth,
+                           'best':pv[0].uci() if pv and pv[0] in b.legal_moves else None,'engine':e.id.get('name','Stockfish'),
+                           'basis':'백 기준 · 서버 제한 탐색 0.2초/14깊이/6만 노드 · 준비 시간 별도 · 최선 수 보장 아님'}
+            except EngineBusy:raise HTTPException(503,'다른 분석 중입니다. 직접 탐색을 계속하고 나중에 요청하세요.')
+            except (chess.engine.EngineError,OSError,ValueError,TimeoutError,KeyError):raise HTTPException(503,'분석을 확인하지 못했습니다. 대등으로 해석하지 않습니다.')
+            with analysis_lock:
+                analysis_cache[position_key]=value
+                while len(analysis_cache)>128:analysis_cache.popitem(last=False)
+            return {**result,'evaluation':value}
         if req.engine and not result['terminal']:
             path=ns['STOCKFISH_PATH']
             if not path or not Path(path).is_file():raise HTTPException(503,'엔진을 사용할 수 없습니다. 직접 양쪽 수를 두어 탐색할 수 있어요.')

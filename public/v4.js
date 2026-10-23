@@ -4,7 +4,7 @@ let openingScene=null,openingSelected=null,openingPending=false,openingList=[];
 
 function courseMoves(scene,from){return (scene?.legal||[]).filter(uci=>uci.slice(0,2)===from).map(uci=>({to:uci.slice(2,4)}));}
 function academyBoard(){
- if(!academyScene)return;
+ if(!academyScene)return;window.cmaExplore?.offer('guidedBoard',academyScene.done?academyScene.fen:null);
  drawBoard('guidedBoard',academyScene.squares||fromFen(academyScene.fen),{
   selected:academySelect, targets:academySelect?courseMoves(academyScene,academySelect):[],onClick:academyClick
  });
@@ -35,15 +35,14 @@ async function academyClick(square){
  const temp={...positions,[square]:positions[from]};delete temp[from];
  animateBoardTransition('guidedBoard',from,square,()=>drawBoard('guidedBoard',temp,{last:[from,square]}));
  document.querySelector(`#guidedBoard [aria-label^="${square} "]`)?.classList.add('moving-to');
- playMoveSound(positions[square]?'capture':'move');
+
  academyText('착수 완료 · 상대의 응수와 설명을 확인하고 있습니다...');
  try{
   const result=await api('/academy/play/move','POST',{lesson_id:selectedLesson,move:from+square});
   if(!result.correct){academyScene=previous;academyBoard();academyText(result.message);return;}
   academyScene=result;
   academyFinished=result.done;
-  if(result.opponent_move)playMoveSound('move');
-  academyBoard();
+  if(result.opponent_move)window.cmaBoardPresentation.transition('guidedBoard',result.opponent_move,academyBoard);else academyBoard();
   const aiTo=result.opponent_move?.slice(2,4);
   if(aiTo)document.querySelector(`#guidedBoard [aria-label^="${aiTo} "]`)?.classList.add('moving-to');
   const steps=Math.ceil(result.index/2);
@@ -71,6 +70,7 @@ renderLessons();
 
 function openingBoard(){
  if(!openingScene)return;
+ window.cmaExplore?.offer('openingBoard',openingScene.fen,{flip:openingScene.color==='black'});
  drawBoard('openingBoard',openingScene.squares||fromFen(openingScene.fen),{
    flip:openingScene.color==='black',selected:openingSelected,
    targets:openingSelected?courseMoves(openingScene,openingSelected):[],onClick:openingClick
@@ -116,12 +116,12 @@ async function openingClick(square){
  const temp={...pos,[square]:pos[from]};delete temp[from];
  animateBoardTransition('openingBoard',from,square,()=>drawBoard('openingBoard',temp,{flip:openingScene.color==='black',last:[from,square]}));
  document.querySelector(`#openingBoard [aria-label^="${square} "]`)?.classList.add('moving-to');
- playMoveSound(pos[square]?'capture':'move');
+
  try{
   const r=await api('/openings/move','POST',{line_id:$('openingSelect').value,move:from+square});
   if(!r.correct){openingScene=before;openingBoard();$('openingStatus').textContent=r.message;return;}
-  openingScene=r;openingBoard();
-  if(r.opponent_move){playMoveSound('move');document.querySelector(`#openingBoard [aria-label^="${r.opponent_move.slice(2,4)} "]`)?.classList.add('moving-to');}
+  openingScene=r;if(r.opponent_move)window.cmaBoardPresentation.transition('openingBoard',r.opponent_move,openingBoard);else openingBoard();
+  if(r.opponent_move){document.querySelector(`#openingBoard [aria-label^="${r.opponent_move.slice(2,4)} "]`)?.classList.add('moving-to');}
   openingText(`${r.player_note}${r.opponent_note?'\n상대 응수: '+r.opponent_note:''}`);
   $('openingProgress').textContent='기본 수순 '+r.index+'/'+r.total;
   $('openingStatus').textContent=r.done?'✓ 오프닝 실습 완료 · 다른 변화를 선택해서 이어서 학습할 수 있습니다.':'다음 내 수를 두세요. 체스판의 이동 가능 표시를 확인할 수 있습니다.';
