@@ -16,7 +16,7 @@ async function revalidate(ref,initial=false){
 }
 function render(host,data,initial=false){const identity=token;window.cmaAttemptEvidence?.render(host,data,{onRevalidate:ref=>revalidate(ref,initial),onTrain:!initial||data.baseline_reviewed?ref=>{if(identity===token)window.learningFromDiagnosis(ref.report_id,ref.item_id);}:null});}
 async function mount(host,report){
- const identity=token;const box=document.createElement('section');host.prepend(box);box.textContent='전체 시도 근거를 확인하고 있습니다…';
+ const identity=token;const box=document.createElement('section');const primary=host.querySelector(':scope > .solving-score');if(primary)primary.after(box);else host.prepend(box);box.textContent='전체 시도 근거를 확인하고 있습니다…';
  try{const data=await api('/journey/attempt-evidence/'+encodeURIComponent(report.id));if(identity!==token||!box.isConnected)return;
   data.original={score:report.internal_skill?.score??report.skill_index?.score??null,max:3000,version:report.score_version||report.scoring_version,label:'당시 선택 관찰 수행점수 · 원본 보존'};
   render(box,data);

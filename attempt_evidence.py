@@ -292,6 +292,10 @@ def summarize_attempts(reports, corrections=None, corpus=None):
             rating = rating if isinstance(rating, (int, float)) and not isinstance(rating, bool) and math.isfinite(rating) else None
             band = item.get('band'); band = list(band) if isinstance(band, (list, tuple)) and len(band) == 2 and all(isinstance(v,(int,float)) and not isinstance(v,bool) and math.isfinite(v) for v in band) and band[0]<band[1] else None
             timing=public_timing(item)
+            if (item.get('solving_time') or {}).get('version')=='solving-time-v1':
+                timing=copy.deepcopy(item['solving_time'])
+                timing['availability']='observed' if type(timing.get('active_ms')) is int else 'unmeasured'
+                timing['usable_for_trend']=False
             elapsed=timing.get('active_ms')
             elapsed=elapsed if timing.get('availability')=='observed' and type(elapsed) is int and elapsed>0 else None
             row = {'report_id': report_id, 'item_id': item.get('id'), 'puzzle_id': pid,

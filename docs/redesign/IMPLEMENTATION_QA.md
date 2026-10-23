@@ -78,3 +78,7 @@ See [visual teaching / diagnostic evidence QA](../qa-visual-evidence/README.md) 
 ## PR45 이후 채점 근거 정밀화
 
 원래 시도 전체 분모·별도 재검증 이력·부분 수순·외부 난도·활동 시간의 분리와 원본 점수 보존은 [모델](ATTEMPT_EVIDENCE_MODEL.md), [검증 및 한계](ATTEMPT_PRECISION_QA.md)를 참조한다. 실제 계정 자동 재채점은 하지 않는다.
+
+## PR46 이후 실제 시간 반영 점수
+
+새 진단의 준비·풀이·결과 상태, 제한된 시간 가산을 실제 저장하는 별도 수행 점수, 기존 기록 보존은 [산식](SOLVING_SCORE_MODEL.md)과 [저장·브라우저 검증 및 한계](SOLVING_TIME_QA.md)를 참조한다. 난도는 목표 시간에만 반영되며 난이도 보정 능력 추정은 아니다.

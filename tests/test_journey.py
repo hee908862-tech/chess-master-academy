@@ -77,7 +77,10 @@ def test_multi_ply_partial_skip_full_report_and_bridge(setup):
     assert training.json()['diagnosis']['correct_plies']==1
 
 
-def test_unmeasured_no_overwrite_and_unverified_alternative(setup):
+def test_unmeasured_no_overwrite_and_unverified_alternative(setup,monkeypatch):
+    # This case tests an unavailable verifier; legal mate alternatives are tested separately.
+    monkeypatch.setattr(journey,'prove_mate_alternative',lambda *a:None)
+    monkeypatch.setattr(journey,'verify_loss',lambda *a:None)
     c,ns,old,path=attach(setup);old.clear()
     assert c.post('/api/journey/start',json={'mode':'targeted','competency':'strategy'}).status_code==409
     s=post(c,'start',{'mode':'targeted','competency':'calculation'})

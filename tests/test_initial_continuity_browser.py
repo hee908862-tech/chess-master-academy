@@ -11,6 +11,7 @@ def prepare_last_feedback(page,site):
     page.locator('#initialProfile > button').first.click()
     expect(page.locator('#journeyTask')).to_be_visible()
     page.wait_for_function('!cmaJourney.status().busy')
+    page.wait_for_function('window.cmaSolvingClock && cmaSolvingClock.canInput()')
     page.evaluate('''async()=>{
       let s=(await api('/journey')).active;window.firstSession=s.session_id;
       for(let n=0;n<s.total;n++){

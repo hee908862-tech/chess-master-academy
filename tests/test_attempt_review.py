@@ -91,11 +91,11 @@ def test_malformed_optional_time_does_not_reject_valid_chess_move(setup):
     session=journey_post(c,'start',{'mode':'balanced'})
     item=saved(path)['active']['items'][0]
     response=c.post('/api/journey/action',json={'session_id':session['session_id'],
-        'revision':session['revision'],'action':'move','move':item['line'][0],'thinking_time':'invalid'})
+        'revision':session['revision'],'action':'move','move':item['line'][0],'solving_time':'invalid'})
     assert response.status_code==200,response.text
     stored=saved(path)['active']['items'][0]
-    assert stored['thinking_time']['usable_for_trend'] is False
-    assert 'invalid_payload' in stored['thinking_time']['flags']
+    assert stored['solving_time']['status'] == 'uncertain'
+    assert 'invalid_telemetry' in stored['solving_time']['flags']
 
 
 def test_actual_stockfish_agrees_with_short_mate_counterexample():
