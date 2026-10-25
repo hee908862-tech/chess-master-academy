@@ -53,6 +53,8 @@ def test_auto_en_passant_skip_routes_and_readonly_replay(isolated,site,width,hei
 def test_check_mate_arrows_and_square_explanation(isolated,site):
     page,_=isolated;guest(page)
     page.evaluate("cmaNavigation.go('learn/basics')")
+    if not page.locator('#foundationCourseList').evaluate('e=>e.open'):
+        page.locator('#foundationCourseList > summary').click()
     page.locator('#foundation-open-king-check').click()
     square(page,'foundationBoard','g1').click();square(page,'foundationBoard','f2').click()
     page.locator('#foundationNext').get_by_role('button',name='다음 단계',exact=True).click()
@@ -61,6 +63,8 @@ def test_check_mate_arrows_and_square_explanation(isolated,site):
     square(page,'foundationBoard','g2').click()
     expect(page.locator('#foundationFeedback')).to_contain_text('g8 룩')
     page.evaluate("cmaNavigation.go('learn/basics')")
+    if not page.locator('#foundationCourseList').evaluate('e=>e.open'):
+        page.locator('#foundationCourseList > summary').click()
     page.locator('#foundation-open-mate-stalemate').click()
     square(page,'foundationBoard','g6').click();square(page,'foundationBoard','g7').click()
     expect(page.locator('#foundationVisualLegend')).to_contain_text('f6가 g7 기물을 보호')
@@ -96,7 +100,7 @@ def test_complete_domain_radar_replay_analysis_and_readonly_state(isolated,site)
                 expect(detail.locator('.replay-evaluation')).not_to_contain_text('분석 중',timeout=15000)
                 expect(detail.locator('.replay-evaluation')).not_to_contain_text('미분석')
                 detail.get_by_role('button',name='처음',exact=True).click()
-                assert detail.locator('.board').get_attribute('data-fen')==original['feedback']['replay']['frames'][0]['fen']
+                assert detail.locator('.board[data-fen]').get_attribute('data-fen')==original['feedback']['replay']['frames'][0]['fen']
                 assert page.evaluate("api('/journey')")['active']==original
                 reviewed=True
             page.locator('#journeyNext').click()
@@ -106,13 +110,13 @@ def test_complete_domain_radar_replay_analysis_and_readonly_state(isolated,site)
     assert result['profile_evidence']['areas_ready']==1
     assert result['latest']['score_version']=='skill-index-v1'
     expect(page.locator('#journeyResults .skill-radar')).to_be_visible()
-    expect(page.locator('#journeyResults .profile-evidence')).to_contain_text('유효 8/48')
+    expect(page.locator('#initialProgress')).to_contain_text('확인한 관찰 8/48')
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
     for width,height in [(360,800),(390,844),(844,390),(1366,768)]:
         page.set_viewport_size(dict(width=width,height=height))
         page.locator('#journeyResults .skill-radar').screenshot(path=f'/tmp/cma-pr41-captures/radar-{width}.png')
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
-    page.reload();expect(page.locator('#journeyResults .profile-evidence')).to_contain_text('유효 8/48')
+    page.reload();expect(page.locator('#initialProgress')).to_contain_text('확인한 관찰 8/48')
     assert page.evaluate("api('/journey')")['latest']==result['latest']
 
 

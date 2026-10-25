@@ -182,7 +182,7 @@ def test_chained_action_stale_completion_cannot_start_or_close(page,site,operati
     page.evaluate('window.releaseChain()')
     assert page.evaluate('window.chainedStarts')==0
     if not switch_account:
-        expect(page.locator('#home')).to_have_class('view active');page.evaluate("tab('opening')")
+        expect(page.locator('#home')).to_contain_class('view active');page.evaluate("tab('opening')")
     expect(page.locator('#repertoireBody')).to_be_visible()
     if switch_account or operation=='finish':assert page.evaluate("api('/repertoire')")['active'] is None
     else:assert page.evaluate("api('/repertoire')")['active']['hints']==1

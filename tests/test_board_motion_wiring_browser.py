@@ -21,6 +21,7 @@ def move(page,board,u,endpoint):
 
 def test_foundation_real_intermediate_and_final_delta(page,site):
     login(page,site);page.evaluate("cmaNavigation.go('learn/basics')")
+    page.locator('#foundationCourseList > summary').click()
     page.locator('#foundation-open-opening-turns').click()
     expect(page.locator('#foundationBoard .sq')).to_have_count(64);observe(page)
     for u,count in [('d2d4',0),('e2e4',2),('g1f3',2),('f1c4',1)]:

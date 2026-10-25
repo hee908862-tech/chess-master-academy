@@ -34,8 +34,10 @@ def test_home_label_destination_and_no_mutation(page,site,width,progress):
     page.reload();page.locator('#flowSavedActivities > summary').click();expect(page.locator('#homeBasicsOpen')).to_have_text(label)
     writes=[];page.on('request',lambda r:writes.append(r.url) if r.method not in ('GET','HEAD') else None)
     page.locator('#homeBasicsOpen').click()
-    expect(page).to_have_url(__import__('re').compile('#learn/basics'+('/practice' if progress!='complete' else '')+'$'))
-    if progress!='complete':expect(page.locator('#foundationWorkspace')).to_be_visible()
+    destination='#learn/movement' if progress=='new' else '#learn/basics'+('/practice' if progress!='complete' else '')
+    expect(page).to_have_url(__import__('re').compile(destination+'$'))
+    if progress=='new':expect(page.locator('#movementBoard .sq')).to_have_count(64)
+    elif progress!='complete':expect(page.locator('#foundationWorkspace')).to_be_visible()
     elif progress=='complete':
         expect(page.locator('#foundationCourseList')).to_be_visible()
         expect(page.locator('#foundationCards').get_by_role('button',name='다시 복습',exact=True)).to_have_count(10)
@@ -43,7 +45,13 @@ def test_home_label_destination_and_no_mutation(page,site,width,progress):
     else:expect(page.locator('#foundationPrimary')).to_be_visible()
     after=api('/foundations')
     assert api('/journey')==diagnosis and api('/me')==me
-    if progress in ('new','between'):
+    if progress=='new':
+        assert {k:v for k,v in after.items() if k!='movement'}=={k:v for k,v in before.items() if k!='movement'}
+        assert after['movement']['started'] and after['movement']['completed']==0
+        movement=api('/movement')
+        assert movement['active'] is not None
+        assert len(writes)==1 and writes[0].endswith('/movement/start')
+    elif progress=='between':
         assert after['completed']==before['completed'] and after['active']['step']==0
         assert len(writes)==1 and writes[0].endswith('/foundations/action')
     else:

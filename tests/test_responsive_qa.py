@@ -53,7 +53,8 @@ def test_responsive_boards_long_copy_and_last_result(site,width):
         expected='긴 수순 '+('Nxf7+ d8=Q# '*20)
         actual=page.locator('#learningExplanation').text_content()
         assert actual==expected and len(actual)==len(expected) and 'NaN' not in actual
-        expect(page.locator('#learningExplanation')).to_be_visible()
+        expect(page.locator('#learningPlainExplanation')).to_have_text(expected)
+        expect(page.locator('#learningPlainExplanation')).to_be_visible()
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
         page.screenshot(path=str(directory/f'training-{width}.png'),full_page=True)
         if width in (900,1024):

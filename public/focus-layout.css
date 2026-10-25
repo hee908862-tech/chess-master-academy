@@ -108,3 +108,5 @@ body.focus-activity .view.active{gap:8px}.focus-lesson-active.education{margin-t
 #guestOpeningPreview .guest-opening-explanation{min-width:0;overflow-wrap:anywhere;line-height:1.6}
 #guestOpeningPreview .guest-opening-replay>summary{min-height:44px;padding:10px 0}
 @media(max-width:850px){#guestOpeningPreview .guest-opening-layout{grid-template-columns:minmax(0,1fr);gap:12px}#guestOpeningPreview .guest-opening-core .board{max-width:560px}#guestOpeningPreview .guest-opening-explanation h3{margin-top:4px}}
+/* Include the piece explanation and completion controls in the available height. */
+@media(min-width:851px){body.focus-foundation #foundationBoard{max-width:min(560px,max(320px,calc(100dvh - 340px)))}}

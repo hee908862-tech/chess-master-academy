@@ -23,6 +23,7 @@ def test_repeated_selection_cancels_and_friendly_selection_switches():
         script='''let selected='b7',busy=false,needsRefresh=false,failed=false;
 let session={phase:'question',question:{legal:['b7b6','a7a6']}};
 let data={active:{legal:['b7b6','a7a6'],step:{kind:'move'}}};
+function timed(){return false;}
 let draws=0;function renderBoard(){draws++}function draw(){draws++}
 '''+function+'''
 (async()=>{await click('b7');if(selected!==null||draws!==1)throw Error('same-square cancellation');await click('a7');if(selected!=='a7')throw Error('selection');await click('b7');if(selected!=='b7')throw Error('switch');})();'''

@@ -11,7 +11,8 @@ def test_scoped_history_does_not_engage_initial_but_started_course_keeps_priorit
       const scoped={...j,active:null,results:[{id:'display-only-scoped-result',diagnostic_scope:{mode:'domain'}}]};
       const choose=state=>cmaInitial.recommendation({...scoped,initial_profile:{...j.initial_profile,state}},null,{},false)?.label||null;
       return {notStarted:choose('not_started'),started:choose('in_progress'),
+        scopedActive:cmaInitial.recommendation({...scoped,active:{initial_course:false,index:1,total:4}},null,{diagnosis:{detail:'2/4문항 · 저장된 범위'}},false).detail,
         active:cmaInitial.recommendation({...scoped,active:{initial_course:true}},null,{},false).label};
     }""",before)
-    assert result=={'notStarted':None,'started':'초기 진단 이어하기','active':'진단 이어하기'}
+    assert result=={'notStarted':None,'started':'초기 진단 이어하기','active':'진단 이어하기','scopedActive':'2/4문항 · 저장된 범위'}
     assert page.evaluate("api('/journey')")==before

@@ -15,7 +15,12 @@ def test_foundation_focused_bounds_and_readonly_details(page,site,size):
  before=page.evaluate("api('/foundations')");writes=[]
  page.on('request',lambda r:writes.append(r.url) if r.method=='POST' else None)
  detail=page.locator('#foundationExplanation');detail.locator('summary').first.click()
- expect(page.locator('#foundationFeedback')).to_be_visible()
+ original=page.locator('#foundationFullInstruction');original.locator('summary').click()
+ expect(original.locator(':scope > p').first).to_have_text(before['active']['text'])
+ expect(original.locator(':scope > p').first).to_be_visible()
+ if not before['active'].get('feedback'):
+  expect(page.locator('#foundationFeedback')).to_be_empty()
+  expect(page.locator('#foundationFeedback')).to_be_hidden()
  detail.press('Escape');expect(detail).not_to_have_attribute('open','')
  expect(detail.locator('summary').first).to_be_focused()
  assert writes==[];assert page.evaluate("api('/foundations')")==before
@@ -27,7 +32,11 @@ def test_foundation_focused_bounds_and_readonly_details(page,site,size):
  page.locator('#foundationBoard [aria-label^="a1 "]').click();page.locator('#foundationBoard [aria-label^="a4 "]').click()
  expect(page.locator('#foundationOutcome')).to_contain_text('단계 완료')
  expect(page.locator('#foundationNext')).to_contain_text('다음 단계')
- if size[1]>=720:assert page.locator('#foundationNext').bounding_box()['y']<size[1]-44
+ if size[1]>=720:
+  next_button=page.locator('#foundationNext').get_by_role('button',name='다음 단계',exact=True)
+  bounds=next_button.bounding_box()
+  assert bounds['y']+bounds['height']<=size[1]
+  assert next_button.evaluate('(e)=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}')
  Path('docs/qa-focus-interface/captures').mkdir(parents=True,exist_ok=True)
  page.wait_for_timeout(350) # Only settle animation for the evidence image.
  page.screenshot(path=f'docs/qa-focus-interface/captures/foundation-{size[0]}-{size[1]}.png',full_page=True)

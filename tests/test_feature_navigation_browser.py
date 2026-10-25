@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import expect
 from test_qa_browser import site,page
-from test_study_browser import login,click_move
+from test_study_browser import login,click_move,select_course
 
 @pytest.mark.parametrize('width',[390,1280])
 def test_navigation_help_no_mutations_and_opening_layout(page,site,width):
@@ -30,7 +30,7 @@ def test_navigation_help_no_mutations_and_opening_layout(page,site,width):
  page.locator('#learn-hub-back').click();page.locator('#learn-saved').click();expect(page.locator('#academyResume')).to_be_focused()
  assert not posts,posts
  page.evaluate("tab('opening')");expect(page.locator('#studyCourse option')).to_have_count(55)
- page.locator('#studyCourse').select_option('london-core');expect(page.locator('#studyOpeningBoard .sq')).to_have_count(64)
+ select_course(page,'london-core');expect(page.locator('#studyOpeningBoard .sq')).to_have_count(64)
  page.locator('#opening .feature-jumps').get_by_role('button',name='착수 해설').click();expect(page.locator('#studyExplanation')).to_be_focused()
  expect(page.locator('#openingStudy')).to_contain_text('55개 해설 강의')
  expect(page.locator('#openingStudy')).to_contain_text('192개 주요 착수 해설')

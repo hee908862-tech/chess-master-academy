@@ -68,7 +68,7 @@ def test_delayed_write_account_or_screen_exit_no_stale_render(page,site,switch):
  if switch:
   assert page.evaluate("realEduApi('/education')")['active'] is None
   expect(page.locator('#educationBoard')).to_have_count(0)
- else:expect(page.locator('#home')).to_have_class('view active')
+ else:expect(page.locator('#home')).to_contain_class('view active')
 
 @pytest.mark.parametrize('lesson',['threat-defended','plan-file','plan-piece','ending-opposition','ending-promotion'])
 def test_all_other_paths_real_board_or_choice_completion(page,site,lesson):
@@ -102,7 +102,7 @@ def test_prerequisite_link_opens_exact_existing_card_without_writes(page,site):
 
 def test_prerequisite_cached_card_waits_for_read_then_focuses_without_writes(page,site):
  enter(page,site)
- page.evaluate('cmaFoundations.load()')  # Cached cards are visible before the next GET resolves.
+ page.evaluate('cmaFoundations.load()')  # Keep a cached catalogue while the next GET is pending.
  before=page.evaluate("api('/foundations')")
  page.evaluate("""()=>{window.foundationRelease=null;window.prerequisiteWrites=[];
  window.prerequisiteApi=api;api=async(...a)=>{
@@ -112,11 +112,11 @@ def test_prerequisite_cached_card_waits_for_read_then_focuses_without_writes(pag
  };}""")
  card=page.locator('#educationBody article').filter(has=page.get_by_role('heading',name='공격선 관찰과 피하기',exact=True))
  card.get_by_role('button',name='관련 기존 기초 보기',exact=True).click()
- expect(page.locator('#foundationCourseList')).to_have_attribute('open','')
- expect(page.locator('[data-course="king-check"]')).to_be_visible()
  page.wait_for_function('foundationRelease!==null')
  expect(page.locator('#foundationHeading')).to_be_focused()
  page.evaluate('foundationRelease()')
+ expect(page.locator('#foundationCourseList')).to_have_attribute('open','')
+ expect(page.locator('[data-course="king-check"]')).to_be_visible()
  expect(page.locator('[data-course="king-check"]')).to_be_focused()
  assert page.evaluate('prerequisiteWrites')==[]
  assert page.evaluate("prerequisiteApi('/foundations')")==before

@@ -21,7 +21,7 @@ def finish_ui(page):
 def test_entry_complete_practice_then_direct_standard_choice(page,site,mode,total):
     login(page,site)
     page.evaluate("api('/starting-level','POST',{choice:'beginner',revision:0})")
-    page.evaluate("tab('diagnosis')");page.locator('#journeyStart').click()
+    page.evaluate("tab('diagnosis')");page.locator('#diagnosticOther > summary').click();page.locator('#journeyStart').click()
     expect(page.locator('#journeyBoard .sq:enabled')).to_have_count(64)
     status=finish_ui(page);report=status['latest']
     assert report['mode']=='gentle' and 'snapshot' not in report and status['cycle'] is None
