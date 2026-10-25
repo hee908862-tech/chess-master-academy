@@ -30,4 +30,4 @@ jobs:
       - run: |
           git diff --check
           for script in public/*.js; do node --check "$script"; done
-          python -m pytest -q
+          python -m pytest -q --maxfail=10

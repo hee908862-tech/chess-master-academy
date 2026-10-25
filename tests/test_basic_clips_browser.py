@@ -69,3 +69,20 @@ def test_completion_stays_and_demo_retry_and_duplicate_clicks(isolated,site):
     page.get_by_role('button',name='같은 문제 직접 다시',exact=True).click()
     page.wait_for_function('!cmaMovement.state().done && cmaMovement.state().moves.length===0')
     assert page.evaluate('cmaMovement.state().unit.helped')
+
+
+def test_hidden_tab_pauses_and_browser_back_cancels(isolated,site):
+    page,_=isolated;enter(page);choose(page,'rules-pawn-promotion')
+    page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True).click()
+    page.locator('#movementClip').get_by_role('button',name='재생',exact=True).click()
+    page.evaluate("Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'))")
+    assert not page.evaluate('cmaMovement.state().clipPlaying')
+    page.evaluate("delete document.hidden;document.dispatchEvent(new Event('visibilitychange'))")
+    assert not page.evaluate('cmaMovement.state().clipPlaying')
+    page.locator('#movementClip').get_by_role('button',name='재생',exact=True).click()
+    page.go_back()
+    page.wait_for_function("cmaNavigation.current()!=='learn/movement'")
+    assert page.evaluate('cmaMovement.state().clip') is None
+    page.go_forward();ready(page)
+    assert page.evaluate('cmaMovement.state().moves')==[]
+    assert page.evaluate('cmaMovement.state().unit.helped')
