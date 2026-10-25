@@ -19,7 +19,8 @@ def test_real_training_pending_completion_stable_board_controls(page,site,width,
     click_move(page,'learningBoard',u)
     if len(u)==5:page.locator('#cmaPromotionModal').get_by_role('button',name={'q':'퀸','r':'룩','b':'비숍','n':'나이트'}[u[4]],exact=False).click()
     page.wait_for_function('!!window.releaseFeedback')
-    expect(page.locator('#learningBoardFeedback')).to_contain_text('응답 대기')
+    expect(page.locator('#learningBoardFeedback')).to_have_attribute('data-kind','pending')
+    expect(page.locator('#learningBoardFeedback .board-save')).to_have_text('확인 중…')
     expect(page.locator('#learningBoardFeedback')).not_to_contain_text('판단 완료')
     # Programmatic duplicate presses cannot submit another request while busy.
     page.evaluate("document.querySelector('#learningBoard .sq').click()")
@@ -29,7 +30,7 @@ def test_real_training_pending_completion_stable_board_controls(page,site,width,
     assert abs(page.locator('#learningBoard').bounding_box()['y']-y)<2
     page.evaluate('releaseFeedback()')
     expect(page.locator('#learningBoardFeedback')).to_contain_text('첫 수 판단 완료')
-    expect(page.locator('#learningBoardFeedback')).to_contain_text('서버 상태 확인됨')
+    expect(page.locator('#learningBoardFeedback .board-save')).to_have_text('저장 상태 확인됨')
     assert page.locator('#learningBoard .sq:enabled').count()==0
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),page.evaluate("[...document.querySelectorAll('#training *')].filter(n=>n.getBoundingClientRect().right>innerWidth).slice(0,10).map(n=>[n.id,n.className,n.getBoundingClientRect().width])")
     out=Path('/tmp/cma-centered-captures');out.mkdir(exist_ok=True)
@@ -48,7 +49,7 @@ def test_training_failure_requires_authoritative_refresh(page,site):
     click_move(page,'learningBoard',u)
     assert posts==[]
     page.unroute('**/api/learning/action');page.locator('#learningRefresh').click()
-    expect(page.locator('#learningBoardFeedback')).to_contain_text('서버 상태 확인됨')
+    expect(page.locator('#learningBoardFeedback .board-save')).to_have_text('저장 상태 확인됨')
     assert page.evaluate("api('/learning/dashboard')")['active']['revision']==task['revision']
 
 @pytest.mark.parametrize('complete,outcome',[ (False,'unverified_alternative'),(False,'partial_execution'),(True,'completed') ])
@@ -73,11 +74,13 @@ def test_fact_visibility_position_cleanup_and_no_writes(page,site):
     facts=learning_facts({'fen':fen,'line':['a1a2']},{'fen':b.fen(),'done':True,'outcome':{'success':True}})
     writes=[];page.on('request',lambda r:writes.append(r.url) if r.method=='POST' else None)
     page.evaluate("f=>{drawBoard('learningBoard',fromFen(f.fen));cmaFeedback.set('learningBoard',{title:'확인된 배치',facts:f});}",facts)
-    expect(page.locator('#learningBoard .feedback-fact-label')).to_have_count(2)
-    page.locator('#learningBoardFacts button').click();expect(page.locator('.feedback-fact-lines')).to_have_count(0)
-    page.locator('#learningBoardFacts button').click();expect(page.locator('.feedback-fact-lines')).to_have_count(1)
+    expect(page.locator('#learningBoard .foundation-arrows path')).to_have_count(5)
+    expect(page.locator('#learningBoardFacts')).to_contain_text('a2 → a4 공격')
+    expect(page.locator('#learningBoardFacts')).to_contain_text('a2 → b2 보호')
+    page.locator('#learningBoardFacts button').click();expect(page.locator('#learningBoard .foundation-arrows')).to_have_count(0)
+    page.locator('#learningBoardFacts button').click();expect(page.locator('#learningBoard .foundation-arrows')).to_have_count(1)
     page.evaluate("drawBoard('learningBoard',fromFen(chessStart))")
-    expect(page.locator('#learningBoardFacts')).not_to_be_visible();expect(page.locator('.feedback-fact-label')).to_have_count(0)
+    expect(page.locator('#learningBoardFacts')).not_to_be_visible();expect(page.locator('#learningBoard .foundation-arrows')).to_have_count(0)
     assert writes==[]
 
 

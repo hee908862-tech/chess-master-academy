@@ -139,3 +139,19 @@ def test_previous_rule_clip_survives_topic_boundary(isolated,site,current,previo
     assert page.evaluate("api('/movement')")['active']==before
     assert page.evaluate('cmaMovement.state().source')==target
     assert page.evaluate('cmaMovement.state().moves')==[source+target]
+
+
+def test_logout_discards_delayed_demo_response(isolated,site):
+    from test_study_browser import login
+    page,_=isolated;login(page,site)
+    page.evaluate('cmaMovement.enter()');ready(page);choose(page,'rules-pawn-promotion')
+    page.evaluate("""()=>{const original=api;api=async(...args)=>{const value=await original(...args);if(args[0]==='/movement/demo')return new Promise(resolve=>window.releaseDemo=()=>resolve(value));return value;};}""")
+    page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True).click()
+    page.wait_for_function('!!window.releaseDemo')
+    page.evaluate("cmaNavigation.go('profile/account')")
+    page.locator('#signout').click();page.wait_for_function("token===''")
+    page.evaluate('releaseDemo()');page.wait_for_timeout(1800)
+    assert page.evaluate('cmaMovement.state().clip') is None
+    assert page.evaluate('cmaMovement.state().unit') is None
+    expect(page.locator('#movementClip')).to_be_hidden()
+    assert page.evaluate("cmaNavigation.current().startsWith('profile')")

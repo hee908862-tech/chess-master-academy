@@ -8,8 +8,9 @@ from test_redesign_browser_followup import isolated
 
 
 def guest(page):
-    page.locator('#flowBasicsStart').click()
-    expect(page.locator('#foundationWorkspace')).to_be_visible(timeout=20000)
+    # Explicitly select the retained course used by these visual assertions.
+    from test_activity_flow_browser import start
+    start(page)
     page.wait_for_function("document.querySelector('#foundationAcademy').getAttribute('aria-busy')==='false'")
 
 
