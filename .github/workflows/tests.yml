@@ -12,6 +12,7 @@ jobs:
     env:
       PYTHONPATH: .:tests
       DATABASE_URL: ''
+      CMA_JOURNEY_INDEX: /tmp/chess-journey-index.json.gz
       STOCKFISH_PATH: /tmp/chess-stockfish/usr/games/stockfish
     steps:
       - uses: actions/checkout@v4
@@ -30,4 +31,5 @@ jobs:
       - run: |
           git diff --check
           for script in public/*.js; do node --check "$script"; done
-          python -m pytest -q --maxfail=10
+          python build_journey_index.py
+          python -m pytest -q --maxfail=1
