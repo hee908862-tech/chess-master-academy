@@ -25,6 +25,9 @@ def test_three_reported_positions_and_explanations():
     frames=clip(BY_ID['rules-pawn-promotion'])['frames']
     assert [f['move'] for f in frames if f['move']]==['e7e8q','h8h7','e8e4']
     assert chess.Board(frames[1]['fen']).is_check()
+    promotion=BY_ID['rules-pawn-promotion']
+    assert not replay_rule(promotion,['e7e8q'])['done']
+    assert replay_rule(promotion,['e7e8q','e8e4'])['done']
     shield=BY_ID['rules-shield-piece']
     assert not replay_rule(shield,['d2d3'])['done']
     assert replay_rule(shield,['d2d4'])['done']
@@ -39,7 +42,8 @@ def test_demo_exposure_is_durable_without_completion_or_other_state_writes(movem
     before=copy.deepcopy(dict(server.get_state('INTRO-QA')))
     request=dict(unit_id=state['active']['unit_id'],session_id=state['active']['session_id'],revision=state['revision'])
     r=client.post('/api/movement/demo',json=request);assert r.status_code==200
-    state=r.json()['dashboard'];assert state['active']['helped']
+    previous=copy.deepcopy(state['active']);previous['helped']=True
+    state=r.json()['dashboard'];assert state['active']==previous
     assert not state['active']['done'] and state['active']['moves']==[]
     after=dict(server.get_state('INTRO-QA'));after.pop('movement_v1');before.pop('movement_v1');assert after==before
     assert client.post('/api/movement/demo',json=request).status_code==409

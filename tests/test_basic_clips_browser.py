@@ -11,7 +11,7 @@ def choose(page,unit):
     ready(page)
 
 
-@pytest.mark.parametrize('width,height',[(1366,768),(360,640),(390,844),(844,390)])
+@pytest.mark.parametrize('width,height',[(1366,768),(320,650),(360,640),(390,844),(844,390)])
 def test_reported_clips_controls_layout_and_practice_separation(isolated,site,width,height):
     page,_=isolated;page.set_viewport_size(dict(width=width,height=height));enter(page)
     for unit in ['rules-pawn-promotion','rules-shield-piece','rules-make-stalemate']:
@@ -32,6 +32,9 @@ def test_reported_clips_controls_layout_and_practice_separation(isolated,site,wi
         assert page.evaluate('cmaMovement.state().moves')==before
         assert not page.evaluate('cmaMovement.state().done')
         assert page.evaluate('cmaMovement.state().unit.helped')
+        for control in page.locator('#movementClip button:enabled').all():
+            control.scroll_into_view_if_needed()
+            assert control.evaluate('(b)=>{const r=b.getBoundingClientRect();return b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}')
         page.locator('#movementClip').scroll_into_view_if_needed()
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
         if width<=850:
@@ -86,3 +89,26 @@ def test_hidden_tab_pauses_and_browser_back_cancels(isolated,site):
     page.go_forward();ready(page)
     assert page.evaluate('cmaMovement.state().moves')==[]
     assert page.evaluate('cmaMovement.state().unit.helped')
+
+
+def test_zoom_next_double_click_and_prelude_cancellation(isolated,site):
+    page,_=isolated;page.set_viewport_size(dict(width=390,height=844));enter(page)
+    choose(page,'rules-shield-piece')
+    page.evaluate("document.documentElement.style.zoom='1.25'")
+    page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True).click()
+    for control in page.locator('#movementClip button:enabled').all():
+        control.scroll_into_view_if_needed()
+        assert control.evaluate('(b)=>{const r=b.getBoundingClientRect();return b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}')
+    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+    page.locator('#movementClip').get_by_role('button',name='닫고 직접 연습',exact=True).click()
+    page.locator('#movementBoard [aria-label^="d2 "]').click();page.locator('#movementBoard [aria-label^="d4 "]').click()
+    page.wait_for_function('cmaMovement.state().done && !cmaMovement.state().pending')
+    posts=[];page.on('request',lambda r:posts.append(r.url) if r.url.endswith('/movement/start') else None)
+    page.get_by_role('button',name='다음 확인 계속하기',exact=True).evaluate('(b)=>{b.click();b.click();}')
+    page.wait_for_function("cmaMovement.state().unit.unit_id!=='rules-shield-piece'")
+    assert len(posts)==1
+    choose(page,'rules-ep-now')
+    page.evaluate('cmaMovement.cancel()')
+    page.wait_for_timeout(1000)
+    assert not page.evaluate('cmaMovement.state().demonstrating')
+    assert page.evaluate('cmaMovement.state().moves')==[]
