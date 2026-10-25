@@ -77,10 +77,15 @@ def test_guest_return_and_board_layout(site,width,height):
         expect(page.locator('#startingLevelDialog')).not_to_be_visible()
         expect(page.locator('#puzzle')).to_contain_class('view active')
         assert page.locator('#v9PuzzleBoard .sq').count()==0
-        page.evaluate("tab('training')")
+        with page.expect_response('**/api/learning/dashboard') as loaded:
+            page.evaluate("tab('training')")
+        assert loaded.value.status==200
+        saved_training=loaded.value.json()
         expect(page.locator('#learningRouteStatus')).not_to_be_empty()
         library=page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True)
-        if library.is_visible():library.click()
+        if saved_training['active']:
+            expect(library).to_be_visible()
+            library.click()
         page.locator('#flowTrainingReview').click()
         page.locator('#learningRoute > summary').click()
         page.locator('#learningRouteActions button').click()

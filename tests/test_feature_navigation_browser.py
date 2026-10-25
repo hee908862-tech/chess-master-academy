@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 import pytest
 from playwright.sync_api import expect
@@ -104,13 +105,28 @@ def test_study_promotion_cancel_restores_board_controls(page,site):
  """Controlled promotion position tests UI cancellation, not opening theory."""
  login(page,site)
  position={'fen':'6k1/P7/8/8/8/8/8/4K3 w - - 1 2','legal':['a7a8q','a7a8r','a7a8b','a7a8n'],'terminal':False,'reply':None}
- page.route('**/api/study/position',lambda r:r.fulfill(json=position))
+ positions=[]
+ def load_position(route):
+  positions.append(route.request.post_data_json);route.fulfill(json=position)
+ page.route('**/api/study/position',load_position)
  page.evaluate("tab('opening')");expect(page.locator('#studyOpeningBoard .sq:enabled')).to_have_count(64)
+ before=page.evaluate("async()=>({saved:(await api('/study/openings')).saved,me:await api('/me')})")
+ requests_before=list(positions)
+ pawn=page.locator('#studyOpeningBoard [aria-label^="a7 "]')
+ destination=page.locator('#studyOpeningBoard [aria-label^="a8 "]')
  click_move(page,'studyOpeningBoard','a7a8');expect(page.locator('#cmaPromotionModal')).to_be_visible()
  page.keyboard.press('Escape');expect(page.locator('#cmaPromotionModal')).to_be_hidden()
  expect(page.locator('#studyOpeningBoard .sq:enabled')).to_have_count(64)
- click_move(page,'studyOpeningBoard','a7a8');page.get_by_role('button',name='승격 선택 취소',exact=True).click()
+ # Cancelling keeps the source selected. Clicking it again would deselect it.
+ expect(pawn).to_have_attribute('aria-pressed','true')
+ destination.click();expect(page.locator('#cmaPromotionModal')).to_be_visible()
+ page.get_by_role('button',name='승격 선택 취소',exact=True).click()
+ expect(page.locator('#cmaPromotionModal')).to_be_hidden()
  expect(page.locator('#studyOpeningBoard .sq:enabled')).to_have_count(64)
+ expect(pawn).to_have_attribute('aria-label',re.compile(r'^a7 백 폰(?: ·.*)?$'))
+ expect(destination).to_have_attribute('aria-label',re.compile(r'^a8 빈 칸(?: ·.*)?$'))
+ assert positions==requests_before
+ assert page.evaluate("async()=>({saved:(await api('/study/openings')).saved,me:await api('/me')})")==before
 
 
 @pytest.mark.parametrize('width',[390,1280])
