@@ -134,3 +134,9 @@ body.focus-activity .view.active{gap:8px}.focus-lesson-active.education{margin-t
  body.focus-activity #diagnosis.active #journeyClock .solving-clock-note{grid-column:1/-1;font-size:14px;line-height:1.45;margin-block:4px}
  body.focus-activity #diagnosis.active #journeyClock button{grid-column:1/-1}
 }
+
+/* Keep completion actions before optional prose without moving the board or viewport. */
+@media(max-width:850px){
+ body.focus-foundation #foundationLive{order:-2}
+ body.focus-foundation #foundationNext{order:-1}
+}

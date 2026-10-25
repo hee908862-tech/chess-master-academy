@@ -117,13 +117,24 @@ def test_complete_domain_radar_replay_analysis_and_readonly_state(isolated,site)
     assert result['profile_evidence']['areas_ready']==1
     assert result['latest']['score_version']=='skill-index-v1'
     expect(page.locator('#journeyResults .skill-radar')).to_be_visible()
-    expect(page.locator('#initialProgress')).to_contain_text('확인한 관찰 8/48')
+    summary=page.locator('#initialProfile > strong')
+    expect(summary).to_be_visible()
+    expect(summary).to_contain_text('확인한 관찰 8/48')
+    progress=page.locator('#initialProfile > progress')
+    expect(progress).to_be_visible()
+    expect(progress).to_have_attribute('value','8')
+    expect(progress).to_have_attribute('max','48')
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
     for width,height in [(360,800),(390,844),(844,390),(1366,768)]:
         page.set_viewport_size(dict(width=width,height=height))
         page.locator('#journeyResults .skill-radar').screenshot(path=f'/tmp/cma-pr41-captures/radar-{width}.png')
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
-    page.reload();expect(page.locator('#initialProgress')).to_contain_text('확인한 관찰 8/48')
+    page.reload()
+    expect(summary).to_be_visible()
+    expect(summary).to_contain_text('확인한 관찰 8/48')
+    expect(progress).to_be_visible()
+    expect(progress).to_have_attribute('value','8')
+    expect(progress).to_have_attribute('max','48')
     assert page.evaluate("api('/journey')")['latest']==result['latest']
 
 

@@ -6,7 +6,7 @@ The user approved addressing the remaining release-blocking failures on 2026-10-
 
 - Scoped active diagnoses now show their own progress in the home recommendation, preserving initial-course priority and all server scoring.
 - Retained foundation lessons keep a clicked square's attack explanation instead of replacing it with a generic selection prompt. Independent/transfer lessons still conceal the explanation.
-- Foundation completion keeps the next action reachable, preserves focus without incidental scroll, and uses the available desktop board height.
+- Foundation completion places the next action before optional prose, preserves focus and board position without forcing viewport scrolling, and uses the available desktop board height.
 - Cancelling an account switch clears both the original authentication request generation and the trial wrapper's UI lock. Late success/error cannot replace the newer account or copy guest progress.
 - Narrow layout adjustments preserve readable boards, 44px controls, the full optional explanation, and accessible document scrolling. Active diagnosis keeps the position before the redundant resume card; timer semantics are unchanged.
 
@@ -34,6 +34,10 @@ These are overlapping focused runs, not an additive total or a claim of a green 
 - Review account ownership and late analysis: 3 passed (`/tmp/residual-review-second.log`).
 
 The full suite is collected on every CI worker and partitioned by file into four disjoint groups. Root static assertions execute during collection. Initial validation assigned all 1,280 cases across 141 files exactly once (301/337/328/314); a failing group does not cancel the others. Every group on the final head must pass before merge.
+
+## Integration correction
+
+CI10 on e20ebbc caught two board-position regressions from the completion scroll. The forced scroll was removed; mobile action order now makes the next action reachable without moving the board. All existing stability assertions remain. A parent review also found that the result-count test was inspecting the hidden active-course compact text; it now requires the actual visible result summary and progress element to show 8/48 before and after reload, alongside unchanged API preservation assertions. The combined foundation feedback/layout/visible result regression passed all 27 cases (`/tmp/ci10-foundation-fix.log`). A new exact-head full CI is required after these changes.
 
 ## Environment and release limits
 
