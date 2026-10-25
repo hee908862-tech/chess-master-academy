@@ -147,6 +147,11 @@ def test_scoped_recommendation_shared_without_inventing_weakness(isolated):
     assert not report['scoped_training']['tasks']
     home(page);expect(page.locator('#homeNextAction > button')).to_have_text('같은 범위 추가 확인 선택')
     reason=page.locator('#homeNextAction .flow-next-detail').inner_text()
+    saved=page.evaluate("api('/journey')")
+    assert saved['initial_profile']['state']=='not_started' and saved['results']
+    expect(page.locator('#homeNextAction .flow-next-detail')).to_have_text(reason)
+    page.reload();expect(page.locator('#homeNextAction .flow-next-detail')).to_have_text(reason)
+    assert page.evaluate("api('/journey')")==saved
     page.evaluate("tab('profile')");expect(page.locator('#profileNextAction .flow-next-detail')).to_have_text(reason)
     page.evaluate("tab('diagnosis')");expect(page.locator('#resultNextAction .flow-next-detail')).to_have_text(reason)
     writes=[];page.on('request',lambda r:writes.append(r.url) if r.method=='POST' else None)
