@@ -112,3 +112,30 @@ def test_zoom_next_double_click_and_prelude_cancellation(isolated,site):
     page.wait_for_timeout(1000)
     assert not page.evaluate('cmaMovement.state().demonstrating')
     assert page.evaluate('cmaMovement.state().moves')==[]
+
+
+@pytest.mark.parametrize('current,previous,source,target',[
+    ('bishop-path','rules-two-rooks-right','b2','e5'),
+    ('queen-path','rules-two-bishops-dark','d2','d5')])
+def test_previous_rule_clip_survives_topic_boundary(isolated,site,current,previous,source,target):
+    page,_=isolated;page.set_viewport_size(dict(width=390,height=844));enter(page)
+    from basic_rules_content import BY_ID
+    choose(page,previous)
+    action=BY_ID[previous]['example_actions'][0]
+    page.locator(f'#movementBoard [aria-label^="{action[:2]} "]').click()
+    page.locator(f'#movementBoard [aria-label^="{action[2:4]} "]').click()
+    page.wait_for_function('cmaMovement.state().done && !cmaMovement.state().pending && cmaMovement.state().data.active.done')
+    page.get_by_role('button',name='다음 확인 계속하기',exact=True).click()
+    page.wait_for_function('id=>cmaMovement.state().unit.unit_id===id',arg=current)
+    page.locator(f'#movementBoard [aria-label^="{source} "]').click()
+    page.locator(f'#movementBoard [aria-label^="{target} "]').click()
+    page.wait_for_function('!cmaMovement.state().pending && cmaMovement.state().data.active.moves.length===1')
+    before=page.evaluate("api('/movement')")['active']
+    page.get_by_role('button',name='직전 문제 시연',exact=True).click()
+    expect(page.locator('#movementClip')).to_be_visible()
+    assert page.evaluate('cmaMovement.state().clip.unit_id')==previous
+    page.locator('#movementClip').get_by_role('button',name='다음 수',exact=True).click()
+    page.locator('#movementClip').get_by_role('button',name='닫고 직접 연습',exact=True).click()
+    assert page.evaluate("api('/movement')")['active']==before
+    assert page.evaluate('cmaMovement.state().source')==target
+    assert page.evaluate('cmaMovement.state().moves')==[source+target]

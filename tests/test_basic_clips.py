@@ -67,3 +67,20 @@ def test_previous_clip_keeps_current_session_and_unauthorized_requests_fail(move
     assert client.post('/api/movement/demo',json=request).status_code==400
     request.update(unit_id=prior,session_id='wrong-session')
     assert client.post('/api/movement/demo',json=request).status_code==409
+
+
+@pytest.mark.parametrize('current,previous,move',[
+    ('bishop-path','rules-two-rooks-right','b2e5'),
+    ('queen-path','rules-two-bishops-dark','d2d5')])
+def test_previous_rule_clip_from_movement_lesson_preserves_progress(movement,current,previous,move):
+    client,_=movement;state=start(client,unit=previous)
+    state=save(client,state,BY_ID[previous]['example_actions'])
+    state=start(client,state,unit=current,action='next',request='boundary-next')
+    assert state['active']['unit_id']==current
+    state=save(client,state,[move]);before=copy.deepcopy(state['active'])
+    response=client.post('/api/movement/demo',json=dict(unit_id=previous,
+        session_id=before['session_id'],revision=state['revision']))
+    assert response.status_code==200
+    assert response.json()['clip']['unit_id']==previous
+    assert response.json()['dashboard']['active']==before
+    assert client.get('/api/movement').json()['active']==before
