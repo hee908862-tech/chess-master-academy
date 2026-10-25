@@ -16,3 +16,12 @@ body.movement-practice .topbar,body.movement-practice #onboardingInvitation{disp
 body.movement-practice .feature-toolbar{min-height:40px;margin-bottom:4px}body.movement-practice .learning-route-nav{margin-bottom:4px}
 @media(min-width:851px){#movementBoard{max-width:min(540px,max(360px,calc(100dvh - 260px)))}}
 @media(max-width:850px){#movementStudio{padding:0}#movementPiece{width:48px;height:48px;flex-basis:48px}#movementTitle{font-size:20px}.movement-heading{margin:4px 0;gap:9px}#movementRule{font-size:15px}#movementBoard{max-width:440px}#movementHelp{margin-top:8px}#movementFeedback{font-size:14px}.movement-task{font-size:15px}}
+
+/* The in-app browser bottom bar must never cover lesson feedback or controls. */
+@media(max-width:850px){body.movement-practice .mobile-nav{position:static!important;inset:auto!important;width:100%;margin-top:16px;padding-bottom:max(12px,env(safe-area-inset-bottom))}body.movement-practice .app{padding-bottom:max(20px,env(safe-area-inset-bottom))!important}}
+#movementClip{margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:12px}
+#movementClip[hidden]{display:none}#movementClip>strong,#movementClip>small,#movementClip>span{display:block;margin-bottom:4px}
+#movementBoard .clip-mark{box-shadow:inset 0 0 0 4px #d97706}
+#movementClip .btn-row{flex-wrap:wrap;gap:6px}
+
+#movementClip .btn-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}#movementClip .btn-row>.btn{width:100%;min-width:0;padding:8px 4px;font-size:14px}#movementClip .btn-row>.btn:last-child{grid-column:span 2}

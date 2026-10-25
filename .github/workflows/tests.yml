@@ -1,0 +1,33 @@
+name: Tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PYTHONPATH: .:tests
+      DATABASE_URL: ''
+      STOCKFISH_PATH: /tmp/chess-stockfish/usr/games/stockfish
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt pytest httpx playwright
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y stockfish
+          mkdir -p /tmp/chess-stockfish/usr/games
+          ln -s /usr/games/stockfish "$STOCKFISH_PATH"
+          python -m playwright install --with-deps chromium
+          browser=$(python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')
+          sudo ln -sf "$browser" /usr/bin/chromium
+      - run: |
+          git diff --check
+          for script in public/*.js; do node --check "$script"; done
+          python -m pytest -q

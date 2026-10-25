@@ -27,6 +27,12 @@ class Start(BaseModel):
     request_id:str=Field(min_length=8,max_length=80)
 
 
+class Demo(BaseModel):
+    unit_id:str
+    session_id:str
+    revision:int=Field(ge=0)
+
+
 class Save(BaseModel):
     unit_id:str
     session_id:str=Field(max_length=80)
@@ -71,9 +77,31 @@ def attach_movement(app,ns):
         if body.action=='restart' and (saved.get('active')!=unit_id or not prior):raise HTTPException(409,'다시 시작할 현재 연습을 확인해 주세요.')
         if not prior or body.action=='restart':
             if prior:saved.setdefault('history',[]).append(dict(prior,unit_id=unit_id))
-            saved['units'][unit_id]={'version':VERSION,'policy':POLICY,'unit_policy':BY_ID[unit_id].get('policy','same-piece-movement-v1'),'session_id':secrets.token_urlsafe(18),'moves':[],'done':False,'mistakes':0,'helped':False,'run':prior.get('run',0)+1 if prior else 0}
+            saved['units'][unit_id]={'version':VERSION,'policy':POLICY,'unit_policy':BY_ID[unit_id].get('policy','same-piece-movement-v1'),'session_id':secrets.token_urlsafe(18),'moves':[],'done':False,'mistakes':0,'helped':unit_id in saved.get('demo_views',[]),'run':prior.get('run',0)+1 if prior else 0}
         saved['active']=unit_id;saved['last_request']=body.request_id;saved['revision']+=1;saved['updated_at']=datetime.now(timezone.utc).isoformat();state[KEY]=saved;ns['save_state'](code,state)
         return payload(state)
+
+    @app.post('/api/movement/demo')
+    def demo(body:Demo,authorization:str|None=Header(default=None)):
+        from basic_clips import clip
+        code=ns['auth'](authorization);state=ns['get_state'](code)
+        saved=copy.deepcopy(state.get(KEY,{}))
+        current=saved.get('units',{}).get(saved.get('active'))
+        if not current or current['session_id']!=body.session_id or saved['revision']!=body.revision:
+            raise HTTPException(409,'현재 연습의 저장 위치를 다시 확인해 주세요.')
+        index=next(i for i,u in enumerate(UNITS) if u['id']==saved['active'])
+        allowed=[saved['active']] + ([UNITS[index-1]['id']] if index else [])
+        target=BY_ID.get(body.unit_id)
+        if body.unit_id not in allowed or not target or target['mode']!='rule':
+            raise HTTPException(400,'현재 또는 직전 규칙 연습의 시연을 선택해 주세요.')
+        demonstration=clip(target)
+        views=saved.setdefault('demo_views',[])
+        if body.unit_id not in views:views.append(body.unit_id)
+        row=saved['units'].get(body.unit_id)
+        if row:row['helped']=True
+        saved['revision']+=1
+        state[KEY]=saved;ns['save_state'](code,state)
+        return dict(dashboard=payload(state),clip=demonstration)
 
     @app.post('/api/movement/save')
     def save(body:Save,authorization:str|None=Header(default=None)):
