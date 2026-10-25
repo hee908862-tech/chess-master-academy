@@ -4,6 +4,8 @@ import pytest
 from playwright.sync_api import expect
 from test_qa_browser import site,page,open_page,square
 from test_study_browser import login
+from test_focused_learning_browser import open_foundation_list
+from test_foundations_browser import choose_course
 from test_board_interaction import reply
 
 
@@ -171,27 +173,40 @@ def test_home_has_one_foundation_entry_with_real_progress(page,site,activity):
     from pathlib import Path
     login(page,site);page.set_viewport_size({'width':390,'height':844})
     if activity!='new':
-        page.locator('#homeBasicsOpen').click();page.locator('#foundationPrimary button').click()
+        open_foundation_list(page);choose_course(page,'rook-bishop')
         square(page,'foundationBoard','a1').click();square(page,'foundationBoard','a4').click()
         page.locator('#foundationNext').get_by_role('button',name='다음 단계',exact=True).click()
         expect(page.locator('#foundationStepTitle')).to_contain_text('2/3')
     if activity=='diagnosis':page.evaluate("api('/journey/start','POST',{mode:'balanced'})")
     saved=page.evaluate("api('/foundations')")
     page.evaluate("tab('home')")
-    expect(page.locator('#homeBasicsOpen')).to_be_visible()
-    expect(page.locator('#entrySavedBasics')).not_to_be_visible()
+    expect(page.locator('#homeBasicsOpen')).to_be_hidden()
+    expect(page.locator('#entrySavedBasics')).to_be_hidden()
+    primary=page.locator('#homeNextAction > button')
+    expect(primary).to_be_visible()
     if activity=='basics':
-        expect(page.locator('#journeyHome')).not_to_be_visible()
-        expect(page.locator('#homeBasics')).to_contain_text('2/3')
-    elif activity=='diagnosis':expect(page.locator('#journeyHomeOpen')).to_have_text('저장된 진단 이어하기')
-    else:expect(page.locator('#homeBasicsOpen')).to_have_text('기초 배우기 시작')
+        expect(page.locator('#journeyHome')).to_be_hidden()
+        expect(primary).to_have_text('기초 이어하기')
+        expect(page.locator('#homeNextAction')).to_contain_text('2/3')
+    elif activity=='diagnosis':expect(primary).to_have_text('진단 이어하기')
+    else:expect(primary).to_have_text('기초부터 배우기')
     out=Path('/tmp/cma-focused-evidence');out.mkdir(exist_ok=True)
     page.screenshot(path=str(out/f'home-distinct-{activity}-390.png'),full_page=True)
     writes=[];page.on('request',lambda r:writes.append(r.url) if '/api/' in r.url and r.method!='GET' else None)
-    page.locator('#homeBasicsOpen').click()
-    if activity!='new':expect(page.locator('#foundationStepTitle')).to_contain_text('2/3')
-    else:expect(page.locator('#foundationPrimary')).to_be_visible()
-    assert page.evaluate("api('/foundations')")==saved and writes==[]
+    if activity=='diagnosis':
+        page.locator('#homeNextAction > details > summary').click()
+        page.locator('#homeNextAction > details button').filter(has_text='기초 이어하기').click()
+    else:primary.click()
+    if activity!='new':
+        expect(page.locator('#foundationStepTitle')).to_contain_text('2/3')
+        assert page.evaluate("api('/foundations')")==saved and writes==[]
+    else:
+        expect(page.locator('#movementBoard .sq')).to_have_count(64)
+        page.wait_for_function('!cmaMovement.state().loading && !!cmaMovement.state().unit')
+        after=page.evaluate("api('/foundations')")
+        assert {k:v for k,v in after.items() if k!='movement'}=={k:v for k,v in saved.items() if k!='movement'}
+        assert after['movement']['started'] and after['movement']['completed']==0
+        assert len(writes)==1 and writes[0].endswith('/movement/start')
 
 
 def test_level_history_does_not_reuse_cached_different_level_task(page,site):

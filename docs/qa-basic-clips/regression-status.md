@@ -1,4 +1,6 @@
-# Full regression collection and merge blockers
+# Historical full regression collection and merge blockers
+
+See [expanded-regression.md](expanded-regression.md) for the subsequently authorized repair and verification work. Counts below describe their named historical runs, not the current head.
 
 The local batch completed without maxfail: **1,140 passed, 131 failed, 7 skipped** in 3,865.08 seconds. It began before commit a6a8fc3, so its failures include seven board-feedback expectations subsequently fixed and verified in the final **73-pass** focused run. The added logout test is also in that focused run, not in this earlier collection. Do not describe this batch as an exact-head green run.
 
@@ -13,7 +15,7 @@ Unclassified failures below need individual investigation; their presence is not
 
 ## CI and release gate
 
-Exact-head a6a8fc3 full collection: https://github.com/hee908862-tech/chess-master-academy/actions/runs/40196071313 . It was still running when this report was written. The packaging fix receives its own exact-head CI. Merge remains prohibited until the final head passes; no merge or manual deployment has occurred. Render Live was reconfirmed at `0e28cadd9f8d8800ec6dd63d3c48bf8b7f1f135e` (`dep-dbdhvgtg1s2s73dm5pr0`).
+Exact-head a6a8fc3 full collection: https://github.com/hee908862-tech/chess-master-academy/actions/runs/40196071313 . It completed with 1,159 passed and 120 failed. The packaging-fix head d0f5c94 also completed with 1,159 passed and 120 failed (run 40199322217); its packaging test passed, while two timing-dependent browser assertions appeared in place of the packaging and CP-fixture failures. Merge remains prohibited until the final head passes; no merge or manual deployment has occurred. Render Live was reconfirmed at `0e28cadd9f8d8800ec6dd63d3c48bf8b7f1f135e` (`dep-dbdhvgtg1s2s73dm5pr0`).
 
 Raw local evidence: `/tmp/chess-batched-full.log`, `/tmp/chess-full-failures.txt`, `/tmp/clip-final-focused.log`, `/tmp/clip-package-final.log`, `/tmp/baseline-extra-failures.log`, `/tmp/baseline-progress-confirmed.log`. The last baseline reproduction changes the test helper only, not product code. Physical Kakao/iOS remains untested.
 

@@ -1,13 +1,13 @@
 {
   "learningBoard": {
-    "x": 50,
-    "y": 179,
-    "width": 400,
-    "height": 400
+    "x": 75,
+    "y": 237.796875,
+    "width": 350,
+    "height": 350
   },
   "learningControls": {
     "x": 8,
-    "y": 710,
+    "y": 709.984375,
     "width": 484,
     "height": 44
   }

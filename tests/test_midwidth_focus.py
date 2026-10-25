@@ -23,7 +23,7 @@ def test_midwidth_board_and_primary_completion_actions(page,site,mode):
   board='learningBoard';actions=['learningControls'];save='/learning/dashboard'
  else:
   context=page.context.browser.new_context(viewport={'width':500,'height':757});page=context.new_page()
-  page.goto(site[0]);page.locator('#firstEntry').get_by_role('button',name='기초·예제 퍼즐도 저장 없이 체험').click()
+  page.goto(site[0]);page.locator('#flowFreeExamples > summary').click();page.locator('#firstEntry').get_by_role('button',name='기초·예제 퍼즐도 저장 없이 체험').click()
   page.get_by_role('button',name='비숍은 대각선으로',exact=True).click()
   page.locator('#guestBoard [aria-label^="c1 "]').click();page.locator('#guestBoard [aria-label^="g5 "]').click()
   expect(page.locator('#guestOutcome')).to_contain_text('실습 목표 확인')

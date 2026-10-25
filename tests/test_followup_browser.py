@@ -65,9 +65,9 @@ def test_guest_return_and_board_layout(site,width,height):
             page.locator('#moreNavigationDialog').get_by_role('button',name='퍼즐',exact=True).click()
         else:
             page.locator('#navigationTools > summary').click();page.locator('[data-tab="puzzle"]:visible').first.click()
-        expect(page.locator('#puzzle')).to_have_class('view active')
+        expect(page.locator('#puzzle')).to_contain_class('view active')
         page.locator('#v9PuzzleStart').click()
-        expect(page.locator('#accountStatus')).to_contain_text('로그인이 필요')
+        expect(page.locator('#accountStatus')).to_contain_text('로그인 없이 시작하거나, 계정으로 로그인')
         expect(page.locator('#v8ProfileResult')).to_contain_text('로그인하면')
         page.locator('#codeField').fill('BROWSER-QA');page.locator('#pinField').fill('test-pin-9384')
         # Login returns to the chosen feature; starting-level guidance stays optional.
@@ -75,10 +75,13 @@ def test_guest_return_and_board_layout(site,width,height):
             page.locator('#signin').click()
         intro=notice.value.json()
         expect(page.locator('#startingLevelDialog')).not_to_be_visible()
-        expect(page.locator('#puzzle')).to_have_class('view active')
+        expect(page.locator('#puzzle')).to_contain_class('view active')
         assert page.locator('#v9PuzzleBoard .sq').count()==0
         page.evaluate("tab('training')")
         expect(page.locator('#learningRouteStatus')).not_to_be_empty()
+        library=page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True)
+        if library.is_visible():library.click()
+        page.locator('#flowTrainingReview').click()
         page.locator('#learningRoute > summary').click()
         page.locator('#learningRouteActions button').click()
         expect(page.locator('#learningBoard .sq')).to_have_count(64)

@@ -154,7 +154,10 @@ def test_alternative_move_uses_only_verified_large_loss(setup,monkeypatch,loss,e
     import journey_server as journey
     c,ns,legacy,db=attach(setup);legacy.clear()
     s=post(c,'start',{'mode':'balanced'})
+    candidates=[]
     for index,row in enumerate(saved(db)['active']['items']):
+        # This contract exercises CP-loss evidence, not the separate exact mate proof.
+        if any(tag.startswith('mateIn') for tag in row.get('tags',[])):continue
         board=chess.Board(row['fen']);candidates=[]
         for move in board.legal_moves:
             if move.uci()==row['line'][0]:continue
@@ -163,8 +166,13 @@ def test_alternative_move_uses_only_verified_large_loss(setup,monkeypatch,loss,e
         if candidates:break
     assert candidates
     for _ in range(index):s=act(c,act(c,s,'skip'),'next')
-    monkeypatch.setattr(journey,'verify_loss',lambda *a:{'status':'verified_error' if loss>=200 else 'unverified','loss_cp':loss,'depth':12,'engine':'controlled','policy':'test'})
+    calls=[]
+    def verify(*args):
+        calls.append(args)
+        return {'status':'verified_error' if loss>=200 else 'unverified','loss_cp':loss,'depth':12,'engine':'controlled','policy':'test'}
+    monkeypatch.setattr(journey,'verify_loss',verify)
     result=act(c,s,'move',candidates[0])
     assert result['feedback']['outcome']==expected
+    assert len(calls)==1 and calls[0][:2]==(row['fen'],candidates[0])
     stored=saved(db)['active']['items'][index]
     assert stored['engine_evidence']['loss_cp']==loss

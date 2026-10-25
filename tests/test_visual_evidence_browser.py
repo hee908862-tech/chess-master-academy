@@ -21,10 +21,14 @@ def test_auto_en_passant_skip_routes_and_readonly_replay(isolated,site,width,hei
     skip=page.locator('#homeNextAction .flow-skip-basics');expect(skip).to_be_visible();skip.click()
     before=page.evaluate("api('/foundations')")
     page.evaluate("cmaNavigation.go('home')")
-    expect(page.locator('#homeNextAction')).to_contain_text('기초는 건너뛰었습니다')
-    page.reload();expect(page.locator('#homeNextAction')).to_contain_text('기초는 건너뛰었습니다')
+    expect(page.locator('#homeNextAction > button')).to_have_text('초기 진단 이어하기')
+    assert page.evaluate("localStorage.getItem('cma.skip-basics.'+user.code)")=='yes'
+    page.reload();expect(page.locator('#homeNextAction > button')).to_have_text('초기 진단 이어하기')
+    assert page.evaluate("localStorage.getItem('cma.skip-basics.'+user.code)")=='yes'
     assert page.evaluate("api('/foundations')")==before
     page.evaluate("cmaNavigation.go('learn/basics')")
+    if not page.locator('#foundationCourseList').evaluate('e=>e.open'):
+        page.locator('#foundationCourseList > summary').click()
     page.locator('#foundation-open-en-passant').click()
     expect(square(page,'foundationBoard','d5')).to_have_attribute('aria-label','d5 흑 폰')
     expect(page.locator('#foundationDemoStart')).to_be_visible()
@@ -32,7 +36,10 @@ def test_auto_en_passant_skip_routes_and_readonly_replay(isolated,site,width,hei
     page.on('request',lambda r:writes.append(r.url) if r.method=='POST' else None)
     page.locator('#foundationDemoStart').click()
     expect(square(page,'foundationBoard','d7')).to_have_attribute('aria-label','d7 흑 폰')
-    square(page,'foundationBoard','e5').click()
+    expect(square(page,'foundationBoard','e5')).to_be_disabled()
+    # Native click on a disabled square is ignored; Playwright click would wait
+    # until the demonstration ends and then select the live practice piece.
+    square(page,'foundationBoard','e5').evaluate('e=>e.click()')
     assert page.locator('#foundationBoard .selected').count()==0
     expect(page.locator('#foundationDemoStart')).to_be_visible()
     assert not writes and page.evaluate("api('/foundations')")==before
@@ -139,6 +146,8 @@ def test_reduced_motion_setting_preserves_en_passant_and_new_state(isolated,site
     page.locator('#reduceBoardMotion').check()
     page.reload();expect(page.locator('#reduceBoardMotion')).to_be_checked()
     page.evaluate("cmaNavigation.go('learn/basics')")
+    if not page.locator('#foundationCourseList').evaluate('e=>e.open'):
+        page.locator('#foundationCourseList > summary').click()
     page.locator('#foundation-open-en-passant').click()
     expect(page.locator('#foundationDemoStart')).to_be_visible()
     expect(page.locator('#foundationFeedback')).not_to_contain_text('읽기 전용')

@@ -29,7 +29,7 @@ def test_solved_partial_diagnosis_five_tasks_resume_and_concept_path(page,site,t
         assert response.value.status==200
         return response.value.json()
     def api(path,body=None):return page.evaluate('([path,body])=>body===null?api(path):api(path,"POST",body)',[path,body])
-    page.goto(site[0]);api('/starting-level',{'choice':'experienced','revision':0});page.locator('#journeyHomeOpen').click();page.locator('#journeyStart').click()
+    page.goto(site[0]);api('/starting-level',{'choice':'experienced','revision':0});page.locator('#flowSavedActivities > summary').click();page.locator('#journeyHomeOpen').click();page.locator('#diagnosticOther > summary').click();page.locator('#journeyStart').click()
     expect(page.locator('#journeyBoard .sq')).to_have_count(64)
     rows=stored('journey_progress')['active']['items'];assert len(rows)==24
     partial=False
@@ -59,7 +59,10 @@ def test_solved_partial_diagnosis_five_tasks_resume_and_concept_path(page,site,t
         if area['id']==rows[partial_index]['competency']:
             assert p['score'] is None and p['unresolved']==1 and not p['comparable']
         else:assert p['score']==3000 and p['comparable']
-    page.evaluate("tab('profile')");expect(page.locator('#growthProfile svg circle')).to_have_count(1)
+    page.evaluate("tab('profile')")
+    expect(page.locator('#growthProfile')).to_contain_text('비교 가능한 관찰이 두 번 이상')
+    expect(page.locator('#growthProfile .growth-records li')).to_have_count(1)
+    expect(page.locator('#growthProfile svg circle')).to_have_count(0)
     page.evaluate("tab('diagnosis')")
     # Prepare a real pre-existing concept-stage path. Preserve it while using new tasks.
     old=api('/learning/from-diagnosis',{'report_id':report['id'],'item_id':report['training_plan'][0]['item_id']})

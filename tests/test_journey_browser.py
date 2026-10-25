@@ -42,11 +42,11 @@ def test_journey_partial_resume_result_training(site,width,height):
         browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
         page=browser.new_page(viewport={'width':width,'height':height})
         page.add_init_script(f"localStorage.setItem('chess_token',{json.dumps(site[1])});")
-        page.route('**/api/journey',route);page.route('**/api/journey/*',route)
+        page.route('**/api/journey',route);page.route('**/api/journey/start',route);page.route('**/api/journey/action',route)
         page.route('**/api/learning/from-diagnosis',lambda r:(training.append(r.request.post_data_json),r.fulfill(json={'message':'진단 근거의 훈련을 준비했습니다.'})))
-        page.goto(site[0]);page.locator('#journeyHomeOpen').click()
+        page.goto(site[0]);page.locator('#flowSavedActivities > summary').click();page.locator('#journeyHomeOpen').click()
         expect(page.locator('#journeyResults')).to_contain_text('미측정: 장기 계획')
-        page.locator('#journeyStart').click()
+        page.locator('#diagnosticOther > summary').click();page.locator('#journeyStart').click()
         expect(page.locator('#journeySide')).to_have_text('흑 차례')
         assert page.locator('#journeyBoard .sq').first.get_attribute('aria-label').startswith('h1')
         page.locator('#journeyBoard [aria-label^="e3 "]').click();page.locator('#journeyBoard [aria-label^="h3 "]').click()
@@ -62,13 +62,14 @@ def test_journey_partial_resume_result_training(site,width,height):
         expect(page.locator('#journeyResults')).to_contain_text('내 응답: e3h3')
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
         page.locator('#journeyResults button',has_text='이 근거로 훈련하기').click()
-        expect(page.locator('#training')).to_have_class('view active')
+        expect(page.locator('#training')).to_contain_class('view active')
         assert training==[{'report_id':'report-test','item_id':'item1'}]
         page.evaluate("tab('diagnosis')")
         expect(page.locator('#journeyHistory option')).to_have_count(1)
         page.evaluate("token=null;tab('diagnosis')")
         expect(page.locator('#journeyHistory option')).to_have_count(0)
-        expect(page.locator('#journeyIntro')).to_be_visible()
+        expect(page.locator('#initialProfile')).to_contain_text('로그인 없이 초기 진단 시작')
+        expect(page.locator('#journeyTask')).to_be_hidden()
         expect(page.locator('#journeyResults')).to_be_empty()
         browser.close()
 
@@ -125,8 +126,10 @@ def test_real_journey_complete_skipped_then_training(site,width,height,label):
         browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
         page=browser.new_page(viewport={'width':width,'height':height})
         page.add_init_script(f"localStorage.setItem('chess_token',{json.dumps(account['token'])});")
-        page.goto(site[0]);page.evaluate("api('/starting-level','POST',{choice:'experienced',revision:0})");page.locator('#journeyHomeOpen').click();page.locator('#journeyStart').click()
+        page.goto(site[0]);page.evaluate("api('/starting-level','POST',{choice:'experienced',revision:0})");page.locator('#flowSavedActivities > summary').click();page.locator('#journeyHomeOpen').click();page.locator('#diagnosticOther > summary').click();page.locator('#journeyStart').click()
         expect(page.locator('#journeyBoard .sq')).to_have_count(64,timeout=30000)
+        expect(page.locator('#diagnosticOther')).to_be_hidden()
+        expect(page.locator('body')).to_have_class(__import__('re').compile('focus-activity'))
         board=page.locator('#journeyBoard').bounding_box()
         nav=page.locator('.mobile-nav')
         bottom=nav.bounding_box()['y'] if nav.is_visible() else height
@@ -152,7 +155,7 @@ def test_real_journey_complete_skipped_then_training(site,width,height,label):
         with page.expect_response('**/api/learning/cycle/start') as started:
             page.locator('#journeyResults button',has_text='설명과 함께 다시 익히기').first.click()
         assert started.value.status==200
-        expect(page.locator('#training')).to_have_class('view active')
+        expect(page.locator('#training')).to_contain_class('view active')
         linked=page.evaluate("api('/learning/dashboard')")
         assert linked['active']['growth_task']=={'report_id':data['latest']['id'],'task_id':'1'}
         expect(page.locator('#learningBoard .sq')).to_have_count(64)

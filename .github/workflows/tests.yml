@@ -9,8 +9,13 @@ jobs:
   regression:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
     env:
       PYTHONPATH: .:tests
+      TEST_SHARD: ${{ matrix.shard }}
       DATABASE_URL: ''
       CMA_JOURNEY_INDEX: /tmp/chess-journey-index.json.gz
       STOCKFISH_PATH: /tmp/chess-stockfish/usr/games/stockfish
@@ -32,4 +37,18 @@ jobs:
           git diff --check
           for script in public/*.js; do node --check "$script"; done
           python build_journey_index.py
-          python -m pytest -q --tb=short
+          python -m pytest --collect-only -q > /tmp/test-collection.txt
+          python - <<'PYTEST'
+          import os, subprocess, sys
+          from pathlib import Path
+          nodes = [line for line in Path('/tmp/test-collection.txt').read_text().splitlines() if '::' in line and not line.startswith(' ')]
+          files = sorted({node.split('::', 1)[0] for node in nodes})
+          assert files and all(Path(path).is_file() for path in files), 'Invalid test collection'
+          shards = [files[index::4] for index in range(4)]
+          assert sorted(path for shard in shards for path in shard) == files
+          index = int(os.environ['TEST_SHARD'])
+          selected = shards[index]
+          assert selected, 'Empty test shard'
+          print(f'Shard {index + 1}/4: {len(selected)}/{len(files)} files; all {len(nodes)} collected cases are assigned once by file', flush=True)
+          subprocess.run([sys.executable, '-m', 'pytest', '-q', '--tb=short', *selected], check=True)
+          PYTEST

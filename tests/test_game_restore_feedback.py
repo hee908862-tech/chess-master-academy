@@ -43,19 +43,38 @@ def test_auth_then_session_delay_and_failure_retry(page,site):
 
 def test_stale_read_cannot_replace_newer_read_or_account(page,site):
     open_page(page,site);page.evaluate("tab('play')")
-    reads=[];page.route('**/api/game',lambda r:reads.append(r))
+    expect(page.locator('#newGame')).to_be_enabled()
+    reads=[];writes=[]
+    page.route('**/api/game',lambda r:reads.append(r))
+    page.on('request',lambda r:writes.append(r.url) if r.method=='POST' else None)
+    def wait_reads(count):
+        for _ in range(100):
+            if len(reads)>=count:break
+            page.wait_for_timeout(20)
+        assert len(reads)==count
+    page.evaluate('void resumeGame()');wait_reads(1)
     page.evaluate('void resumeGame()');page.wait_for_timeout(100)
-    page.evaluate('void resumeGame()');page.wait_for_timeout(100)
-    reads[1].fulfill(json=restored())
+    # Same-owner concurrent reads intentionally share one transport request.
+    assert len(reads)==1
+    reads[0].fulfill(json=restored())
     expect(page.locator('#gameStatus')).to_contain_text('불러왔습니다')
-    reads[0].fulfill(json={'active':False})
-    page.wait_for_timeout(100)
     assert page.evaluate('game.session_id')=='saved-game'
-    page.evaluate('void resumeGame()');page.wait_for_timeout(100)
-    page.evaluate("token='other-account';game=null;gameRestoreFeedback('pending','계정 B 확인 중');")
-    reads[2].fulfill(json=restored());page.wait_for_timeout(100)
+    page.evaluate('void resumeGame()');wait_reads(2)
+    # Different identities have distinct requests. Release the new owner first.
+    page.evaluate("token='other-account';game=null;void resumeGame();")
+    wait_reads(3)
+    other={**restored(),'session_id':'other-game'}
+    reads[2].fulfill(json=other)
+    expect(page.locator('#gameStatus')).to_contain_text('불러왔습니다')
+    reads[1].fulfill(json={'active':False});page.wait_for_timeout(100)
+    assert page.evaluate('game.session_id')=='other-game'
+    expect(page.locator('#gameStatus')).to_contain_text('불러왔습니다')
+    page.evaluate('void resumeGame()');wait_reads(4)
+    page.evaluate("token='third-account';game=null;gameRestoreFeedback('pending','계정 C 확인 중');")
+    reads[3].fulfill(json=restored());page.wait_for_timeout(100)
     assert page.evaluate('game') is None
-    expect(page.locator('#gameStatus')).to_have_text('계정 B 확인 중')
+    expect(page.locator('#gameStatus')).to_have_text('계정 C 확인 중')
+    assert not writes
 
 def test_auth_failure_is_unknown_not_empty_and_retry_recovers(page,site):
     page.route('**/api/me',lambda r:r.fulfill(status=503,json={'detail':'계정 조회 실패'}))

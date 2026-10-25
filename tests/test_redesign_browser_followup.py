@@ -138,6 +138,7 @@ def test_diagnosis_repeat_selection_preserves_session(isolated,site,width,height
     expect(page.locator('#diagnosis')).to_have_class(__import__('re').compile(r'\bactive\b'))
     active=page.evaluate("api('/journey/start','POST',{mode:'quick'})")
     page.reload();page.evaluate("tab('diagnosis')")
+    expect(page.locator('#journeySkip')).to_be_enabled()
     before=page.evaluate("api('/journey')")
     cell=square(page,'journeyBoard',active['question']['legal'][0][:2])
     writes=[];page.on('request',lambda r:writes.append(r.url) if r.method=='POST' else None)
