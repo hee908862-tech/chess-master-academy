@@ -33,7 +33,7 @@ These are overlapping focused runs, not an additive total or a claim of a green 
 - Midwidth layout, contrast and historical read-only guards: 10 passed (`/tmp/layout-checks-final.log`). Desktop diagnosis plus contrast: 4 passed (`/tmp/layout-diagnosis-contrast.log`); these overlap.
 - Review account ownership and late analysis: 3 passed (`/tmp/residual-review-second.log`).
 
-The full suite is collected on every CI worker and partitioned by file into four disjoint groups. Root static assertions execute during collection. Initial validation assigned all 1,280 cases across 141 files exactly once (301/337/328/314); a failing group does not cancel the others. Every group on the final head must pass before merge.
+The full suite is collected on every CI worker and partitioned by file into four disjoint groups. Root static assertions execute during collection. Collection validation assigned all 1,280 cases across 141 files exactly once. Browser modules are interleaved separately from unit modules to avoid alphabetical clustering; a failing group does not cancel the others. Every group on the final head must pass before merge.
 
 ## Integration correction
 

@@ -42,10 +42,12 @@ jobs:
           import os, subprocess, sys
           from pathlib import Path
           nodes = [line for line in Path('/tmp/test-collection.txt').read_text().splitlines() if '::' in line and not line.startswith(' ')]
-          files = sorted({node.split('::', 1)[0] for node in nodes})
+          files = {node.split('::', 1)[0] for node in nodes}
+          # Interleave browser and unit modules separately to avoid alphabetical clustering.
+          files = sorted(files, key=lambda path: (not ('browser' in path or 'playwright' in Path(path).read_text()), path))
           assert files and all(Path(path).is_file() for path in files), 'Invalid test collection'
           shards = [files[index::4] for index in range(4)]
-          assert sorted(path for shard in shards for path in shard) == files
+          assert sorted(path for shard in shards for path in shard) == sorted(files)
           index = int(os.environ['TEST_SHARD'])
           selected = shards[index]
           assert selected, 'Empty test shard'
