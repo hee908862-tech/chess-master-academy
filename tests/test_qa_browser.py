@@ -40,6 +40,10 @@ def site(tmp_path_factory):
         else: raise RuntimeError('local QA server did not become healthy within 60 seconds')
         req=urllib.request.Request(url+'/api/register',json.dumps({'code':'BROWSER-QA','pin':'test-pin-9384'}).encode(),{'Content-Type':'application/json'})
         token=json.load(urllib.request.urlopen(req))['token']
+        # General UI fixtures start with the real read-only question catalogue ready.
+        # Preparation/error tests still control their own responses explicitly.
+        with urllib.request.urlopen(url+'/api/journey/blueprint',timeout=60) as response:
+            assert response.status==200
         yield url,token
     finally:
         proc.terminate();proc.wait(timeout=10)

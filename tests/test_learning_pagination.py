@@ -41,6 +41,7 @@ def test_older_card_next_problem_uses_completed_category(page,site):
     page.route('**/api/learning/dashboard*',dashboard)
     page.evaluate("tab('training')")
     page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).click()
+    page.locator('#flowTrainingReview').click()
     page.get_by_role('button',name='이전 훈련 카드 더 보기',exact=True).click()
     expect(page.locator('#learningCards > .learning-item')).to_have_count(63)
     page.locator('#learningCards > .learning-item').last.get_by_role('button',name='다시 연습',exact=True).click()
@@ -53,7 +54,7 @@ def test_older_card_next_problem_uses_completed_category(page,site):
     expect(next_button).to_be_enabled()
     with page.expect_request('**/api/learning/start') as request:next_button.click()
     assert request.value.post_data_json=={'fresh':True,'mode':'verify','category':card['category']}
-    expect(page.locator('#learningTitle')).to_have_text('주제 비공개 · 독립 판단')
+    expect(page.locator('#learningTitle')).to_have_text('주제 비공개 · 첫 수만 판단')
 
 
 def test_page_single_flight_duplicates_and_stale_responses():
@@ -98,6 +99,7 @@ def test_more_button_double_click_and_late_page_after_refresh(page,site):
     page.route('**/api/learning/dashboard*',dashboard)
     page.evaluate("tab('training')")
     page.get_by_role('button',name='훈련 선택 · 저장 활동 · 기록',exact=True).click()
+    page.locator('#flowTrainingReview').click()
     more=page.get_by_role('button',name='이전 훈련 카드 더 보기',exact=True)
     expect(more).to_be_enabled()
     # Fire twice on the same old DOM node, before the first response.

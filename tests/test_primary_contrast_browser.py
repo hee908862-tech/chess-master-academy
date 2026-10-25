@@ -9,22 +9,35 @@ from test_study_browser import login
 OUT=Path('/tmp/cma-primary-contrast-evidence')
 
 def contrast(el):
-    c=el.evaluate("e=>{const s=getComputedStyle(e);return {text:s.color,background:s.backgroundImage,opacity:s.opacity}}")
+    c=el.evaluate("""e=>{const s=getComputedStyle(e),layers=[];for(let n=e;n;n=n.parentElement){const p=getComputedStyle(n);layers.push({color:p.backgroundColor,image:p.backgroundImage});}return {text:s.color,background:s.backgroundImage,opacity:s.opacity,layers};}""")
+    def colors(value):
+        return [[float(x) for x in re.findall(r'[\d.]+',rgb)] for rgb in re.findall(r'rgba?\([^)]+\)',value)]
+    def blend(top,bottom):
+        alpha=top[3] if len(top)==4 else 1
+        return [top[i]*alpha+bottom[i]*(1-alpha) for i in range(3)]
     def lum(rgb):
-        v=[int(n)/255 for n in rgb]
+        v=[n/255 for n in rgb]
         return sum(w*(x/12.92 if x<=.04045 else ((x+.055)/1.055)**2.4) for w,x in zip([.2126,.7152,.0722],v))
-    fg=lum(re.findall(r'\d+',c['text'])[:3])
-    stops=re.findall(r'rgb\((\d+), (\d+), (\d+)\)',c['background'])
-    assert len(stops)==2,c
-    c['ratios']=[(max(fg,lum(s))+.05)/(min(fg,lum(s))+.05) for s in stops]
+    backgrounds=[[255,255,255]]
+    for layer in reversed(c['layers']):
+        solid=colors(layer['color']);assert len(solid)==1,layer
+        backgrounds=[blend(solid[0],base) for base in backgrounds]
+        if layer['image']!='none':
+            stops=colors(layer['image']);assert stops,layer
+            # Include every gradient stop over every possible underlying stop.
+            # The minimum ratio is conservative for these light-on-dark controls.
+            backgrounds=[blend(stop,base) for stop in stops for base in backgrounds]
+    fg=lum(colors(c['text'])[0])
+    c['ratios']=[(max(fg,lum(bg))+.05)/(min(fg,lum(bg))+.05) for bg in backgrounds]
     return c
 
 @pytest.mark.parametrize('width,height',[(320,800),(1280,720)])
 def test_main_actions_contrast_keyboard_and_narrow_layout(page,site,width,height):
     login(page,site);page.set_viewport_size(dict(width=width,height=height))
     OUT.mkdir(exist_ok=True);measurements={}
-    for view,selector in [('home','#journeyHomeOpen'),('play','#newGame'),('diagnosis','#journeyStart'),('training','#learningFresh'),('learn','#foundationPrimary button')]:
+    for view,selector in [('home','#homeNextAction > button'),('play','#newGame'),('diagnosis','#journeyStart'),('training','#learningFresh'),('learn','#foundation-recommended-action')]:
         page.evaluate("v=>v==='learn'?cmaNavigation.go('learn/basics'):tab(v)",view)
+        if view=='diagnosis':page.locator('#diagnosticOther > summary').click()
         target=page.locator(selector);expect(target).to_be_visible();expect(target).to_be_enabled()
         page.keyboard.press('Tab');target.focus();target.scroll_into_view_if_needed();page.wait_for_timeout(200)
         expect(target).to_be_focused()
@@ -41,7 +54,7 @@ def test_main_actions_contrast_keyboard_and_narrow_layout(page,site,width,height
 
 def test_foundation_waiting_error_reason_and_primary_disabled_style(page,site):
     login(page,site);page.set_viewport_size(dict(width=360,height=800));page.evaluate("cmaNavigation.go('learn/basics')")
-    target=page.locator('#foundationPrimary button');expect(target).to_be_enabled()
+    target=page.locator('#foundation-recommended-action');expect(target).to_be_enabled()
     waits=[];page.route('**/api/foundations/action',lambda r:waits.append(r))
     target.click()
     for _ in range(100):

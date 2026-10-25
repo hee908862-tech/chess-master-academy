@@ -92,7 +92,11 @@ def test_pawn_detour_restart_and_navigation_cancel(isolated,site):
     expect(page.get_by_role('button',name='새 판에서 다시 해보기',exact=True)).to_be_disabled()
     page.wait_for_function('cmaMovement.state().data.active.moves.length===1 && !cmaMovement.state().pending')
     expect(page.locator('#movementGoal')).to_contain_text('뒤로 못 가요')
-    page.get_by_role('button',name='새 판에서 다시 해보기',exact=True).click();ready(page)
+    with page.expect_response('**/api/movement/start') as restarted:
+        page.get_by_role('button',name='새 판에서 다시 해보기',exact=True).click()
+    assert restarted.value.status==200
+    page.wait_for_function('cmaMovement.state().unit.run===1')
+    ready(page)
     assert page.evaluate('cmaMovement.state().unit.run')==1
     assert page.evaluate('cmaMovement.state().source')=='d3'
     square(page,'d3').click();square(page,'e4').click();square(page,'e5').click();square(page,'e6').click()

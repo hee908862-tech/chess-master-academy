@@ -7,6 +7,13 @@ from test_redesign_browser_followup import isolated,site
 SIZES=[(1366,768),(1180,650),(360,800),(390,844),(844,390)]
 def start(page):
     page.locator('#flowBasicsStart').click()
+    expect(page.locator('#movementStudio')).to_be_visible(timeout=20000)
+    page.wait_for_function('!!cmaMovement.state().unit && !cmaMovement.state().loading && !cmaMovement.state().pending')
+    # The primary entry now uses continuous movement lessons. Select the
+    # retained course flow explicitly when testing its own resume contract.
+    page.evaluate("cmaNavigation.go('learn/basics')")
+    page.locator('#foundationCourseList > summary').click()
+    page.locator('#foundation-open-rook-bishop').click()
     expect(page.locator('#foundationWorkspace')).to_be_visible(timeout=20000)
     expect(page).to_have_url(re.compile('#learn/basics/practice$'))
 def home(page):
@@ -19,7 +26,7 @@ def fit(page):
             assert button.evaluate('(e)=>e.scrollWidth<=e.clientWidth+2'),button.inner_text()
 
 @pytest.mark.parametrize('width,height',SIZES)
-def test_home_direct_foundation_return_reload_and_free_access(isolated,width,height):
+def test_explicit_foundation_return_reload_and_free_access(isolated,width,height):
     page,_=isolated;page.set_viewport_size(dict(width=width,height=height))
     expect(page.locator('#flowBasicsStart')).to_be_visible()
     expect(page.locator('#firstTry')).to_be_hidden()
@@ -92,19 +99,20 @@ def test_training_range_opening_board_and_modes(isolated,width,height):
 
 def test_duplicate_start_and_late_read_do_not_change_destination(isolated):
     page,_=isolated
-    starts=[];page.on('request',lambda r:starts.append(r) if r.url.endswith('/foundations/action') else None)
+    starts=[];page.on('request',lambda r:starts.append(r) if r.url.endswith('/movement/start') else None)
     page.locator('#flowBasicsStart').evaluate('(b)=>{b.click();b.click();}')
-    expect(page.locator('#foundationWorkspace')).to_be_visible(timeout=20000)
+    expect(page.locator('#movementStudio')).to_be_visible(timeout=20000)
+    page.wait_for_function('!!cmaMovement.state().unit && !cmaMovement.state().loading && !cmaMovement.state().pending')
     assert len(starts)==1
-    before=page.evaluate("api('/foundations')");home(page)
+    before=page.evaluate("api('/movement')");home(page)
     expect(page.locator('#homeNextAction')).to_contain_text('기초 이어하기')
-    pending=[];page.route('**/api/foundations',lambda r:pending.append(r))
+    pending=[];page.route('**/api/movement',lambda r:pending.append(r))
     page.locator('#homeNextAction > button').click()
     page.evaluate("tab('opening')")
     for r in pending:r.fulfill(json=before)
     expect(page.locator('#opening')).to_have_class(re.compile(r'\bactive\b'))
-    page.unroute('**/api/foundations')
-    assert page.evaluate("api('/foundations')")==before and len(starts)==1
+    page.unroute('**/api/movement')
+    assert page.evaluate("api('/movement')")==before and len(starts)==1
 
 
 def test_failed_restore_keeps_retry_and_records(isolated):
@@ -125,9 +133,10 @@ def test_unsaved_trial_handoff_does_not_credit_success(isolated):
     expect(page.locator('#trialContinue')).to_be_visible()
     assert page.evaluate('token')==''
     page.locator('#trialContinue').click()
-    expect(page.locator('#foundationWorkspace')).to_be_visible(timeout=20000)
-    state=page.evaluate("api('/foundations')")
-    assert state['completed']==0 and state['active']['step']==0 and not state['active']['solved']
+    expect(page.locator('#movementStudio')).to_be_visible(timeout=20000)
+    page.wait_for_function('!!cmaMovement.state().unit && !cmaMovement.state().loading && !cmaMovement.state().pending')
+    state=page.evaluate("api('/movement')")
+    assert state['summary']['completed']==0 and state['active']['moves']==[] and not state['active']['done']
 
 def test_scoped_recommendation_shared_without_inventing_weakness(isolated):
     page,_=isolated
@@ -138,6 +147,11 @@ def test_scoped_recommendation_shared_without_inventing_weakness(isolated):
     assert not report['scoped_training']['tasks']
     home(page);expect(page.locator('#homeNextAction > button')).to_have_text('같은 범위 추가 확인 선택')
     reason=page.locator('#homeNextAction .flow-next-detail').inner_text()
+    saved=page.evaluate("api('/journey')")
+    assert saved['initial_profile']['state']=='not_started' and saved['results']
+    expect(page.locator('#homeNextAction .flow-next-detail')).to_have_text(reason)
+    page.reload();expect(page.locator('#homeNextAction .flow-next-detail')).to_have_text(reason)
+    assert page.evaluate("api('/journey')")==saved
     page.evaluate("tab('profile')");expect(page.locator('#profileNextAction .flow-next-detail')).to_have_text(reason)
     page.evaluate("tab('diagnosis')");expect(page.locator('#resultNextAction .flow-next-detail')).to_have_text(reason)
     writes=[];page.on('request',lambda r:writes.append(r.url) if r.method=='POST' else None)

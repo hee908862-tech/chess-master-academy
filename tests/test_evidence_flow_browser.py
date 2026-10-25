@@ -15,13 +15,16 @@ from journey_evidence import learning_observation
 def test_home_one_next_step_with_explicit_estimate(page,site,condition,label):
     report=report_fixture();data=mock_status(page,report)
     if condition=='new':data.update(latest=None,results=[],cycle=None)
-    if condition=='active':data['active']={'phase':'question','question':{'fen':'8/8/8/8/8/8/4K3/7k w - - 0 1','legal':[]},'index':0,'total':24}
+    if condition=='active':
+        from test_journey_browser import question
+        data['active']={**question(),'total':24}
     if condition=='training':data['training']={'active':True}
     if condition=='unlocked':data['cycle']['unlocked']=True
     if condition=='retention':data['rechecks']={'mate':{'eligible':True}}
     if condition=='preparing':data['preparing']=True
     if condition=='error':page.route('**/api/journey',lambda r:r.fulfill(status=503,json={'detail':'자료를 준비하지 못했습니다.'}))
     open_page(page,site);page.evaluate("tab('home')")
+    page.locator("#flowSavedActivities > summary").click()
     expect(page.locator('#journeyHomeOpen')).to_have_text(label)
     if condition not in ('error','preparing'):expect(page.locator('#journeyHomeEstimate')).to_contain_text('추정')
     expect(page.locator('#homeExplore')).not_to_have_attribute('open','')
@@ -67,8 +70,8 @@ def test_pc_disclosure_tab_leaves_without_navigation(page,site):
     menu=page.locator('#academyNavigationDialog');expect(menu).to_be_visible()
     assert not menu.evaluate("e=>e.matches(':modal')")
     page.locator('#academyNavigationDialog button').last.focus();page.keyboard.press('Tab')
-    expect(menu).not_to_be_visible();expect(page.locator('#home')).to_have_class('view active')
-    nav.click();page.locator('#journeyHome h1').click()
+    expect(menu).not_to_be_visible();expect(page.locator('#home')).to_contain_class('view active')
+    nav.click();page.locator('#homeNextAction h2').click()
     expect(menu).not_to_be_visible();expect(nav).to_have_attribute('aria-expanded','false')
 
 

@@ -2,7 +2,7 @@ import chess
 import pytest
 from playwright.sync_api import expect
 from test_qa_browser import site,page
-from test_study_browser import login,click_move
+from test_study_browser import login,click_move,select_course
 
 @pytest.mark.parametrize('fen,uci,count',[(chess.STARTING_FEN,'e2e4',1),('4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1','e1g1',2),('r3k2r/8/8/8/8/8/8/4K3 b kq - 0 1','e8c8',2),('7k/8/8/3pP3/8/8/8/6K1 w - d6 0 2','e5d6',1),('7k/P7/8/8/8/8/8/6K1 w - - 0 1','a7a8n',1)])
 def test_explicit_shared_motion_and_cancel_keep_actual_position(page,site,fen,uci,count):
@@ -26,7 +26,7 @@ def test_explicit_shared_motion_and_cancel_keep_actual_position(page,site,fen,uc
 def test_current_check_label_cleanup_and_opening_history_motion(page,site):
     login(page,site);page.evaluate("tab('opening')")
     expect(page.locator('#studyCourse option')).to_have_count(55)
-    page.locator('#studyCourse').select_option('london-core')
+    select_course(page,'london-core')
     expect(page.locator('#studyOpeningBoard .sq:enabled')).to_have_count(64)
     page.evaluate("""()=>{window.motionCalls=[];const original=cmaBoardPresentation.transition;cmaBoardPresentation.transition=(id,u,paint,reverse=false)=>{motionCalls.push({id,u,reverse});return original(id,u,paint,reverse);};}""")
     click_move(page,'studyOpeningBoard','d2d4')
@@ -76,6 +76,7 @@ def test_real_opening_api_checkmate_display_and_black_orientation_capture(page,s
         if u!='h5f7':expect(page.locator('#studyOpeningBoard .sq:enabled')).to_have_count(64)
     expect(page.locator('#studyOpeningBoard .cma-check')).to_have_attribute('aria-label','e8 흑 킹 · 체크 당한 킹')
     expect(page.locator('#studyOpeningBoard .sq:enabled')).to_have_count(0)
+    page.locator('#focusOpeningSelection > summary').click()
     page.get_by_label('오프닝 보드 방향',exact=True).select_option('black')
     expect(page.locator('#studyOpeningBoard .sq').first).to_have_attribute('aria-label','h1 백 룩')
     expect(page.locator('.cma-motion-ghost')).to_have_count(0)

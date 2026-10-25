@@ -78,10 +78,13 @@ def test_server_import_from_copy_payload_only(package):
                            capture_output=True, text=True, timeout=90)
     assert built.returncode == 0, built.stderr
     result = subprocess.run([sys.executable, '-c',
-        "from pathlib import Path; import server, board_facts; "
+        "from pathlib import Path; import server, board_facts, basic_clips; from basic_rules_content import BY_ID; "
         "assert Path(server.__file__).parent == Path.cwd(); "
         "assert Path(board_facts.__file__).parent == Path.cwd(); "
-        "assert callable(server.app); print('COPY payload server import PASS')"],
+        "assert Path(basic_clips.__file__).parent == Path.cwd(); "
+        "assert all(basic_clips.clip(BY_ID[u])['frames'] for u in "
+        "['rules-pawn-promotion','rules-shield-piece','rules-make-stalemate']); "
+        "assert callable(server.app); print('COPY payload server and clips import PASS')"],
         cwd=package, env=env, capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stderr
 

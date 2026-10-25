@@ -15,6 +15,7 @@ def test_keyboard_rotation_zoom_and_history_keep_active_session(isolated):
     main=page.locator('#initialProfile > button');main.focus();main.press('Enter')
     expect(page.locator('#journeyTask')).to_be_visible(timeout=20000)
     session=page.evaluate('cmaJourney.state().active.session_id')
+    expect(page.locator('#journeySkip')).to_be_enabled()
     page.locator('#journeySkip').focus();page.locator('#journeySkip').press('Enter')
     expect(page.locator('#journeyNext')).to_be_visible()
     page.locator('#journeyPause').focus();page.locator('#journeyPause').press('Enter')

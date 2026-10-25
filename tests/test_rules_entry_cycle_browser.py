@@ -8,7 +8,7 @@ from test_entry_followup_browser import finish_ui
 def rules_ui(page):
     page.evaluate('cmaStartingLevel.open()')
     page.get_by_role('button',name='룰부터 배우기',exact=True).click()
-    expect(page.locator('#learn')).to_have_class('view active')
+    expect(page.locator('#learn')).to_contain_class('view active')
     page.evaluate('cmaStartingLevel.open()')
     for move in ['a1a4','a1a4','a1a8','g1f2']:
         with page.expect_response('**/api/starting-level/move') as response:
@@ -60,7 +60,11 @@ def test_rules_entry_offer_resumes_existing_diagnosis(page,site):
     rules_ui(page)
     expect(page.locator('#journeyEntryOffer')).to_contain_text('진행 중인 진단이 있습니다')
     expect(page.get_by_role('button',name='입문 관찰 시작 · 최대 6문항',exact=True)).to_have_count(0)
-    page.get_by_role('button',name='진행 중인 진단 이어하기',exact=True).click()
+    # Active sessions are already presented above the folded legacy offer.
+    expect(page.locator('#journeySkip')).to_be_enabled()
+    prepared=page.evaluate("api('/journey')")['active']
+    assert prepared['session_id']==active['session_id'] and prepared['revision']==active['revision']
+    page.locator('#journeyResume').click()
     expect(page.locator('#journeyBoard .sq:enabled')).to_have_count(64)
     assert start_status(page,'gentle')==409
-    assert page.evaluate("api('/journey')")['active']==active
+    assert page.evaluate("api('/journey')")['active']==prepared

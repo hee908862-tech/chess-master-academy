@@ -10,9 +10,15 @@ from test_study_browser import login
 def open_rules(page):
     page.evaluate('cmaStartingLevel.open()')
     page.get_by_role('button',name='룰부터 배우기',exact=True).click()
-    expect(page.locator('#learn')).to_have_class('view active')
+    expect(page.locator('#learn')).to_contain_class('view active')
     expect(page.locator('#foundationHeading')).to_be_focused()
-    expect(page.locator('#foundationCards .recommended')).to_contain_text('다음 권장 과정')
+    expect(page.locator('#foundationRecommendedBadge')).to_have_text('추천')
+
+
+def choose_course(page, course):
+    if not page.locator('#foundationCourseList').evaluate('e=>e.open'):
+        page.locator('#foundationCourseList > summary').click()
+    page.locator(f'#foundation-open-{course}').click()
 
 
 def move(page,from_,to,promotion=None):
@@ -36,7 +42,10 @@ def test_rules_route_saved_progress_layout_and_keyboard(page,site,width,height):
     saved=page.evaluate("api('/v9/session/course')")
     assert saved['session_id']==course['session_id']
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
-    page.get_by_role('button',name='권장 기초 시작',exact=True).focus();page.keyboard.press('Enter')
+    # Exercise the retained three-step course explicitly; the primary entry is now introductory.
+    if not page.locator('#foundationCourseList').evaluate('e=>e.open'):
+        page.locator('#foundationCourseList > summary').click()
+    page.locator('#foundation-open-rook-bishop').focus();page.keyboard.press('Enter')
     expect(page.locator('#foundationStepTitle')).to_be_focused()
     expect(page.locator('#foundationBoard .sq:enabled')).to_have_count(64)
     wrong=move(page,'a1','b2');assert not wrong['active']['solved']
@@ -45,11 +54,16 @@ def test_rules_route_saved_progress_layout_and_keyboard(page,site,width,height):
     page.locator('#foundationFrom').select_option('a1');page.locator('#foundationTo').select_option('a4')
     page.locator('#foundationSubmit').focus();page.keyboard.press('Enter')
     expect(page.locator('#foundationFeedback')).to_contain_text('도착')
-    expect(page.locator('#foundationBoard .sq:enabled')).to_have_count(0)
+    # Solved boards remain clickable for square explanations, but cannot submit moves.
+    solved=page.evaluate("api('/foundations')")
+    assert solved['active']['solved']
+    page.locator('#foundationBoard [aria-label^=a4]').click()
+    page.locator('#foundationBoard [aria-label^=a5]').click()
+    assert page.evaluate("api('/foundations')")==solved
     page.get_by_role('button',name='다음 단계',exact=True).click()
     expect(page.locator('#foundationStepTitle')).to_contain_text('2/3')
     page.reload()
-    expect(page.locator('#learn')).to_have_class('view active')
+    expect(page.locator('#learn')).to_contain_class('view active')
     expect(page.locator('#startingLevelDialog')).not_to_be_visible()
     page.evaluate('cmaFoundations.openRecommended()')
     expect(page.locator('#foundationStepTitle')).to_contain_text('2/3')
@@ -69,7 +83,7 @@ def test_promotion_judgement_retry_and_choice_changes(page,site):
     login(page,site);page.evaluate("cmaNavigation.go('learn/basics')")
     expect(page.locator('#foundationCards article')).to_have_count(10)
     page.evaluate("cmaNavigation.go('learn/basics')")
-    page.locator('[data-course="promotion"] button').click()
+    choose_course(page,'promotion')
     wrong=move(page,'a7','a8','n');assert not wrong['active']['solved']
     expect(page.locator('#foundationFeedback')).to_contain_text('합법적인 수')
     move(page,'a7','a8','q')
@@ -79,9 +93,9 @@ def test_promotion_judgement_retry_and_choice_changes(page,site):
     # Other self-selected levels stay on their current view; do not force the academy.
     page.evaluate("tab('profile');cmaStartingLevel.open()")
     page.get_by_role('button',name='대국 경험 있음',exact=True).click()
-    expect(page.locator('#profile')).to_have_class('view active')
+    expect(page.locator('#profile')).to_contain_class('view active')
     page.locator('#startingLevelClose').click();page.reload()
-    expect(page.locator('#profile')).to_have_class('view active')
+    expect(page.locator('#profile')).to_contain_class('view active')
     page.evaluate("cmaNavigation.go('learn/basics')")
     page.evaluate("cmaNavigation.go('learn/basics')")
     expect(page.locator('[data-course="promotion"]')).to_contain_text('확인 완료')
@@ -111,7 +125,7 @@ def test_all_authored_steps_with_real_board_and_judgement_controls(page,site):
     assert cycle['completed']==0 and not cycle['unlocked']
     for course in COURSES:
         page.evaluate("cmaNavigation.go('learn/basics')")
-        page.locator(f'[data-course="{course["id"]}"] button').click()
+        choose_course(page,course['id'])
         expect(page.locator('#foundationStepTitle')).to_contain_text(course['title'])
         for index,step in enumerate(course['steps']):
             if step['kind']=='judge':
@@ -123,10 +137,12 @@ def test_all_authored_steps_with_real_board_and_judgement_controls(page,site):
             expect(page.locator('#foundationFeedback')).to_contain_text(step['reason'])
             if index+1<len(course['steps']):page.locator('#foundationNext').get_by_role('button',name='다음 단계',exact=True).click()
         expect(page.locator(f'[data-course="{course["id"]}"]')).to_contain_text('확인 완료')
+    assert all(c['done'] for c in page.evaluate("api('/foundations')")['courses'])
     expect(page.locator('#foundationRecommendedTitle')).to_contain_text('모두 확인')
     assert page.evaluate("api('/me')")['stats']==before
     assert page.evaluate("api('/journey')")['cycle']==cycle
     page.reload();page.evaluate("cmaNavigation.go('learn/basics')")
+    assert all(c['done'] for c in page.evaluate("api('/foundations')")['courses'])
     expect(page.locator('#foundationRecommendedTitle')).to_contain_text('모두 확인')
     page.locator('#foundationPrimary').get_by_role('button',name='입문 관찰 선택',exact=True).click()
     expect(page.get_by_role('button',name='입문 관찰 시작 · 최대 6문항',exact=True)).to_be_enabled()
@@ -136,10 +152,13 @@ def test_all_authored_steps_with_real_board_and_judgement_controls(page,site):
 def test_unstarted_vs_started_zero_progress_and_visible_recommendation(page,site,width,height):
     login(page,site);page.set_viewport_size({'width':width,'height':height})
     page.evaluate('cmaFoundations.openRecommended()')
+    expect(page.locator('#foundationHeading')).to_be_focused()
+    if not page.locator('#foundationCourseList').evaluate('e=>e.open'):
+        page.locator('#foundationCourseList > summary').click()
     expect(page.locator('#foundationCourseList')).to_have_attribute('open','')
     heading=page.locator('#foundationRecommendedTitle')
-    expect(heading).to_be_visible();expect(page.locator('#foundationHeading')).to_be_focused();expect(heading).to_contain_text('▶ 다음 기초')
-    expect(page.locator('#foundationPrimary button')).to_be_visible()
+    expect(heading).to_be_visible();expect(heading).to_contain_text('▶ 다음 기초')
+    expect(page.locator('#foundation-recommended-action')).to_be_visible()
     expect(page.locator('#foundationRecommendedBadge')).to_be_visible()
     expect(page.locator('#foundationRecommendedBadge')).to_have_text('추천')
     assert page.locator('#foundationPrimary').evaluate("e=>parseFloat(getComputedStyle(e).borderTopWidth)")>=2
@@ -147,7 +166,7 @@ def test_unstarted_vs_started_zero_progress_and_visible_recommendation(page,site
     other=page.locator('[data-course="knight-queen"]')
     expect(first.locator('small')).to_contain_text('시작 전')
     expect(other.locator('small')).to_contain_text('시작 전')
-    page.locator('#foundationPrimary button').click()
+    choose_course(page,'rook-bishop')
     expect(first.locator('small')).to_contain_text('연습 중 · 0/3단계')
     square=page.locator('#foundationBoard [aria-label^="a1 "]')
     square.focus();page.keyboard.press('Enter')
@@ -155,6 +174,8 @@ def test_unstarted_vs_started_zero_progress_and_visible_recommendation(page,site
     page.keyboard.press('Enter')
     expect(square).to_be_focused();expect(square).to_have_attribute('aria-pressed','false')
     page.evaluate("cmaNavigation.go('learn/basics')")
+    if not page.locator('#foundationCourseList').evaluate('e=>e.open'):
+        page.locator('#foundationCourseList > summary').click()
     expect(first.get_by_role('button',name='이어서 연습',exact=True)).to_be_visible()
     other.get_by_role('button',name='과정 보기',exact=True).click()
     page.reload();page.evaluate("cmaNavigation.go('learn/basics')")

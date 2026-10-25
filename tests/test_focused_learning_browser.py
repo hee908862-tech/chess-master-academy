@@ -4,14 +4,24 @@ import pytest
 from playwright.sync_api import expect
 from test_qa_browser import site,page,square
 from test_study_browser import login
+from test_foundations_browser import choose_course
+
+
+def open_foundation_list(page):
+    # The home primary action starts continuous basics; retained courses are
+    # selected explicitly through the learning menu.
+    page.locator('.nav [data-tab=learn]:visible, .mobile-nav [data-tab=learn]:visible').first.click()
+    page.locator('#learn-menu-basics').click()
+    expect(page.locator('#foundationPrimary')).to_be_visible()
+
 
 @pytest.mark.parametrize('width,height',[(320,800),(390,844),(485,757),(1280,720)])
 def test_home_foundation_practice_list_history_no_writes(page,site,width,height):
     login(page,site);page.set_viewport_size(dict(width=width,height=height))
-    page.locator('#homeBasicsOpen').click()
+    open_foundation_list(page)
     expect(page.locator('#foundationPrimary')).to_be_visible()
     expect(page.locator('#academyHub')).not_to_be_visible()
-    page.locator('#foundationPrimary button').click()
+    choose_course(page,'rook-bishop')
     expect(page.locator('#foundationWorkspace')).to_be_visible()
     square(page,'foundationBoard','a1').click();square(page,'foundationBoard','a4').click()
     page.locator('#foundationNext').get_by_role('button',name='다음 단계',exact=True).click()
@@ -23,7 +33,7 @@ def test_home_foundation_practice_list_history_no_writes(page,site,width,height)
     page.locator('#learn-list-back').click()
     expect(page.locator('#foundationWorkspace')).not_to_be_visible()
     expect(page.locator('#foundationPrimary')).to_be_visible()
-    page.locator('#foundationPrimary button').click()
+    page.locator('#foundation-recommended-action').click()
     expect(page.locator('#foundationStepTitle')).to_contain_text('2/3')
     page.locator('#learn-hub-back').click()
     expect(page.locator('#academyHub')).to_be_visible()
@@ -77,7 +87,7 @@ def test_education_list_return_and_url_whitelist_no_writes(page,site):
 
 
 def test_hub_home_mobile_and_menu_does_not_change_selected_piece(page,site):
-    login(page,site);page.locator('#homeBasicsOpen').click();page.locator('#foundationPrimary button').click()
+    login(page,site);open_foundation_list(page);choose_course(page,'rook-bishop')
     square(page,'foundationBoard','a1').click()
     before=page.evaluate("api('/foundations')")
     page.locator('.nav [data-tab=learn]').click();page.keyboard.press('Escape')
@@ -91,8 +101,10 @@ def test_hub_home_mobile_and_menu_does_not_change_selected_piece(page,site):
         out=Path('/tmp/cma-focused-evidence');out.mkdir(exist_ok=True)
         page.screenshot(path=str(out/f'hub-{w}.png'),full_page=True)
     page.evaluate("tab('home')");page.set_viewport_size(dict(width=390,height=844))
-    expect(page.locator('#homeBasicsOpen')).to_be_visible()
-    assert page.locator('#homeBasics').bounding_box()['y']<page.locator('#journeyActivity').bounding_box()['y']
+    expect(page.locator('#homeNextAction > button')).to_have_text('기초 이어하기')
+    expect(page.locator('#homeNextAction')).to_contain_text('1/3')
+    expect(page.locator('#homeBasicsOpen')).to_be_hidden()
+    assert page.locator('#homeNextAction').bounding_box()['y']<page.locator('#flowSavedActivities').bounding_box()['y']
     page.screenshot(path='/tmp/cma-focused-evidence/home-390.png',full_page=True)
 
 
@@ -100,9 +112,9 @@ def test_list_focus_counts_and_485_geometry(page,site):
     import json
     login(page,site);page.set_viewport_size(dict(width=485,height=757))
     page.evaluate("window.uiClicks=0;document.addEventListener('click',()=>uiClicks++,true)")
-    page.locator('#homeBasicsOpen').click();expect(page.locator('#foundationPrimary')).to_be_visible()
+    open_foundation_list(page)
     counts={'home_to_foundation':page.evaluate('uiClicks')}
-    page.locator('#foundationPrimary button').click();expect(page.locator('#foundationWorkspace')).to_be_visible()
+    choose_course(page,'rook-bishop');expect(page.locator('#foundationWorkspace')).to_be_visible()
     counts['home_to_first_practice']=page.evaluate('uiClicks')
     square(page,'foundationBoard','a1').click();square(page,'foundationBoard','a4').click()
     page.locator('#foundationNext').get_by_role('button',name='다음 단계',exact=True).click()
@@ -113,29 +125,29 @@ def test_list_focus_counts_and_485_geometry(page,site):
     counts['document_height']=page.evaluate('document.documentElement.scrollHeight')
     page.screenshot(path='/tmp/cma-focused-evidence/practice-485-viewport.png')
     page.locator('#learn-list-back').click()
-    expect(page.locator('#foundation-recommended-action')).to_be_focused()
+    expect(page.locator('#foundation-open-rook-bishop')).to_be_focused()
     expect(page.locator('#foundationAcademy')).to_have_attribute('aria-busy','false')
-    expect(page.locator('#foundation-recommended-action')).to_be_focused()
-    assert counts['home_to_foundation']==1 and counts['home_to_first_practice']==2
+    expect(page.locator('#foundation-open-rook-bishop')).to_be_focused()
+    assert counts['home_to_foundation']==2 and counts['home_to_first_practice']==4
     Path('/tmp/cma-focused-evidence/measurements.json').write_text(json.dumps(counts,ensure_ascii=False,indent=2))
 
 
 def test_guest_foundation_login_route_and_ephemeral_trial_reload(page,site):
     page.add_init_script("localStorage.removeItem('chess_token')")
-    page.goto(site[0]);page.locator('#homeBasicsOpen').click()
+    page.goto(site[0]);open_foundation_list(page)
     page.get_by_role('button',name='계정 연결 후 시작',exact=True).click()
     page.locator('#codeField').fill('BROWSER-QA');page.locator('#pinField').fill('test-pin-9384');page.locator('#signin').click()
     expect(page.locator('#foundationPrimary')).to_be_visible()
     assert page.evaluate('location.hash')=='#learn/basics'
     page.evaluate('cmaEntry.openTrial()');page.reload()
-    expect(page.locator('#home')).to_have_class('view active')
+    expect(page.locator('#home')).to_contain_class('view active')
     expect(page.locator('#rookTrial')).not_to_be_visible()
 
 
 def test_late_foundation_start_does_not_leave_hub(page,site):
-    login(page,site);page.locator('#homeBasicsOpen').click()
+    login(page,site);open_foundation_list(page)
     page.evaluate("""()=>{const real=api;api=async(...args)=>{if(args[0]==='/foundations/action'){const saved=await real(...args);return new Promise(r=>window.releaseFoundationStart=()=>r(saved));}return real(...args);};}""")
-    page.locator('#foundationPrimary button').click();page.wait_for_function('!!window.releaseFoundationStart')
+    page.locator('#foundation-recommended-action').click();page.wait_for_function('!!window.releaseFoundationStart')
     page.locator('#learn-hub-back').click();page.evaluate('releaseFoundationStart()')
     expect(page.locator('#academyHub')).to_be_visible()
     expect(page.locator('#foundationWorkspace')).not_to_be_visible()

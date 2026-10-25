@@ -55,6 +55,7 @@ def test_review_owner_changes_on_real_login_and_late_analysis_is_ignored(page,si
     page.evaluate("tab('review')");expect(page.locator('#reviewLoad')).to_be_enabled();page.locator('#reviewLoad').click()
     expect(page.locator('#reviewMoves button')).to_have_count(1)
     page.locator('#reviewNext').click();expect(page.locator('#reviewStatus')).to_contain_text('e4')
+    page.locator('#reviewSelection > summary').click()
     page.locator('#reviewLoad').click()
     for _ in range(100):
         if pending:break

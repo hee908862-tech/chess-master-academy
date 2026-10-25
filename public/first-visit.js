@@ -33,7 +33,10 @@ function paint(focus){window.cmaFeedback.set('trialBoard',{title:done?'체험 �
 board.addEventListener('keydown',e=>{const delta={ArrowUp:[0,1],ArrowDown:[0,-1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];if(!delta||!e.target.matches('.sq'))return;e.preventDefault();const sq=e.target.getAttribute('aria-label').slice(0,2),f=FILES.indexOf(sq[0])+delta[0],r=Number(sq[1])+delta[1];if(f<0||f>7||r<1||r>8)return;const target=board.querySelector(`[aria-label^="${FILES[f]}${r} "]`);e.target.tabIndex=-1;target.tabIndex=0;target.focus({preventScroll:true});});
 function openTrial(){cancelIntent();selected=false;done=false;next.hidden=true;feedback.textContent='로그인 없이 체험합니다. 착수는 이 화면을 나가면 사라집니다.';instruction.textContent='왼쪽 아래 흰 룩을 누르세요. 다음에는 표시된 칸으로 옮겨요.';tab('rookTrial');paint('a1');}
 function leaveTrial(skip){selected=false;done=false;next.hidden=true;board.replaceChildren();tab('home');if(skip)explore();else start.focus();}
-function cancelIntent(){generation++;authBusy=false;handoff=null;intent=null;pending.hidden=true;window.cmaCancelAuth?.();}
+const cancelAuthRequest=window.cmaCancelAuth;
+function cancelIntent(){generation++;authBusy=false;handoff=null;intent=null;pending.hidden=true;cancelAuthRequest?.();}
+// Account switching uses the same cancellation boundary as the optional trial handoff.
+window.cmaCancelAuth=()=>{cancelIntent();sync();};
 function continueLearning(){if(intent)return;if(window.cmaGuestAccess)return window.cmaGuestAccess.enter('basics');if(token){tab('home');result.hidden=false;resultText.textContent='저장된 활동을 먼저 확인하세요. 체험 결과는 기존 학습에 합산하지 않습니다.';return;}
  intent={generation:++generation};pendingText.textContent='로그인하거나 새 계정을 만들면 기초 학습으로 연결합니다. 체험 성공은 수료로 옮기지 않습니다.';loginDestination='home';tab('profile');sync();pending.scrollIntoView({block:'start'});$('codeField').focus({preventScroll:true});}
 const previousTab=tab;tab=function(id){const old=document.querySelector('.view.active')?.id;if(handoff&&id!=='learn'&&old!==id)cancelIntent();if(intent&&(id!=='profile'||token)&&!window.cmaAuthNavigating)cancelIntent();if(old==='rookTrial'&&id!=='rookTrial'){selected=false;done=false;board.replaceChildren();}previousTab(id);sync();};

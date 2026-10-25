@@ -1,0 +1,56 @@
+name: Tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    env:
+      PYTHONPATH: .:tests
+      TEST_SHARD: ${{ matrix.shard }}
+      DATABASE_URL: ''
+      CMA_JOURNEY_INDEX: /tmp/chess-journey-index.json.gz
+      STOCKFISH_PATH: /tmp/chess-stockfish/usr/games/stockfish
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt pytest httpx playwright
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y stockfish
+          mkdir -p /tmp/chess-stockfish/usr/games
+          ln -s /usr/games/stockfish "$STOCKFISH_PATH"
+          python -m playwright install --with-deps chromium
+          browser=$(python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')
+          sudo ln -sf "$browser" /usr/bin/chromium
+      - run: |
+          git diff --check
+          for script in public/*.js; do node --check "$script"; done
+          python build_journey_index.py
+          python -m pytest --collect-only -q > /tmp/test-collection.txt
+          python - <<'PYTEST'
+          import os, subprocess, sys
+          from pathlib import Path
+          nodes = [line for line in Path('/tmp/test-collection.txt').read_text().splitlines() if '::' in line and not line.startswith(' ')]
+          files = {node.split('::', 1)[0] for node in nodes}
+          # Interleave browser and unit modules separately to avoid alphabetical clustering.
+          files = sorted(files, key=lambda path: (not ('browser' in path or 'playwright' in Path(path).read_text()), path))
+          assert files and all(Path(path).is_file() for path in files), 'Invalid test collection'
+          shards = [files[index::4] for index in range(4)]
+          assert sorted(path for shard in shards for path in shard) == sorted(files)
+          index = int(os.environ['TEST_SHARD'])
+          selected = shards[index]
+          assert selected, 'Empty test shard'
+          print(f'Shard {index + 1}/4: {len(selected)}/{len(files)} files; all {len(nodes)} collected cases are assigned once by file', flush=True)
+          subprocess.run([sys.executable, '-m', 'pytest', '-q', '--tb=short', *selected], check=True)
+          PYTEST

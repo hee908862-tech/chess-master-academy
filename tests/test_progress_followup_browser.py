@@ -19,6 +19,14 @@ def test_active_session_history_and_stale_refresh_never_mix(page,site):
     page.wait_for_timeout(100)
     expect(page.locator('#journeyTask')).to_be_visible();expect(page.locator('#journeyResults')).to_be_empty()
     page.evaluate("tab('home')");expect(page.locator('#journeyActivity')).to_contain_text('완료한 추천 훈련 5개')
+    saved=page.evaluate('cmaJourney.state().active')
+    page.evaluate('cmaEntry.openTrial()')
+    expect(page.locator('#trialBoard .sq')).to_have_count(64)
+    expect(page.locator('body')).to_have_class(__import__('re').compile('focus-activity'))
+    expect(page.locator('#diagnosis')).to_be_hidden()
+    assert page.evaluate('cmaJourney.state().active')==saved
+    page.evaluate("tab('diagnosis')")
+    expect(page.locator('#journeyProgress')).to_contain_text('1 / 2')
 
 
 def test_one_observation_is_additional_confirmation_not_unmeasured(page,site):
@@ -48,8 +56,10 @@ def test_past_lazy_evidence_is_read_only_during_active_diagnosis(page,site):
     report['areas'][0]['items']=[{'id':'past-item','fen':'8/8/8/8/8/8/K7/7k w - - 0 1','expected':['a2a3']}]
     data={'active':question(),'latest':report,'results':[report]}
     page.route('**/api/journey',lambda r:r.fulfill(json=data))
+    # This synthetic history fixture has no structured attempts; mock its matching evidence resource too.
+    page.route('**/api/journey/attempt-evidence/'+report['id'],lambda r:r.fulfill(json={'attempts':[],'totals':{'original_attempts':0,'success':0,'verified_wrong':0,'unresolved':0,'unfinished':0,'pending':0}}))
     mutations=[]
-    page.on('request',lambda r:mutations.append(r.url) if r.method=='POST' and '/api/learning/' in r.url else None)
+    page.on('request',lambda r:mutations.append(r.url) if r.method=='POST' and '/api/' in r.url else None)
     open_page(page,site);page.evaluate("tab('diagnosis')")
     expect(page.locator('#journeyProgress')).to_contain_text('1 / 2')
     before=page.evaluate("api('/learning/dashboard')")

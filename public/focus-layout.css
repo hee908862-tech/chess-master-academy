@@ -108,3 +108,35 @@ body.focus-activity .view.active{gap:8px}.focus-lesson-active.education{margin-t
 #guestOpeningPreview .guest-opening-explanation{min-width:0;overflow-wrap:anywhere;line-height:1.6}
 #guestOpeningPreview .guest-opening-replay>summary{min-height:44px;padding:10px 0}
 @media(max-width:850px){#guestOpeningPreview .guest-opening-layout{grid-template-columns:minmax(0,1fr);gap:12px}#guestOpeningPreview .guest-opening-core .board{max-width:560px}#guestOpeningPreview .guest-opening-explanation h3{margin-top:4px}}
+/* Include the piece explanation and completion controls in the available height. */
+@media(min-width:851px){body.focus-foundation #foundationBoard{max-width:min(560px,max(320px,calc(100dvh - 340px)))}}
+/* Medium-width phones keep the board and first action together without reducing touch targets. */
+@media(min-width:451px) and (max-width:850px) and (min-height:700px) and (max-height:800px){
+ body.focus-foundation #foundationBoard,body.focus-activity #learningBoard,#guestBoard{max-width:max(350px,calc(100dvh - 407px))}
+ body.focus-foundation #foundationWorkspace:has(#foundationNext button) #foundationInstruction,
+ body.focus-foundation #foundationWorkspace:has(#foundationNext button) #foundationTurn{display:none}
+ body.focus-foundation #foundationLive{order:-2}
+ body.focus-foundation #foundationNext{order:-1}
+ body.focus-activity #learningBoardFeedback>div[role=status]{min-height:1.5em}
+ body.focus-activity #learningBoardFeedback{padding-block:6px}
+ #trainingCore{gap:4px}
+ #guestPractice .focus-guest-layout{display:flex;flex-direction:column}
+ #guestPractice .focus-guest-layout>div:first-child{display:contents}
+ #guestPractice .focus-guest-layout>div:nth-child(2){order:1}
+ #guestPractice .focus-guest-layout .branch-explorer{order:2}
+}
+/* An already active diagnosis shows its board before the optional resume card. */
+@media(min-width:851px){
+ body.focus-activity #diagnosis.active:has(#journeyTask:not([hidden])){display:flex;flex-direction:column}
+ body.focus-activity #diagnosis.active:has(#journeyTask:not([hidden])) #diagnosticResume{order:1}
+ body.focus-activity #diagnosis.active #journeyBoard{max-width:min(560px,max(320px,calc(100dvh - 400px)))}
+ body.focus-activity #diagnosis.active #journeyClock .solving-clock{display:grid;grid-template-columns:1fr 1fr;gap:0 8px;padding-block:4px}
+ body.focus-activity #diagnosis.active #journeyClock .solving-clock-note{grid-column:1/-1;font-size:14px;line-height:1.45;margin-block:4px}
+ body.focus-activity #diagnosis.active #journeyClock button{grid-column:1/-1}
+}
+
+/* Keep completion actions before optional prose without moving the board or viewport. */
+@media(max-width:850px){
+ body.focus-foundation #foundationLive{order:-2}
+ body.focus-foundation #foundationNext{order:-1}
+}
