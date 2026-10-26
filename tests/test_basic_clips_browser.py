@@ -78,7 +78,10 @@ def test_completion_stays_and_demo_retry_and_duplicate_clicks(isolated,site):
 
 def test_hidden_tab_pauses_and_browser_back_cancels(isolated,site):
     page,_=isolated;enter(page);choose(page,'rules-pawn-promotion')
+    # Opening is asynchronous; exercise a delayed response before checking autoplay.
+    page.evaluate("()=>{const original=api;window.api=async(...args)=>{const r=await original(...args);if(args[0]==='/movement/demo')await new Promise(resolve=>setTimeout(resolve,400));return r;};}")
     page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True).click()
+    expect(page.locator('#movementExampleDialog')).to_be_visible()
     assert page.evaluate('cmaMovement.state().clipPlaying')
     page.evaluate("Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'))")
     assert not page.evaluate('cmaMovement.state().clipPlaying')
