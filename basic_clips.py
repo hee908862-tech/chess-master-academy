@@ -109,7 +109,7 @@ def relationship_frames(unit, frames):
         board = chess.Board(frame['fen'])
         output.append(frame)
         if i == 0 or frame.get('move'):
-            relations = threats(board, side if i == 0 else board.turn)
+            relations = threats(board, board.turn if board.is_check() else side)
             if i == 0 and not relations:
                 predicate = unit['predicate']['type']
                 if predicate == 'attacked_squares':

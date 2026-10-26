@@ -140,3 +140,11 @@ def test_linked_guest_keeps_guided_state_and_owner_records(runtime):
     assert resumed.get('/api/movement').json()==s
     assert owner.get('/api/movement').json()==account_before
     assert dict(server.get_state(credentials['code']))==before
+
+
+def test_blocking_recomputes_attacker_target_in_result_frames():
+    frames=clip(BY_ID['rules-shield-piece'])['frames']
+    after=[f for f in frames if chess.Board(f['fen']).piece_at(chess.D4)]
+    arrows=[a for f in after for a in f.get('arrows',[])]
+    assert any(a['from']=='g7' and a['to']=='d4' for a in arrows)
+    assert not any(a['from']=='g7' and a['to']=='a1' for a in arrows)

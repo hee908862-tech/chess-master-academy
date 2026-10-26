@@ -43,3 +43,5 @@
 화면 증거: `explain-320.png`(공격선), `guided-320.png`(공격과 안내 구분), `independent-320.png`(안내 제거와 완료), `protection-recapture.png`(합법 되잡기), `mate-attack.png`(체크 관계). 실제 픽셀을 확인했으며, 모두 로컬 Chromium에서 렌더한 화면이다.
 
 최종 경계 재검증: 회원가입의 홈 복귀 동기화 후, 지연 응답을 명시적으로 보류하고 로그아웃 뒤 해제하는 방식으로 계정 경계를 검사했다. 해당 검사와 기존 기록 보존 진입, 설명 취소 복구 3 passed (`/tmp/relationship-release-boundaries.log`). 전체 수집 1,319개; 최종 전체 CI는 로컬 부분 실행과 별개다.
+
+방어 수 뒤에도 같은 편의 보호 대상을 기준으로 공격 관계를 다시 계산한다(체크 중에는 체크당한 쪽을 기준으로 한다). 예: d2–d4 후 g7 비숍의 화살표는 a1 룩이 아니라 d4 폰에서 끝난다. 이 전환을 고정하는 검사와 새 흐름·기존 시연·실제 UI 묶음 90 passed (`/tmp/relationship-recomputed.log`).
