@@ -150,7 +150,7 @@ def test_all_rule_scenes_actual_board_actions(isolated,site,width,height):
         page.evaluate("""async id=>{cmaMovement.cancel();const d=await api('/movement');await api('/movement/start','POST',{action:'start',unit_id:id,revision:d.revision,request_id:crypto.randomUUID(),relationship_flow:true});await cmaMovement.load()}""",unit['id'])
         ready(page);page.wait_for_function('!cmaMovement.state().demonstrating')
         if page.evaluate("cmaMovement.state().unit?.teaching?.phase==='explain'"):
-            page.get_by_role('button',name='건너뛰고 혼자 풀기',exact=True).click()
+            page.get_by_role('button',name='건너뛰기 · 혼자 풀기',exact=True).click()
             page.wait_for_function("cmaMovement.state().unit.teaching.phase==='independent'")
         expect(page.locator('#movementTitle')).to_have_text(unit['name'])
         if unit['kind']=='place':

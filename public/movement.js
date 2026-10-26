@@ -29,6 +29,54 @@ const lessonPhase=()=>unit?.teaching?.phase;
 let clip=null,clipIndex=0,clipTimer=null,clipPlaying=false,clipRequest=0;
 const clipPanel=node('div',null,'movement-clip');clipPanel.id='movementClip';clipPanel.hidden=true;$('movementFeedback').after(clipPanel);
 const lessonPanel=node('div',null,'movement-lesson');lessonPanel.id='movementLesson';$('movementFeedback').after(lessonPanel);
+const clipDialog=node('dialog',null,'movement-example-dialog');clipDialog.id='movementExampleDialog';
+clipDialog.setAttribute('aria-labelledby','movementExampleTitle');clipDialog.setAttribute('aria-describedby','movementExampleText');
+clipDialog.innerHTML='<header><h2 id="movementExampleTitle" tabindex="-1"></h2></header><p id="movementExampleText" role="status" aria-live="polite"></p>';
+const dialogClose=button('닫기',()=>closeClip());dialogClose.setAttribute('aria-label','예시 설명 닫기');clipDialog.querySelector('header').append(dialogClose);
+document.body.append(clipDialog);
+const boardAnchor=document.createComment('practice board');$('movementBoard').before(boardAnchor);
+const clipAnchor=document.createComment('clip controls');clipPanel.before(clipAnchor);
+let returnFocus=null,returnLabel=null,dialogScroll=0;
+const shownIntros=new Set(),reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+const motionReduced=()=>window.cmaBoardPresentation.reducedMotion();
+function introSeen(id){try{return shownIntros.has(id)||sessionStorage.getItem('cma_example_seen:'+id)==='1';}catch{return shownIntros.has(id);}}
+function markIntroSeen(id){shownIntros.add(id);try{sessionStorage.setItem('cma_example_seen:'+id,'1');}catch{}}
+function rememberDialogTrigger(){returnFocus=document.activeElement;returnLabel=returnFocus?.textContent;dialogScroll=window.scrollY;}
+function sizeDialog(){clipDialog.style.setProperty('--example-zoom',parseFloat(getComputedStyle(document.documentElement).zoom)||1);}
+window.addEventListener('resize',sizeDialog);
+function beginIntro(){if(!unit?.teaching?.clip||clip)return;rememberDialogTrigger();clip=unit.teaching.clip;clipIndex=0;clipIntro=true;render();}
+function syncDialog(){
+ if(!clip)return;
+ $('movementExampleTitle').textContent=clip.name+' · '+(clipIntro?'먼저 예시 보기':'시연');
+ $('movementExampleText').textContent=error||clip.frames[clipIndex].text;
+ if(clipDialog.open)return;
+ if(!returnFocus)rememberDialogTrigger();sizeDialog();
+ clipDialog.append($('movementBoard'),clipPanel);document.body.classList.add('movement-dialog-open');
+ clipDialog.showModal();$('movementExampleTitle').focus({preventScroll:true});clipDialog.scrollTop=0;
+ if(clipIntro)markIntroSeen(unit.session_id);
+ if(!motionReduced()&&!document.hidden){clipPlaying=true;renderClip();tickClip();}
+}
+function dismissDialog(restore){
+ if(!clipDialog.open){returnFocus=null;returnLabel=null;return;}
+ clipDialog.close();boardAnchor.after($('movementBoard'));clipAnchor.after(clipPanel);document.body.classList.remove('movement-dialog-open');
+ if(restore&&visible()){
+  const previous=returnFocus,label=returnLabel;
+  queueMicrotask(()=>{if(!visible()||clipDialog.open)return;window.scrollTo(0,dialogScroll);
+   const target=previous?.isConnected&&previous!==document.body&&!previous.disabled&&previous.getClientRects().length?previous:[...host.querySelectorAll('button')].find(b=>b.textContent===label&&!b.disabled&&b.getClientRects().length);
+   (target||$('movementTitle')).focus({preventScroll:true});
+  });
+ }
+ returnFocus=null;returnLabel=null;
+}
+clipDialog.addEventListener('cancel',event=>{event.preventDefault();closeClip();});
+clipDialog.addEventListener('keydown',event=>{
+ if(event.key!=='Tab')return;
+ const items=[...clipDialog.querySelectorAll('button:not(:disabled)')].filter(b=>b.getClientRects().length);
+ const first=items[0],last=items.at(-1);
+ if(event.shiftKey&&(document.activeElement===first||!items.includes(document.activeElement))){event.preventDefault();last?.focus();}
+ else if(!event.shiftKey&&(document.activeElement===last||!items.includes(document.activeElement))){event.preventDefault();first?.focus();}
+});
+reducedMotion.addEventListener('change',()=>{if(motionReduced())pauseClip();else if(clip)renderClip();});
 const seenPrelude=new Set();
 const key=id=>'cma_movement_draft_v1:'+id;
 const prefix=(a,b)=>a.length<=b.length&&a.every((v,i)=>v===b[i]);
@@ -37,7 +85,7 @@ function checkpoint(){if(!unit||conflict)return;try{localStorage.setItem(key(uni
 function discardAcknowledged(){if(!unit||dirty())return;try{localStorage.removeItem(key(unit.session_id));}catch{}}
 function clear(){closeClip(false);demoGeneration++;demonstrating=false;clearTimeout(saveTimer);clearTimeout(nextTimer);epoch++;owner=token;data=null;unit=null;pieces={};source=null;selected=null;moves=[];remaining=[];visited=[];mistakes=0;helped=false;done=false;stuck=false;pending=false;starting=false;loading=false;conflict=false;error='';localError=false;ruleState=null;render();}
 function reconstruct(task,path){if(task.mode==='rule'){const r=cmaBasicRules.replay(task,path);return {board:fromFen(r.fen),pos:null,left:[],seen:r.visited,pathDone:r.done,rule:r};}let board=fromFen(task.fen),pos=task.source,left=[...task.remaining],seen=[...task.visited],pathDone=task.done;for(const value of path.slice(task.moves.length)){if(pathDone||value.slice(0,2)!==pos||!legalTargets(board,pos).includes(value.slice(2,4)))throw Error('기기에 남은 이동을 현재 저장 위치와 맞출 수 없어요.');board=movePieces(board,value);pos=value.slice(2,4);left=left.filter(s=>s!==pos);if(pos!==task.original_source&&!seen.includes(pos))seen.push(pos);pathDone=task.mode==='collect'?!left.length:seen.length>=task.required_moves;}return {board,pos,left,seen,pathDone};}
-function apply(d,restore=true){conflict=false;data=d;unit=d.active;if(unit?.teaching?.phase==='explain'&&visible()){clip=unit.teaching.clip;clipIndex=0;clipIntro=true;}if(unit)unit.original_source=unit.moves[0]?.slice(0,2)||unit.source;if(!unit){pieces={};render();return;}moves=[...unit.moves];mistakes=unit.mistakes||0;helped=!!unit.helped;let draft=null;if(restore)try{const raw=localStorage.getItem(key(unit.session_id));draft=raw===null?null:JSON.parse(raw);if(raw!==null&&(!draft||typeof draft!=='object'||!Array.isArray(draft.moves)||draft.moves.length>unit.max_moves||draft.moves.some(m=>typeof m!=='string'||m.length>24)||!Number.isInteger(draft.mistakes??0)||(draft.mistakes??0)<0||(draft.mistakes??0)>10000||draft.helped!==undefined&&typeof draft.helped!=='boolean'||draft.version!==unit.version||draft.policy!==unit.policy)){conflict=true;error='기기의 임시 기록 형식을 확인하지 못했어요. 원본을 보관한 뒤 서버 위치로 이어갈 수 있어요.';draft=null;}}catch{conflict=true;error='기기의 임시 기록을 읽지 못했어요. 서버 기록은 유지됩니다.';}
+function apply(d,restore=true){conflict=false;data=d;unit=d.active;if(unit?.teaching?.phase==='explain'&&visible()&&!introSeen(unit.session_id)){clip=unit.teaching.clip;clipIndex=0;clipIntro=true;}if(unit)unit.original_source=unit.moves[0]?.slice(0,2)||unit.source;if(!unit){pieces={};render();return;}moves=[...unit.moves];mistakes=unit.mistakes||0;helped=!!unit.helped;let draft=null;if(restore)try{const raw=localStorage.getItem(key(unit.session_id));draft=raw===null?null:JSON.parse(raw);if(raw!==null&&(!draft||typeof draft!=='object'||!Array.isArray(draft.moves)||draft.moves.length>unit.max_moves||draft.moves.some(m=>typeof m!=='string'||m.length>24)||!Number.isInteger(draft.mistakes??0)||(draft.mistakes??0)<0||(draft.mistakes??0)>10000||draft.helped!==undefined&&typeof draft.helped!=='boolean'||draft.version!==unit.version||draft.policy!==unit.policy)){conflict=true;error='기기의 임시 기록 형식을 확인하지 못했어요. 원본을 보관한 뒤 서버 위치로 이어갈 수 있어요.';draft=null;}}catch{conflict=true;error='기기의 임시 기록을 읽지 못했어요. 서버 기록은 유지됩니다.';}
  if(draft&&draft.version===unit.version&&draft.policy===unit.policy){if(prefix(unit.moves,draft.moves||[])){try{reconstruct(unit,draft.moves);moves=[...draft.moves];mistakes=Math.max(mistakes,draft.mistakes||0);helped=helped||!!draft.helped;}catch(e){conflict=true;error=e.message;}}else if(!prefix(draft.moves||[],unit.moves)){conflict=true;error='다른 화면의 이동과 달라요. 임시 이동을 보관한 채 저장 위치를 확인해 주세요.';}}
  const local=reconstruct(unit,moves);pieces=local.board;source=local.pos;selected=moves.length?source:null;remaining=local.left;visited=local.seen;done=local.pathDone;ruleState=local.rule||null;stuck=!done&&unit.symbol==='P'&&remaining.some(s=>Number(s[1])<=Number(source[1]));render();if(unit.prelude&&!moves.length&&!seenPrelude.has(unit.session_id)){seenPrelude.add(unit.session_id);queueMicrotask(()=>showPrelude());}if(dirty()&&!error)scheduleSave();}
 function render(){host.classList.toggle('movement-error',!!error);$('movementTitle').textContent=unit?(unit.mode==='rule'?unit.name:unit.name+' 움직이기'):'기초 직접 연습';$('movementPiece').replaceChildren(unit?renderPiece(ruleState?.place_symbol||(unit.side==='black'?unit.symbol.toLowerCase():unit.symbol)):renderPiece('R'));$('movementRule').textContent=unit?.rule||'말을 한 번 골라 계속 움직여 보세요.';
@@ -57,7 +105,7 @@ function render(){host.classList.toggle('movement-error',!!error);$('movementTit
  for(const b of actions.querySelectorAll('button'))b.disabled=starting||demonstrating||loading||(b.textContent.startsWith('새 판')&&(dirty()||pending));selector.disabled=starting||pending||dirty();choices.querySelector('button').disabled=starting||pending||dirty();
  $('movementHelp').querySelector('label').hidden=!unit||done;$('movementSubmit').hidden=!unit||done;$('movementSubmit').disabled=lessonPhase()==='explain'||lessonPhase()==='guided'||!unit||done||starting||loading||conflict||demonstrating;
  const dest=$('movementDestination'),old=dest.value;dest.replaceChildren();for(let r=1;r<=8;r++)for(const f of files)dest.add(new Option(f+r,f+r));if(old)dest.value=old;
- if(clip){$('movementTitle').textContent=clip.name+(clipIntro?' · 설명':' · 시연');$('movementRule').textContent=clipIntro?'짧게 보고 → 따라 두고 → 혼자 확인해요.':clip.label;$('movementGoal').textContent=clip.frames[clipIndex].text;$('movementProgress').textContent=clipIntro?'1/3 · 관계 이해':'직접 연습은 잠시 보관 중';}$('movementFeedback').hidden=!!clip;renderClip();renderLesson();if(unit)paint();else $('movementBoard').replaceChildren();
+ if(clip){$('movementTitle').textContent=clip.name+(clipIntro?' · 설명':' · 시연');$('movementRule').textContent=clipIntro?'짧게 보고 → 따라 두고 → 혼자 확인해요.':clip.label;$('movementGoal').textContent=clip.frames[clipIndex].text;$('movementProgress').textContent=clipIntro?'1/3 · 관계 이해':'직접 연습은 잠시 보관 중';}$('movementFeedback').hidden=!!clip;renderClip();renderLesson();if(unit)paint();else $('movementBoard').replaceChildren();syncDialog();
 }
 function paint(){if(!unit)return;if(lessonPhase()==='explain'&&!clip){drawBoard('movementBoard',fromFen(unit.initial_fen),{flip:unit.side==='black'});return;}if(lessonPhase()==='guided'&&!clip){paintGuide();return;}if(clip){const f=clip.frames[clipIndex];drawBoard('movementBoard',fromFen(f.fen),{flip:clip.side==='black',last:f.move?[f.move.slice(0,2),f.move.slice(2,4)]:[]});for(const sq of f.marks){const cell=$('movementBoard').querySelector(`[aria-label^="${sq} "]`);if(cell){cell.classList.add('clip-mark');cell.setAttribute('aria-label',cell.getAttribute('aria-label')+' · 시연 강조');}}window.cmaFoundationVisual?.draw('movementBoard',{arrows:f.arrows||[]},clip.side==='black');return;}const focus=$('movementBoard').contains(document.activeElement)?document.activeElement.getAttribute('aria-label')?.split(' ')[0]:null;
  const allowed=unit.mode==='rule'?(ruleState?.legal||[]).filter(m=>m.slice(0,2)===selected).map(m=>m.slice(2,4)):legalTargets(pieces,source),guide=unit.mode==='collect'||unit.mode==='rule'&&!unit.teaching;drawBoard('movementBoard',pieces,{flip:unit.side==='black',selected,targets:selected&&guide?allowed.map(to=>({to})):[],onClick:!done&&!ruleState?.failed&&!starting&&!loading&&!conflict&&!demonstrating?s=>click(s):undefined});
@@ -68,7 +116,7 @@ function renderLesson(){
  lessonPanel.replaceChildren();lessonPanel.hidden=!unit?.teaching||!!clip;if(lessonPanel.hidden)return;
  const t=unit.teaching;lessonPanel.append(node('strong',t.phase==='explain'?'1/3 · 먼저 관계 이해하기':t.phase==='guided'?'2/3 · 안내 따라 하기':'3/3 · 안내 없이 직접 확인'));
  if(t.phase==='explain'){
-  lessonPanel.append(button('설명 다시 열기',()=>{clip=t.clip;clipIndex=0;clipIntro=true;render();}));
+  lessonPanel.append(button('다시 보기',beginIntro),button('연습 시작',()=>lessonAction('guided')),button('건너뛰기 · 혼자 풀기',()=>lessonAction('skip')));
  }else if(t.phase==='guided'){
   lessonPanel.append(node('p',t.guide_done?'따라 하기를 마쳤어요. 이제 처음 위치에서 화살표 없이 해보세요.':'실선 화살표를 따라 두어요. 완료 확인은 다음 혼자 풀기에서 해요.'));
   if(t.guide_done)lessonPanel.append(button('이제 혼자 풀기',()=>lessonAction('independent')));
@@ -100,24 +148,28 @@ function guideClick(to){
 }
 async function lessonAction(action,move=''){
  if(starting||loading||pending||error||!unit?.teaching||owner!==token)return;
- pauseClip();const id=token,stamp=epoch,session=unit.session_id;starting=true;render();
+ pauseClip();const leavingExample=clipDialog.open,id=token,stamp=epoch,session=unit.session_id;starting=true;render();
  try{const d=await api('/movement/lesson','POST',{session_id:session,revision:data.revision,action,move});if(id!==token||stamp!==epoch||session!==unit?.session_id)return;
  const played=action==='step'?d.active.teaching.guide_state.played.slice(unit.teaching.guide_state.played.length):[];closeClip(false);selected=null;if(played.length)cmaBoardPresentation.transition('movementBoard',played,()=>apply(d,false));else apply(d,false);
  }catch(e){if(id===token&&stamp===epoch)error=e.message;}
- finally{if(id===token&&stamp===epoch){starting=false;render();}}
+ finally{if(id===token&&stamp===epoch){starting=false;render();if(leavingExample&&!clip&&!error&&visible())$('movementTitle').focus({preventScroll:true});}}
 }
 function pauseClip(){clearTimeout(clipTimer);clipPlaying=false;if(clip)renderClip();}
-function closeClip(draw=true){cmaBoardPresentation.cancel('movementBoard');pauseClip();clipRequest++;clip=null;clipIntro=false;clipIndex=0;clipPanel.hidden=true;if(draw){render();$('movementActions button')?.focus({preventScroll:true});}}
-function showClipFrame(index){const previous=clipIndex;clipIndex=index;const move=clip.frames[Math.max(previous,index)].move;if(Math.abs(previous-index)===1&&move)cmaBoardPresentation.transition('movementBoard',move,render,index<previous);else render();}
+function closeClip(draw=true){cmaBoardPresentation.cancel('movementBoard');clearTimeout(clipTimer);clipPlaying=false;clipRequest++;clip=null;clipIntro=false;clipIndex=0;clipPanel.hidden=true;dismissDialog(draw);if(draw)render();}
+function showClipFrame(index){const previous=clipIndex;clipIndex=index;const move=clip.frames[Math.max(previous,index)].move;if(Math.abs(previous-index)===1&&move)cmaBoardPresentation.transition('movementBoard',move,render,index<previous,{silent:true});else render();}
 function stepClip(index){pauseClip();showClipFrame(Math.max(0,Math.min(clip.frames.length-1,index)));}
-function tickClip(){clearTimeout(clipTimer);clipTimer=setTimeout(()=>{if(!clip||!clipPlaying||!visible()||document.hidden){pauseClip();return;}if(clipIndex>=clip.frames.length-1){pauseClip();return;}showClipFrame(clipIndex+1);tickClip();},1600);}
+function tickClip(){clearTimeout(clipTimer);clipTimer=setTimeout(()=>{if(!clip||!clipPlaying||!visible()||document.hidden||motionReduced()){pauseClip();return;}if(clipIndex>=clip.frames.length-1){pauseClip();return;}showClipFrame(clipIndex+1);tickClip();},1600);}
 function renderClip(){const focused=clipPanel.contains(document.activeElement)?document.activeElement.textContent:null;clipPanel.hidden=!clip;clipPanel.replaceChildren();if(!clip)return;
  const f=clip.frames[clipIndex];if(clipIntro)clipPanel.append(node('strong','1/3 · 먼저 관계 이해하기'));clipPanel.append(node('span',`${clipIndex+1}/${clip.frames.length} · ${f.turn} 차례`));
  const controls=node('div',null,'btn-row');clipPanel.append(controls);
  const previous=button('이전 수',()=>stepClip(clipIndex-1));previous.disabled=clipIndex===0;
  const next=button('다음 수',()=>stepClip(clipIndex+1));next.disabled=clipIndex===clip.frames.length-1;
- controls.append(previous,button(clipPlaying?'멈춤':'재생',()=>{if(clipPlaying)pauseClip();else{if(clipIndex===clip.frames.length-1)clipIndex=0;clipPlaying=true;render();tickClip();}}),next,button('처음부터',()=>stepClip(0)),button(clipIntro?'건너뛰고 혼자 풀기':'닫고 직접 연습',()=>clipIntro?lessonAction('skip'):closeClip()));
- if(clipIntro)controls.append(button('설명 확인 · 따라 하기',()=>lessonAction('guided')));
+ controls.append(previous,button(clipPlaying?'멈춤':'재생',()=>{if(motionReduced())return;if(clipPlaying)pauseClip();else{if(clipIndex===clip.frames.length-1)clipIndex=0;clipPlaying=true;render();tickClip();}}),next,button('다시 보기',()=>{pauseClip();clipIndex=0;clipPlaying=!motionReduced()&&!document.hidden;render();if(clipPlaying)tickClip();}),button(clipIntro?'건너뛰기 · 혼자 풀기':'닫고 직접 연습',()=>clipIntro?lessonAction('skip'):closeClip()));
+ if(clipIntro)controls.append(button('연습 시작',()=>lessonAction('guided')));
+ if(motionReduced())clipPanel.append(node('small','움직임 줄이기 설정 · 이전 수와 다음 수로 확인해요.'));
+ if(motionReduced()){const play=[...controls.querySelectorAll('button')].find(b=>b.textContent==='재생');if(play)play.disabled=true;}
+ if(error)clipPanel.append(button('저장 위치 확인',()=>{closeClip();load(false,true);}));
+ for(const b of controls.querySelectorAll('button'))if(starting||loading||pending)b.disabled=true;
  clipPanel.append(node('small','파선: 공격 · 실선: 따라 둘 수. 공격 표시만으로 항상 잡을 수 있다는 뜻은 아니에요.'));
  for(const b of $('movementActions').querySelectorAll('button'))b.disabled=true;
  $('movementSubmit').disabled=true;
@@ -125,7 +177,7 @@ function renderClip(){const focused=clipPanel.contains(document.activeElement)?d
 }
 async function openClip(unitId){if(clip||starting||pending||loading||demonstrating||conflict||error)return;
  clearTimeout(nextTimer);if(dirty()){await save();if(dirty()||error)return;}
- const id=token,stamp=epoch,session=unit.session_id,request=++clipRequest;
+ rememberDialogTrigger();const id=token,stamp=epoch,session=unit.session_id,request=++clipRequest;
  starting=true;render();
  try{const response=await api('/movement/demo','POST',{unit_id:unitId,session_id:session,revision:data.revision});
  if(id!==token||stamp!==epoch||session!==unit?.session_id)return;
@@ -150,7 +202,7 @@ function autoNext(){clearTimeout(nextTimer);if(clip||unit?.mode==='rule'||!unit|
 async function recoverConflict(){if(!conflict||!unit||loading||pending)return;try{const activeKey=key(unit.session_id),draft=localStorage.getItem(activeKey);if(draft!==null){localStorage.setItem(activeKey+':preserved:'+crypto.randomUUID(),draft);localStorage.removeItem(activeKey);}conflict=false;await load();}catch{error='기기 이동을 따로 보관하지 못했어요. 원래 임시 기록을 유지합니다.';render();}}
 async function load(enter=false,retry=false){if(enter)entryRequested=true;if(owner!==token)clear();if(!token){render();return;}if(starting||pending||loading)return;closeClip(false);const id=token,stamp=++epoch;clearTimeout(nextTimer);clearTimeout(saveTimer);loading=true;error='';render();let loaded=null;try{const d=await api('/movement');if(id!==token||stamp!==epoch)return;if(d.active?.mode==='rule')await cmaBasicRules.load();if(id!==token||stamp!==epoch)return;loaded=d;apply(d,true);}catch(e){if(id===token&&stamp===epoch){error=e.message;}}finally{if(id===token&&stamp===epoch){loading=false;render();if(!error&&dirty())scheduleSave();}}if(loaded&&id===token&&stamp===epoch&&entryRequested){entryRequested=false;if(!loaded.active)await start('start');}}
 
-async function start(action,unit_id){if(starting||pending||loading||conflict||owner!==token||!data)return;if(dirty()){error='아직 저장을 확인하지 못했어요. 현재 이동을 먼저 저장해 주세요.';render();return;}closeClip(false);const id=token,stamp=epoch,request_id=crypto.randomUUID();starting=true;clearTimeout(nextTimer);render();try{const d=await api('/movement/start','POST',{action,unit_id,revision:data.revision,request_id,relationship_flow:true});if(id!==token||stamp!==epoch)return;if(d.active?.mode==='rule')await cmaBasicRules.load();if(id!==token||stamp!==epoch)return;error='';apply(d,true);if(visible())$('movementTitle').focus({preventScroll:true});}catch(e){if(id===token&&stamp===epoch){error=e.message;render();}}finally{if(id===token&&stamp===epoch){starting=false;render();}}}
+async function start(action,unit_id){if(starting||pending||loading||conflict||owner!==token||!data)return;if(dirty()){error='아직 저장을 확인하지 못했어요. 현재 이동을 먼저 저장해 주세요.';render();return;}closeClip(false);rememberDialogTrigger();const id=token,stamp=epoch,request_id=crypto.randomUUID();starting=true;clearTimeout(nextTimer);render();try{const d=await api('/movement/start','POST',{action,unit_id,revision:data.revision,request_id,relationship_flow:true});if(id!==token||stamp!==epoch)return;if(d.active?.mode==='rule')await cmaBasicRules.load();if(id!==token||stamp!==epoch)return;error='';apply(d,true);if(visible()&&!clipDialog.open)$('movementTitle').focus({preventScroll:true});}catch(e){if(id===token&&stamp===epoch){error=e.message;render();}}finally{if(id===token&&stamp===epoch){starting=false;render();}}}
 async function choose(id){if(dirty()||pending){error='현재 이동의 저장을 확인한 뒤 다른 연습으로 갈 수 있어요.';render();return;}await start('start',id);}
 async function restart(){if(dirty()||pending){error='현재 이동의 저장을 확인한 뒤 새 판으로 갈 수 있어요.';render();return;}await start('restart',unit.unit_id);}
 $('movementHelp').addEventListener('toggle',()=>{if($('movementHelp').open)clearTimeout(nextTimer);});

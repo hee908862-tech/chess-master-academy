@@ -10,7 +10,7 @@ def choose(page,unit):
     page.evaluate("async id=>{const d=await api('/movement');await api('/movement/start','POST',{action:'start',unit_id:id,revision:d.revision,request_id:crypto.randomUUID(),relationship_flow:true});await cmaMovement.load();}",unit)
     ready(page)
     if page.evaluate("cmaMovement.state().unit?.teaching?.phase==='explain'"):
-        page.get_by_role('button',name='건너뛰고 혼자 풀기',exact=True).click()
+        page.get_by_role('button',name='건너뛰기 · 혼자 풀기',exact=True).click()
         page.wait_for_function("cmaMovement.state().unit.teaching.phase==='independent' && !cmaMovement.state().pending && !document.getElementById('movementClip').getClientRects().length")
 
 
@@ -23,13 +23,12 @@ def test_reported_clips_controls_layout_and_practice_separation(isolated,site,wi
         page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True).click()
         expect(page.locator('#movementClip')).to_be_visible()
         assert page.evaluate('cmaMovement.state().clipIndex')==0
-        assert not page.evaluate('cmaMovement.state().clipPlaying')
-        page.locator('#movementClip').get_by_role('button',name='재생',exact=True).click()
+        assert page.evaluate('cmaMovement.state().clipPlaying')
         page.wait_for_function('cmaMovement.state().clipIndex>0')
         page.locator('#movementClip').get_by_role('button',name='멈춤',exact=True).click()
         index=page.evaluate('cmaMovement.state().clipIndex');page.wait_for_timeout(1750)
         assert page.evaluate('cmaMovement.state().clipIndex')==index
-        page.locator('#movementClip').get_by_role('button',name='처음부터',exact=True).click()
+        page.locator('#movementClip').get_by_role('button',name='다시 보기',exact=True).click()
         while not page.locator('#movementClip').get_by_role('button',name='다음 수',exact=True).is_disabled():
             page.locator('#movementClip').get_by_role('button',name='다음 수',exact=True).click()
         assert page.evaluate('cmaMovement.state().moves')==before
@@ -53,7 +52,7 @@ def test_reported_clips_controls_layout_and_practice_separation(isolated,site,wi
     page.get_by_role('button',name='직전 문제 시연',exact=True).click()
     expect(page.locator('#movementClip')).to_be_visible()
     assert page.evaluate('cmaMovement.state().unit.session_id')==session
-    page.locator('#movementClip').get_by_role('button',name='재생',exact=True).click()
+    assert page.evaluate('cmaMovement.state().clipPlaying')
     page.evaluate("cmaNavigation.go('home')")
     page.wait_for_timeout(1800)
     assert page.evaluate('cmaMovement.state().clip') is None
@@ -79,8 +78,11 @@ def test_completion_stays_and_demo_retry_and_duplicate_clicks(isolated,site):
 
 def test_hidden_tab_pauses_and_browser_back_cancels(isolated,site):
     page,_=isolated;enter(page);choose(page,'rules-pawn-promotion')
+    # Opening is asynchronous; exercise a delayed response before checking autoplay.
+    page.evaluate("()=>{const original=api;window.api=async(...args)=>{const r=await original(...args);if(args[0]==='/movement/demo')await new Promise(resolve=>setTimeout(resolve,400));return r;};}")
     page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True).click()
-    page.locator('#movementClip').get_by_role('button',name='재생',exact=True).click()
+    expect(page.locator('#movementExampleDialog')).to_be_visible()
+    assert page.evaluate('cmaMovement.state().clipPlaying')
     page.evaluate("Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'))")
     assert not page.evaluate('cmaMovement.state().clipPlaying')
     page.evaluate("delete document.hidden;document.dispatchEvent(new Event('visibilitychange'))")
