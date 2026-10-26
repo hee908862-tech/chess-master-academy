@@ -164,3 +164,15 @@ def test_real_lesson_picker_restores_focus_and_start_focuses_practice(isolated,s
     expect(page.locator('#movementLesson')).to_contain_text('2/3')
     expect(page.locator('#movementTitle')).to_be_focused()
     assert page.evaluate('cmaMovement.state().moves')==[]
+
+
+def test_playback_disclosure_retains_focus_before_toggle_event(isolated,site):
+    page,_=isolated;enter(page);choose_intro(page,'rules-protect-piece')
+    # Both actions occur in the same task, before details' queued toggle event.
+    page.evaluate("""()=>{const tools=document.querySelector('.movement-playback-tools');tools.open=true;
+      const next=tools.querySelector('[data-control=next]');next.focus();next.click();}""")
+    expect(page.locator('.movement-playback-tools')).to_have_attribute('open','')
+    next_button=page.locator('#movementClip [data-control=next]')
+    expect(next_button).to_be_visible();expect(next_button).to_be_focused()
+    assert page.evaluate('cmaMovement.state().clipIndex')==1
+    assert not page.evaluate('cmaMovement.state().clipPlaying')

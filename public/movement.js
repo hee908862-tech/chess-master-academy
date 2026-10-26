@@ -181,6 +181,9 @@ function showClipFrame(index){const previous=clipIndex;clipIndex=index;const mov
 function stepClip(index){pauseClip();showClipFrame(Math.max(0,Math.min(clip.frames.length-1,index)));}
 function tickClip(){clearTimeout(clipTimer);clipTimer=setTimeout(()=>{if(!clip||!clipPlaying||!visible()||document.hidden||motionReduced()){pauseClip();return;}if(clipIndex>=clip.frames.length-1){pauseClip();return;}showClipFrame(clipIndex+1);tickClip();},1600);}
 function renderClip(){
+ // A native details toggle event can arrive after the next keyboard action.
+ // Capture its actual open state before replacing controls, not the queued event.
+ const existingTools=clipPanel.querySelector('.movement-playback-tools');if(existingTools)clipToolsOpen=existingTools.open;
  const focused=clipDialog.contains(document.activeElement)?document.activeElement.dataset.control:null;
  clipPanel.hidden=!clip;clipPanel.replaceChildren();$('movementExampleActions').replaceChildren();if(!clip)return;
  const f=clip.frames[clipIndex],ended=clipIndex===clip.frames.length-1;
