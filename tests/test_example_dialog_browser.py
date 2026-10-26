@@ -125,3 +125,20 @@ def test_animation_is_inside_modal_and_silent_and_app_motion_preference(isolated
     page.get_by_role('button',name='다음 수',exact=True).click()
     assert not page.evaluate("cmaBoardPresentation.isAnimating('movementBoard')")
     assert page.evaluate('exampleSounds')==[]
+
+
+def test_real_lesson_picker_restores_focus_and_start_focuses_practice(isolated,site):
+    page,_=isolated;enter(page)
+    page.locator('#movementHelp summary').click()
+    page.locator('#movementUnit').select_option('rules-shield-piece')
+    opener=page.get_by_role('button',name='고른 연습 열기',exact=True)
+    opener.click()
+    expect(page.locator('#movementExampleDialog')).to_be_visible()
+    assert page.evaluate('cmaMovement.state().clipPlaying')
+    page.get_by_role('button',name='예시 설명 닫기',exact=True).click()
+    expect(opener).to_be_focused()
+    page.get_by_role('button',name='다시 보기',exact=True).click()
+    page.get_by_role('button',name='연습 시작',exact=True).click()
+    expect(page.locator('#movementLesson')).to_contain_text('2/3')
+    expect(page.locator('#movementTitle')).to_be_focused()
+    assert page.evaluate('cmaMovement.state().moves')==[]
