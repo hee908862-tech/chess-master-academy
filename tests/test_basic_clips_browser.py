@@ -2,16 +2,15 @@
 from pathlib import Path
 import pytest
 from playwright.sync_api import expect
+from movement_ui_helpers import options, finish_example, independent, playback
 from test_redesign_browser_followup import isolated, site
 from test_movement_browser import enter, ready
 
 
 def choose(page,unit):
-    page.evaluate("async id=>{const d=await api('/movement');await api('/movement/start','POST',{action:'start',unit_id:id,revision:d.revision,request_id:crypto.randomUUID(),relationship_flow:true});await cmaMovement.load();}",unit)
+    page.evaluate("async id=>{const d=await api('/movement');await api('/movement/start','POST',{action:'start',unit_id:id,revision:d.revision,request_id:crypto.randomUUID(),relationship_flow:true});await cmaMovement.load(true);}",unit)
     ready(page)
-    if page.evaluate("cmaMovement.state().unit?.teaching?.phase==='explain'"):
-        page.get_by_role('button',name='건너뛰기 · 혼자 풀기',exact=True).click()
-        page.wait_for_function("cmaMovement.state().unit.teaching.phase==='independent' && !cmaMovement.state().pending && !document.getElementById('movementClip').getClientRects().length")
+    independent(page)
 
 
 @pytest.mark.parametrize('width,height',[(1366,768),(320,650),(360,640),(390,844),(844,390)])
@@ -20,6 +19,7 @@ def test_reported_clips_controls_layout_and_practice_separation(isolated,site,wi
     for unit in ['rules-pawn-promotion','rules-shield-piece','rules-make-stalemate']:
         choose(page,unit)
         before=page.evaluate('cmaMovement.state().moves')
+        options(page)
         page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True).click()
         expect(page.locator('#movementClip')).to_be_visible()
         assert page.evaluate('cmaMovement.state().clipIndex')==0
@@ -28,12 +28,15 @@ def test_reported_clips_controls_layout_and_practice_separation(isolated,site,wi
         page.locator('#movementClip').get_by_role('button',name='멈춤',exact=True).click()
         index=page.evaluate('cmaMovement.state().clipIndex');page.wait_for_timeout(1750)
         assert page.evaluate('cmaMovement.state().clipIndex')==index
+        playback(page)
         page.locator('#movementClip').get_by_role('button',name='다시 보기',exact=True).click()
         while not page.locator('#movementClip').get_by_role('button',name='다음 수',exact=True).is_disabled():
+            playback(page)
             page.locator('#movementClip').get_by_role('button',name='다음 수',exact=True).click()
         assert page.evaluate('cmaMovement.state().moves')==before
         assert not page.evaluate('cmaMovement.state().done')
         assert page.evaluate('cmaMovement.state().unit.helped')
+        playback(page)
         for control in page.locator('#movementClip button:enabled').all():
             control.scroll_into_view_if_needed()
             assert control.evaluate('(b)=>{const r=b.getBoundingClientRect();return b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}')
@@ -43,12 +46,14 @@ def test_reported_clips_controls_layout_and_practice_separation(isolated,site,wi
             assert page.locator('.mobile-nav').evaluate("e=>getComputedStyle(e).position")=='static'
         output=Path('/tmp/basic-clips-qa');output.mkdir(exist_ok=True)
         page.screenshot(path=str(output/f'{unit}-{width}x{height}.png'),full_page=True)
+        playback(page)
         page.locator('#movementClip').get_by_role('button',name='이전 수',exact=True).click()
-        page.locator('#movementClip').get_by_role('button',name='닫고 직접 연습',exact=True).click()
+        finish_example(page)
         expect(page.locator('#movementClip')).to_be_hidden()
         assert page.evaluate('cmaMovement.state().moves')==before
     # Prior lesson preview must not replace the current session.
     session=page.evaluate('cmaMovement.state().unit.session_id')
+    options(page)
     page.get_by_role('button',name='직전 문제 시연',exact=True).click()
     expect(page.locator('#movementClip')).to_be_visible()
     assert page.evaluate('cmaMovement.state().unit.session_id')==session
@@ -68,9 +73,11 @@ def test_completion_stays_and_demo_retry_and_duplicate_clicks(isolated,site):
     page.wait_for_function('cmaMovement.state().done && !cmaMovement.state().pending')
     page.wait_for_timeout(2800)
     assert page.evaluate('cmaMovement.state().unit.unit_id')=='rules-shield-piece'
+    options(page)
     page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True).evaluate('(b)=>{b.click();b.click();}')
     expect(page.locator('#movementClip')).to_be_visible()
-    page.locator('#movementClip').get_by_role('button',name='닫고 직접 연습',exact=True).click()
+    finish_example(page)
+    options(page)
     page.get_by_role('button',name='같은 문제 직접 다시',exact=True).click()
     page.wait_for_function('!cmaMovement.state().done && cmaMovement.state().moves.length===0')
     assert page.evaluate('cmaMovement.state().unit.helped')
@@ -80,6 +87,7 @@ def test_hidden_tab_pauses_and_browser_back_cancels(isolated,site):
     page,_=isolated;enter(page);choose(page,'rules-pawn-promotion')
     # Opening is asynchronous; exercise a delayed response before checking autoplay.
     page.evaluate("()=>{const original=api;window.api=async(...args)=>{const r=await original(...args);if(args[0]==='/movement/demo')await new Promise(resolve=>setTimeout(resolve,400));return r;};}")
+    options(page)
     page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True).click()
     expect(page.locator('#movementExampleDialog')).to_be_visible()
     assert page.evaluate('cmaMovement.state().clipPlaying')
@@ -100,16 +108,18 @@ def test_zoom_next_double_click_and_prelude_cancellation(isolated,site):
     page,_=isolated;page.set_viewport_size(dict(width=390,height=844));enter(page)
     choose(page,'rules-shield-piece')
     page.evaluate("document.documentElement.style.zoom='1.25'")
+    options(page)
     page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True).click()
+    playback(page)
     for control in page.locator('#movementClip button:enabled').all():
         control.scroll_into_view_if_needed()
         assert control.evaluate('(b)=>{const r=b.getBoundingClientRect();return b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}')
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
-    page.locator('#movementClip').get_by_role('button',name='닫고 직접 연습',exact=True).click()
+    finish_example(page)
     page.locator('#movementBoard [aria-label^="d2 "]').click();page.locator('#movementBoard [aria-label^="d4 "]').click()
     page.wait_for_function('cmaMovement.state().done && !cmaMovement.state().pending')
     posts=[];page.on('request',lambda r:posts.append(r.url) if r.url.endswith('/movement/start') else None)
-    page.get_by_role('button',name='다음 확인 계속하기',exact=True).evaluate('(b)=>{b.click();b.click();}')
+    page.get_by_role('button',name='다음',exact=True).evaluate('(b)=>{b.click();b.click();}')
     page.wait_for_function("cmaMovement.state().unit.unit_id!=='rules-shield-piece'")
     assert len(posts)==1
     choose(page,'rules-ep-now')
@@ -130,17 +140,19 @@ def test_previous_rule_clip_survives_topic_boundary(isolated,site,current,previo
     page.locator(f'#movementBoard [aria-label^="{action[:2]} "]').click()
     page.locator(f'#movementBoard [aria-label^="{action[2:4]} "]').click()
     page.wait_for_function('cmaMovement.state().done && !cmaMovement.state().pending && cmaMovement.state().data.active.done')
-    page.get_by_role('button',name='다음 확인 계속하기',exact=True).click()
+    page.get_by_role('button',name='다음',exact=True).click()
     page.wait_for_function('id=>cmaMovement.state().unit.unit_id===id',arg=current)
     page.locator(f'#movementBoard [aria-label^="{source} "]').click()
     page.locator(f'#movementBoard [aria-label^="{target} "]').click()
     page.wait_for_function('!cmaMovement.state().pending && cmaMovement.state().data.active.moves.length===1')
     before=page.evaluate("api('/movement')")['active']
+    options(page)
     page.get_by_role('button',name='직전 문제 시연',exact=True).click()
     expect(page.locator('#movementClip')).to_be_visible()
     assert page.evaluate('cmaMovement.state().clip.unit_id')==previous
+    playback(page)
     page.locator('#movementClip').get_by_role('button',name='다음 수',exact=True).click()
-    page.locator('#movementClip').get_by_role('button',name='닫고 직접 연습',exact=True).click()
+    finish_example(page)
     assert page.evaluate("api('/movement')")['active']==before
     assert page.evaluate('cmaMovement.state().source')==target
     assert page.evaluate('cmaMovement.state().moves')==[source+target]
@@ -151,6 +163,7 @@ def test_logout_discards_delayed_demo_response(isolated,site):
     page,_=isolated;login(page,site)
     page.evaluate('cmaMovement.enter()');ready(page);choose(page,'rules-pawn-promotion')
     page.evaluate("""()=>{const original=api;api=async(...args)=>{const value=await original(...args);if(args[0]==='/movement/demo')return new Promise(resolve=>window.releaseDemo=()=>resolve(value));return value;};}""")
+    options(page)
     page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True).click()
     page.wait_for_function('!!window.releaseDemo')
     page.evaluate("cmaNavigation.go('profile/account')")

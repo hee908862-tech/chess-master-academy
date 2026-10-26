@@ -25,6 +25,7 @@ def summary(state):
 class Start(BaseModel):
     action:Literal['start','next','restart']='start'
     relationship_flow:bool=False
+    retry_practice:bool=False
     unit_id:str|None=None
     revision:int=Field(ge=0)
     request_id:str=Field(min_length=8,max_length=80)
@@ -99,12 +100,17 @@ def attach_movement(app,ns):
         if unit_id not in BY_ID:raise HTTPException(404,'이동 연습을 찾지 못했어요.')
         prior=saved['units'].get(unit_id)
         if body.action=='restart' and (saved.get('active')!=unit_id or not prior):raise HTTPException(409,'다시 시작할 현재 연습을 확인해 주세요.')
+        if body.retry_practice and (body.action!='restart' or not prior or prior.get('teaching',{}).get('phase','independent')!='independent'):
+            raise HTTPException(409,'현재 직접 실습만 다시 시작할 수 있어요.')
         if not prior or body.action=='restart':
             if prior:saved.setdefault('history',[]).append(dict(prior,unit_id=unit_id))
             saved['units'][unit_id]={'version':VERSION,'policy':POLICY,'unit_policy':BY_ID[unit_id].get('policy','same-piece-movement-v1'),'session_id':secrets.token_urlsafe(18),'moves':[],'done':False,'mistakes':0,'helped':unit_id in saved.get('demo_views',[]),'run':prior.get('run',0)+1 if prior else 0}
             if body.relationship_flow and teaches_relationships(BY_ID[unit_id]):
                 # Existing sessions are not migrated or reset by a GET or normal resume.
-                saved['units'][unit_id]['teaching'] = dict(phase='explain', guide_moves=[], guide_done=False, skipped=False, independent_helped=False)
+                saved['units'][unit_id]['teaching'] = dict(phase='independent' if body.retry_practice else 'explain', guide_moves=[], guide_done=False, skipped=False, independent_helped=False)
+                if body.retry_practice and prior.get('teaching'):
+                    # Retrying must not erase answer exposure or completed guidance.
+                    saved['units'][unit_id]['teaching'] = copy.deepcopy(prior['teaching'])
                 saved['units'][unit_id]['helped'] = True
         saved['active']=unit_id;saved['last_request']=body.request_id;saved['revision']+=1;saved['updated_at']=datetime.now(timezone.utc).isoformat();state[KEY]=saved;ns['save_state'](code,state)
         return payload(state)

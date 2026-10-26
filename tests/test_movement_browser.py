@@ -1,6 +1,7 @@
 """Real local API and Chromium. Viewports emulate devices; no human learning claim."""
 import pytest
 from playwright.sync_api import expect
+from movement_ui_helpers import options, finish_example, independent, playback
 from test_redesign_browser_followup import isolated, site
 from test_movement import PATHS
 
@@ -37,6 +38,10 @@ def test_continuous_delayed_save_and_selection(isolated,site,width,height):
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
     page.screenshot(path=f'/tmp/movement-{width}x{height}.png',full_page=True)
     square(page,'f3').click()
+    page.wait_for_function('cmaMovement.state().data.active.done && !cmaMovement.state().pending')
+    page.wait_for_timeout(1900)
+    assert page.evaluate('cmaMovement.state().unit.unit_id')=='rook-path'
+    page.get_by_role('button',name='다음',exact=True).click()
     page.wait_for_function("cmaMovement.state().unit.unit_id==='rook-block'",timeout=15000)
     assert page.evaluate('cmaMovement.state().moves.length')==0
     assert page.evaluate("api('/movement')")['summary']['completed']==1
@@ -89,11 +94,11 @@ def test_pawn_detour_restart_and_navigation_cancel(isolated,site):
     page.evaluate("""async()=>{const d=await api('/movement');await api('/movement/start','POST',{action:'start',unit_id:'pawn-capture',revision:d.revision,request_id:crypto.randomUUID()});await cmaMovement.load()}""")
     page.evaluate("""()=>{window.pawnApi=api;api=async (...args)=>{if(args[0]==='/movement/save')await new Promise(r=>setTimeout(r,600));return pawnApi(...args)}}""")
     square(page,'d3').click();square(page,'d4').click()
-    expect(page.get_by_role('button',name='새 판에서 다시 해보기',exact=True)).to_be_disabled()
+    expect(page.get_by_role('button',name='다시하기',exact=True)).to_be_disabled()
     page.wait_for_function('cmaMovement.state().data.active.moves.length===1 && !cmaMovement.state().pending')
     expect(page.locator('#movementGoal')).to_contain_text('뒤로 못 가요')
     with page.expect_response('**/api/movement/start') as restarted:
-        page.get_by_role('button',name='새 판에서 다시 해보기',exact=True).click()
+        page.get_by_role('button',name='다시하기',exact=True).click()
     assert restarted.value.status==200
     page.wait_for_function('cmaMovement.state().unit.run===1')
     ready(page)
@@ -149,9 +154,7 @@ def test_all_rule_scenes_actual_board_actions(isolated,site,width,height):
         page.wait_for_timeout(2000)
         page.evaluate("""async id=>{cmaMovement.cancel();const d=await api('/movement');await api('/movement/start','POST',{action:'start',unit_id:id,revision:d.revision,request_id:crypto.randomUUID(),relationship_flow:true});await cmaMovement.load()}""",unit['id'])
         ready(page);page.wait_for_function('!cmaMovement.state().demonstrating')
-        if page.evaluate("cmaMovement.state().unit?.teaching?.phase==='explain'"):
-            page.get_by_role('button',name='건너뛰기 · 혼자 풀기',exact=True).click()
-            page.wait_for_function("cmaMovement.state().unit.teaching.phase==='independent'")
+        independent(page)
         expect(page.locator('#movementTitle')).to_have_text(unit['name'])
         if unit['kind']=='place':
             while not page.evaluate('cmaMovement.state().done'):
@@ -237,6 +240,10 @@ def test_malformed_draft_is_preserved_and_help_cancels_advance(isolated,site):
     assert '' in page.evaluate("Object.keys(localStorage).filter(k=>k.includes(':preserved:')).map(k=>localStorage.getItem(k))")
     page.locator('#movementHelp > summary').click()
     square(page,'b2').click();square(page,'b5').click();square(page,'f5').click();square(page,'f3').click()
+    page.wait_for_function('cmaMovement.state().data.active.done && !cmaMovement.state().pending')
+    page.wait_for_timeout(1900)
+    assert page.evaluate('cmaMovement.state().unit.unit_id')=='rook-path'
+    page.get_by_role('button',name='다음',exact=True).click()
     page.wait_for_function('cmaMovement.state().data.active.done && !cmaMovement.state().pending')
     page.locator('#movementHelp > summary').click()
     page.wait_for_timeout(900)

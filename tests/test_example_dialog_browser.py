@@ -5,6 +5,7 @@ from playwright.sync_api import expect
 from test_redesign_browser_followup import isolated, site
 from test_movement_browser import enter, ready
 from test_relationship_lessons_browser import choose_intro
+from movement_ui_helpers import options, finish_example, independent, playback
 
 
 @pytest.mark.parametrize('width,height,zoom',[(320,650,1),(390,844,1),(844,390,1),(1366,768,1),(390,844,1.25)])
@@ -12,7 +13,8 @@ def test_autoplay_modal_isolation_focus_and_mobile_controls(isolated,site,width,
     page,_=isolated;page.set_viewport_size(dict(width=width,height=height));enter(page)
     page.evaluate('(zoom)=>document.documentElement.style.zoom=zoom',zoom)
     choose_intro(page,'rules-shield-piece')
-    dialog=page.get_by_role('dialog',name='공격길을 막아 지키기 · 먼저 예시 보기')
+    dialog=page.locator('#movementExampleDialog')
+    expect(dialog).to_have_accessible_name('공격길을 막아 지키기 · 먼저 예시 보기')
     expect(dialog).to_be_visible()
     expect(page.locator('#movementExampleText')).to_contain_text('흑 비숍 g7 → 백 룩 a1')
     expect(page.locator('#movementExampleTitle')).to_be_focused()
@@ -27,9 +29,10 @@ def test_autoplay_modal_isolation_focus_and_mobile_controls(isolated,site,width,
     assert page.evaluate("document.getElementById('movementExampleDialog').contains(document.activeElement)")
     assert page.evaluate("getComputedStyle(document.body).overflow")=='hidden'
     page.locator('#movementExampleTitle').focus();page.keyboard.press('Shift+Tab')
-    expect(dialog.get_by_role('button',name='연습 시작',exact=True)).to_be_focused()
-    page.keyboard.press('Tab');expect(dialog.get_by_role('button',name='예시 설명 닫기',exact=True)).to_be_focused()
-    page.keyboard.press('Shift+Tab');expect(dialog.get_by_role('button',name='연습 시작',exact=True)).to_be_focused()
+    expect(page.locator('#movementExampleActions button')).to_be_focused()
+    page.keyboard.press('Tab');expect(dialog.get_by_role('button',name='닫기 · 스킵하고 연습',exact=True)).to_be_focused()
+    page.keyboard.press('Shift+Tab');expect(page.locator('#movementExampleActions button')).to_be_focused()
+    playback(page)
     for control in dialog.locator('button:enabled:not(.sq)').all():
         control.scroll_into_view_if_needed()
         assert control.evaluate('(b)=>{const r=b.getBoundingClientRect();return r.height>=44 && b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}')
@@ -42,17 +45,21 @@ def test_autoplay_modal_isolation_focus_and_mobile_controls(isolated,site,width,
     assert not page.evaluate('cmaMovement.state().clipPlaying')
     assert page.evaluate("getComputedStyle(document.body).overflow")!='hidden'
     after=page.evaluate("async()=>({movement:await api('/movement'),me:await api('/me'),journey:await api('/journey')})")
-    assert after==before
+    assert after['me']==before['me'] and after['journey']==before['journey']
+    for key in ['session_id','moves','done','mistakes','result']:
+        assert after['movement']['active'][key]==before['movement']['active'][key]
+    assert after['movement']['active']['teaching']['phase']=='guided'
     # Reopen resets playback without creating a second dialog; close restores trigger.
-    reopen=page.get_by_role('button',name='다시 보기',exact=True)
+    options(page)
+    reopen=page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True)
     reopen.click();expect(dialog).to_be_visible()
     assert page.evaluate('cmaMovement.state().clipIndex')==0
     expect(page.locator('dialog[open]')).to_have_count(1)
     page.keyboard.press('Escape');expect(reopen).to_be_focused()
     page.reload();ready(page)
-    expect(dialog).not_to_be_visible()
-    expect(page.get_by_role('button',name='연습 시작',exact=True)).to_be_visible()
-    assert page.evaluate('cmaMovement.state().unit.teaching.phase')=='explain'
+    expect(dialog).to_be_visible()
+    finish_example(page)
+    assert page.evaluate('cmaMovement.state().unit.teaching.phase')=='guided'
 
 
 def test_reduced_motion_steps_replay_skip_and_background_cancel(isolated,site):
@@ -60,18 +67,22 @@ def test_reduced_motion_steps_replay_skip_and_background_cancel(isolated,site):
     dialog=page.locator('#movementExampleDialog')
     assert not page.evaluate('cmaMovement.state().clipPlaying')
     page.wait_for_timeout(1800);assert page.evaluate('cmaMovement.state().clipIndex')==0
-    expect(dialog.get_by_role('button',name='재생',exact=True)).to_be_disabled()
+    expect(dialog.get_by_role('button',name='재생',exact=True)).to_have_count(0)
+    playback(page)
     dialog.get_by_role('button',name='다음 수',exact=True).click()
     assert page.evaluate('cmaMovement.state().clipIndex')==1
     assert not page.evaluate("cmaBoardPresentation.isAnimating('movementBoard')")
+    playback(page)
     dialog.get_by_role('button',name='다시 보기',exact=True).click()
     assert page.evaluate('cmaMovement.state().clipIndex')==0
     assert not page.evaluate('cmaMovement.state().clipPlaying')
     page.keyboard.press('Escape')
-    page.get_by_role('button',name='다시 보기',exact=True).click()
-    dialog.get_by_role('button',name='건너뛰기 · 혼자 풀기',exact=True).evaluate('(b)=>{b.click();b.click()}')
+    options(page)
+    page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True).click()
+    expect(dialog).to_be_visible()
+    page.locator('#movementExampleActions button').evaluate('(b)=>{b.click();b.click()}')
     expect(dialog).not_to_be_visible()
-    expect(page.locator('#movementLesson')).to_contain_text('3/3')
+    expect(page.locator('#movementLesson')).to_contain_text('2/3')
     assert page.evaluate('cmaMovement.state().moves')==[]
     assert not page.evaluate('cmaMovement.state().done')
 
@@ -83,6 +94,7 @@ def test_autoplay_visibility_route_back_restart_and_logout_cancel(isolated,site)
     assert not page.evaluate('cmaMovement.state().clipPlaying')
     page.evaluate("delete document.hidden;document.dispatchEvent(new Event('visibilitychange'))")
     assert not page.evaluate('cmaMovement.state().clipPlaying')
+    playback(page)
     page.get_by_role('button',name='다시 보기',exact=True).click()
     assert page.evaluate('cmaMovement.state().clipPlaying')
     page.evaluate("cmaNavigation.go('home')")
@@ -90,9 +102,10 @@ def test_autoplay_visibility_route_back_restart_and_logout_cancel(isolated,site)
     page.wait_for_timeout(1800)
     assert page.evaluate('cmaMovement.state().clip') is None
     page.go_back();ready(page)
-    expect(page.locator('#movementExampleDialog')).not_to_be_visible()
-    page.get_by_role('button',name='연습 시작',exact=True).click()
+    expect(page.locator('#movementExampleDialog')).to_be_visible()
+    finish_example(page)
     expect(page.locator('#movementLesson')).to_contain_text('2/3')
+    options(page)
     page.get_by_role('button',name='설명부터 다시',exact=True).click()
     expect(page.locator('#movementExampleDialog')).to_be_visible()
     assert page.evaluate('cmaMovement.state().unit.session_id')!=first
@@ -111,17 +124,27 @@ def test_animation_is_inside_modal_and_silent_and_app_motion_preference(isolated
     page.evaluate("()=>{window.exampleSounds=[];window.playMoveSound=(...args)=>exampleSounds.push(args);const animate=Element.prototype.animate;Element.prototype.animate=function(frames,options){return animate.call(this,frames,{...options,duration:1500});};}")
     choose_intro(page,'rules-shield-piece')
     page.get_by_role('button',name='멈춤',exact=True).click()
-    page.get_by_role('button',name='다음 수',exact=True).click()
+    playback(page)
+    # Bring the controls into view before starting fixed-position piece animation.
+    # Scrolling intentionally cancels board motion; Playwright's implicit scroll
+    # must settle before the click whose animation is being asserted.
+    next_move=page.get_by_role('button',name='다음 수',exact=True)
+    next_move.scroll_into_view_if_needed()
+    page.evaluate('()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
+    next_move.click()
     ghost=page.locator('#movementExampleDialog .cma-motion-ghost')
     expect(ghost).to_have_count(1)
     expect(ghost).to_be_visible()
     assert page.evaluate('exampleSounds')==[]
-    page.get_by_role('button',name='예시 설명 닫기',exact=True).click()
+    page.get_by_role('button',name='닫기 · 스킵하고 연습',exact=True).click()
     expect(page.locator('.cma-motion-ghost')).to_have_count(0)
     page.evaluate("localStorage.setItem('cma_reduce_motion','on')")
-    page.get_by_role('button',name='다시 보기',exact=True).click()
+    options(page)
+    page.get_by_role('button',name='짧은 시연 · 정답 도움',exact=True).click()
+    expect(page.locator('#movementExampleDialog')).to_be_visible()
     assert not page.evaluate('cmaMovement.state().clipPlaying')
-    expect(page.get_by_role('button',name='재생',exact=True)).to_be_disabled()
+    expect(page.get_by_role('button',name='재생',exact=True)).to_have_count(0)
+    playback(page)
     page.get_by_role('button',name='다음 수',exact=True).click()
     assert not page.evaluate("cmaBoardPresentation.isAnimating('movementBoard')")
     assert page.evaluate('exampleSounds')==[]
@@ -135,10 +158,9 @@ def test_real_lesson_picker_restores_focus_and_start_focuses_practice(isolated,s
     opener.click()
     expect(page.locator('#movementExampleDialog')).to_be_visible()
     assert page.evaluate('cmaMovement.state().clipPlaying')
-    page.get_by_role('button',name='예시 설명 닫기',exact=True).click()
-    expect(opener).to_be_focused()
-    page.get_by_role('button',name='다시 보기',exact=True).click()
-    page.get_by_role('button',name='연습 시작',exact=True).click()
+    page.get_by_role('button',name='닫기 · 스킵하고 연습',exact=True).click()
+    # The picker disclosure closes on a new lesson; focus moves to its practice title.
+    expect(page.locator('#movementTitle')).to_be_focused()
     expect(page.locator('#movementLesson')).to_contain_text('2/3')
     expect(page.locator('#movementTitle')).to_be_focused()
     assert page.evaluate('cmaMovement.state().moves')==[]
