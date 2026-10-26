@@ -46,3 +46,25 @@ body.movement-dialog-open{overflow:hidden;overscroll-behavior:none}
 @media(max-width:350px){#movementExampleDialog{padding:10px}#movementExampleTitle{font-size:18px}#movementExampleDialog #movementBoard{min-width:0;max-width:100%}}
 
 #movementExampleDialog header button{white-space:nowrap;flex-shrink:0;min-width:44px}
+
+/* One current task action; optional controls stay in disclosures. */
+body.movement-practice .feature-toolbar{display:none}
+#movementActions>.btn{background:#245bd6;color:white;border-color:#245bd6;font-weight:700;min-width:140px}
+#movementExtraActions{margin:8px 0}
+#movementExampleDialog #movementClip{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#movementClip>span{flex:1 0 100%}
+#movementClip>.movement-playback-tools{order:3;flex:1 0 100%}
+#movementClip>button:not(.primary){order:2}
+#movementClip details summary{min-height:44px;display:flex;align-items:center;cursor:pointer}
+#movementClip .btn-row>.btn:last-child{grid-column:auto}
+#movementBoardWrap .movement-outcome{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);z-index:10;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;border:2px solid currentColor;background:#fff;color:#153b24;box-shadow:0 3px 15px #0005;pointer-events:none;width:max-content;max-width:90%;font-weight:700}
+#movementBoardWrap .movement-outcome.incorrect{color:#8a2323}
+#movementBoardWrap .movement-outcome strong{font-size:32px;line-height:1}
+#movementBoardWrap .movement-outcome span{font-size:14px}
+#movementExampleDialog[open]{display:flex;flex-direction:column;overflow:hidden}
+#movementExampleDialog header,#movementExampleActions{flex-shrink:0}
+#movementExampleContent{overflow:auto;overscroll-behavior:contain;min-height:0;padding:0 2px}
+#movementExampleActions{padding-top:8px}
+#movementExampleActions>.primary{width:100%;min-height:48px;background:#245bd6;color:white;font-weight:700}
+
+#movementBoardWrap{position:relative;max-width:540px;margin:auto}
