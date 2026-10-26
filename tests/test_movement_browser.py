@@ -243,8 +243,9 @@ def test_malformed_draft_is_preserved_and_help_cancels_advance(isolated,site):
     page.wait_for_function('cmaMovement.state().data.active.done && !cmaMovement.state().pending')
     page.wait_for_timeout(1900)
     assert page.evaluate('cmaMovement.state().unit.unit_id')=='rook-path'
-    page.get_by_role('button',name='다음',exact=True).click()
-    page.wait_for_function('cmaMovement.state().data.active.done && !cmaMovement.state().pending')
     page.locator('#movementHelp > summary').click()
     page.wait_for_timeout(900)
     assert page.evaluate('cmaMovement.state().unit.unit_id')=='rook-path'
+    page.get_by_role('button',name='다음',exact=True).click()
+    page.wait_for_function("cmaMovement.state().unit.unit_id==='rook-block' && !cmaMovement.state().pending")
+    assert page.evaluate('cmaMovement.state().moves')==[]
