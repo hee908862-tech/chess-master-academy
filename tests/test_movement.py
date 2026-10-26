@@ -12,11 +12,17 @@ from movement_server import attach_movement, KEY, summary
 def movement(api):
     c,s=api;attach_movement(c.app,vars(s));return c,s
 
-def start(c,s=None,unit='rook-path',action='start',request='request-first'):
+def start(c,s=None,unit='rook-path',action='start',request='request-first',independent=True):
     s=s or c.get('/api/movement').json()
-    r=c.post('/api/movement/start',json=dict(revision=s['revision'],unit_id=unit,action=action,request_id=request))
+    r=c.post('/api/movement/start',json=dict(revision=s['revision'],unit_id=unit,action=action,request_id=request,relationship_flow=True))
     assert r.status_code==200,r.text
-    return r.json()
+    state=r.json()
+    # Existing rule tests exercise independent board legality, not the new introduction.
+    if independent and state['active'].get('teaching',{}).get('phase') in ('explain','guided'):
+        response=c.post('/api/movement/lesson',json=dict(session_id=state['active']['session_id'],revision=state['revision'],action='skip'))
+        assert response.status_code==200,response.text
+        state=response.json()
+    return state
 
 def body(s,moves,**extra):
     return dict(unit_id=s['active']['unit_id'],session_id=s['active']['session_id'],revision=s['revision'],version=VERSION,policy=POLICY,moves=moves,**extra)
