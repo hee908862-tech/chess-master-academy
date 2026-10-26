@@ -7,8 +7,11 @@ from test_movement_browser import enter, ready
 
 
 def choose(page,unit):
-    page.evaluate("async id=>{const d=await api('/movement');await api('/movement/start','POST',{action:'start',unit_id:id,revision:d.revision,request_id:crypto.randomUUID()});await cmaMovement.load();}",unit)
+    page.evaluate("async id=>{const d=await api('/movement');await api('/movement/start','POST',{action:'start',unit_id:id,revision:d.revision,request_id:crypto.randomUUID(),relationship_flow:true});await cmaMovement.load();}",unit)
     ready(page)
+    if page.evaluate("cmaMovement.state().unit?.teaching?.phase==='explain'"):
+        page.get_by_role('button',name='건너뛰고 혼자 풀기',exact=True).click()
+        page.wait_for_function("cmaMovement.state().unit.teaching.phase==='independent' && !cmaMovement.state().pending && !document.getElementById('movementClip').getClientRects().length")
 
 
 @pytest.mark.parametrize('width,height',[(1366,768),(320,650),(360,640),(390,844),(844,390)])
