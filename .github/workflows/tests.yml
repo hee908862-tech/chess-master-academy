@@ -24,7 +24,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install -r requirements.txt pytest httpx playwright
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - run: |
+          echo "PLAYWRIGHT_NODEJS_PATH=$(command -v node)" >> "$GITHUB_ENV"
+          python -m pip install --only-binary=:all: --no-deps --require-hashes -r requirements-build.txt
+          python -m pip install -r requirements.txt pytest httpx 'certifi>=2026.10.19' playwright
+          PLAYWRIGHT_NODEJS_PATH="$(command -v node)" python scripts/verify_ca_trust.py --ci
       - run: |
           sudo apt-get update
           sudo apt-get install -y stockfish
@@ -54,3 +61,10 @@ jobs:
           print(f'Shard {index + 1}/4: {len(selected)}/{len(files)} files; all {len(nodes)} collected cases are assigned once by file', flush=True)
           subprocess.run([sys.executable, '-m', 'pytest', '-q', '--tb=short', *selected], check=True)
           PYTEST
+  image-trust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --pull -t cma-ca-check .
+      - run: docker run --rm --network none cma-ca-check python verify_ca_trust.py --system

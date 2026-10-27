@@ -1,0 +1,4 @@
+# pip 26.2.2 vendors the advisory's patched certifi 2026.10.19.
+# PyPI wheel SHA-256: https://pypi.org/pypi/pip/26.2.2/json
+# Hash-check the bootstrap even when the base image's pip has an older CA bundle.
+pip==26.2.2 --hash=sha256:fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70
