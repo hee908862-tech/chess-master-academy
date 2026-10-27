@@ -6,6 +6,16 @@ from playwright.sync_api import expect
 from test_qa_browser import site,page
 from test_study_browser import login,click_move,select_course
 
+def play_challenge_hint(page,uci):
+ # Random real puzzles can require promotion; moving the pawn only opens the picker.
+ with page.expect_response(lambda r:r.url.endswith('/challenge/action') and r.request.post_data_json.get('action')=='move') as response:
+  click_move(page,'challengeBoard',uci)
+  if len(uci)==5:
+   picker=page.locator('#cmaPromotionModal');expect(picker).to_be_visible()
+   picker.get_by_role('button',name={'q':'퀸','r':'룩','b':'비숍','n':'나이트'}[uci[4]],exact=False).click()
+ assert response.value.ok
+ assert response.value.request.post_data_json['move']==uci
+
 @pytest.mark.parametrize('width',[390,1280])
 def test_navigation_help_no_mutations_and_opening_layout(page,site,width):
  page.set_viewport_size({'width':width,'height':950});login(page,site)
@@ -48,7 +58,7 @@ def test_challenge_actual_server_restore_mistake_review(page,site,width):
  page.locator('#challengeStart').click();expect(page.locator('#challengeProgress')).to_contain_text('목숨 3')
  page.locator('#challengeHint').click();expect(page.locator('#challengeHintText')).to_contain_text('현재 기준 수')
  hint=page.locator('#challengeHintText').inner_text().split(': ')[1]
- click_move(page,'challengeBoard',hint)
+ play_challenge_hint(page,hint)
  expect(page.locator('#challengeFinish')).to_be_enabled()
  page.reload();page.evaluate("tab('puzzle')");page.locator('#puzzleModeChallenge').click();expect(page.locator('#challengeProgress')).to_contain_text('목숨 3')
  # Leave, return and end without inventing client-side score.
@@ -93,11 +103,13 @@ def test_challenge_promotion_cancel_on_navigation_and_underpromotion_ui(page,sit
  page.route('**/api/challenge/action',action)
  page.evaluate("tab('puzzle')");page.locator('#puzzleModeChallenge').click();expect(page.locator('#challengeBoard .sq:enabled')).to_have_count(64)
  click_move(page,'challengeBoard','a7a8');expect(page.locator('.cma-promotion-modal')).to_be_visible()
+ expect(page.locator('#challengeFinish')).to_be_disabled()
  page.keyboard.press('Escape');expect(page.locator('.cma-promotion-modal')).to_be_hidden();assert not submitted
  click_move(page,'challengeBoard','a7a8');page.get_by_role('button',name='승격 선택 취소',exact=True).click();expect(page.locator('.cma-promotion-modal')).to_be_hidden();assert not submitted
  click_move(page,'challengeBoard','a7a8');page.evaluate("tab('home');tab('puzzle')");expect(page.locator('.cma-promotion-modal')).to_be_hidden();assert not submitted
- click_move(page,'challengeBoard','a7a8');page.get_by_role('button',name='나이트',exact=False).last.click()
+ play_challenge_hint(page,'a7a8n')
  expect(page.locator('.cma-promotion-modal')).to_be_hidden()
+ expect(page.locator('#challengeFinish')).to_be_enabled()
  assert len(submitted)==1 and submitted[0]['move']=='a7a8n'
 
 
